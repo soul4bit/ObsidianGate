@@ -8,6 +8,8 @@ public final class LauncherDefaults {
     private static final String DEFAULT_MANIFEST_PORT = "8080";
     private static final String DEFAULT_MANIFEST_PATH = "/manifest.json";
     private static final String DEFAULT_AUTH_PORT = "8081";
+    private static final String SECURE_SCHEME = "https://";
+    private static final String LEGACY_SCHEME = "http://";
     private static final String DEFAULT_SERVER_ID = "obsidiangate-main";
 
     private LauncherDefaults() {
@@ -34,7 +36,9 @@ public final class LauncherDefaults {
         } else if (!hasText(config.getManifestUrl())) {
             config.setManifestUrl(defaultManifestUrl(config.getServerHost()));
         }
-        if (!hasText(config.getAuthBaseUrl())) {
+        if (isLegacyAuthBaseUrl(config.getAuthBaseUrl(), config.getServerHost())) {
+            config.setAuthBaseUrl(defaultAuthBaseUrl(config.getServerHost()));
+        } else if (!hasText(config.getAuthBaseUrl())) {
             config.setAuthBaseUrl(defaultAuthBaseUrl(config.getServerHost()));
         }
         if (!hasText(config.getServerId())) {
@@ -52,12 +56,12 @@ public final class LauncherDefaults {
 
     public static String defaultManifestUrl(String serverHost) {
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return "http://" + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH;
+        return SECURE_SCHEME + host + DEFAULT_MANIFEST_PATH;
     }
 
     public static String defaultAuthBaseUrl(String serverHost) {
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return "http://" + host + ":" + DEFAULT_AUTH_PORT;
+        return SECURE_SCHEME + host + ":" + DEFAULT_AUTH_PORT;
     }
 
     public static String defaultServerId() {
@@ -82,6 +86,16 @@ public final class LauncherDefaults {
             return false;
         }
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return ("http://" + host + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(manifestUrl.trim());
+        String normalized = manifestUrl.trim();
+        return (LEGACY_SCHEME + host + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized)
+            || (LEGACY_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized);
+    }
+
+    private static boolean isLegacyAuthBaseUrl(String authBaseUrl, String serverHost) {
+        if (!hasText(authBaseUrl)) {
+            return false;
+        }
+        String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
+        return (LEGACY_SCHEME + host + ":" + DEFAULT_AUTH_PORT).equalsIgnoreCase(authBaseUrl.trim());
     }
 }

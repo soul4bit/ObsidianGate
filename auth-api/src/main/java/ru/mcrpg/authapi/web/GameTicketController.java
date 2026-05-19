@@ -27,7 +27,7 @@ public class GameTicketController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public GameTicketResponse create(
-        @RequestHeader("Authorization") String authorizationHeader,
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
         @Valid @RequestBody(required = false) CreateGameTicketRequest request
     ) {
         AccountEntity account = requestAuthService.authenticate(authorizationHeader);

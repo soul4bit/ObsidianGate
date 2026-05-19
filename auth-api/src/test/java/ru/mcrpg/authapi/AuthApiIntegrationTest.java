@@ -163,6 +163,48 @@ class AuthApiIntegrationTest {
             .andExpect(jsonPath("$.accessToken").isNotEmpty());
     }
 
+    @Test
+    void usernameUniquenessIsCaseInsensitive() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "username": "CaseKnight",
+                      "email": "caseknight@example.com",
+                      "password": "Supersafe123"
+                    }
+                    """))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "username": "caseknight",
+                      "email": "caseknight2@example.com",
+                      "password": "Supersafe123"
+                    }
+                    """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("username_taken"));
+    }
+
+    @Test
+    void missingAuthorizationHeaderReturnsUnauthorizedApiError() throws Exception {
+        mockMvc.perform(get("/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("missing_token"));
+    }
+
+    @Test
+    void malformedJsonReturnsBadRequestApiError() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("invalid_json"));
+    }
+
     private JsonNode parse(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString());
     }

@@ -65,13 +65,13 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public AccountResponse me(@RequestHeader("Authorization") String authorizationHeader) {
+    public AccountResponse me(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return toAccountResponse(requestAuthService.authenticate(authorizationHeader));
     }
 
     @PatchMapping("/me")
     public AccountResponse updateMe(
-        @RequestHeader("Authorization") String authorizationHeader,
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
         @Valid @RequestBody UpdateMeRequest request
     ) {
         AccountEntity account = requestAuthService.authenticate(authorizationHeader);

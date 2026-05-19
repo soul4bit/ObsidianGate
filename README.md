@@ -123,7 +123,7 @@ game.directory=C:\\Users\\<user>\\rpg-client
 working.directory=
 server.host=obsidiangates.duckdns.org
 server.port=25565
-manifest.url=http://obsidiangates.duckdns.org:8080/manifest.json
+manifest.url=https://obsidiangates.duckdns.org/manifest.json
 launch.template={java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}
 update.files.before.launch=true
 ```
@@ -132,7 +132,7 @@ update.files.before.launch=true
 
 - `server.host`: `obsidiangates.duckdns.org`
 - `server.port`: `25565`
-- `manifest.url`: `http://obsidiangates.duckdns.org:8080/manifest.json`
+- `manifest.url`: `https://obsidiangates.duckdns.org/manifest.json`
 - `game.directory`: `~/rpg-client`
 
 ## Как работает launcher
@@ -205,7 +205,7 @@ update.files.before.launch=true
   "schemaVersion": 1,
   "id": "rpg",
   "version": "2026.05.05",
-  "baseUrl": "http://obsidiangates.duckdns.org:8080/client/",
+  "baseUrl": "https://obsidiangates.duckdns.org/client/",
   "launcher": {
     "serverHost": "obsidiangates.duckdns.org",
     "serverPort": 25565,
@@ -246,8 +246,8 @@ update.files.before.launch=true
 
 Тогда:
 
-- `manifest.url` можно сделать `http://obsidiangates.duckdns.org:8080/manifest.json`
-- `baseUrl` можно сделать `http://obsidiangates.duckdns.org:8080/client/`
+- `manifest.url` можно сделать `https://obsidiangates.duckdns.org/manifest.json`
+- `baseUrl` можно сделать `https://obsidiangates.duckdns.org/client/`
 - `launcherUpdate.url` можно сделать `launcher/obsidian-gate-launcher.jar`; он считается относительно `manifest.json`
 
 Важно: launcher ждёт именно HTTP(S)-раздачу `manifest.json` и файлов модпака. Это не Minecraft-порт `25565`.

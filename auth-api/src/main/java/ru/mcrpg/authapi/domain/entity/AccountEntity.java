@@ -22,8 +22,14 @@ public class AccountEntity {
     @Column(nullable = false, length = 32, unique = true)
     private String username;
 
+    @Column(name = "username_normalized", nullable = false, length = 32, unique = true)
+    private String usernameNormalized;
+
     @Column(nullable = false, length = 255, unique = true)
     private String email;
+
+    @Column(name = "email_normalized", nullable = false, length = 255, unique = true)
+    private String emailNormalized;
 
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
@@ -52,12 +58,28 @@ public class AccountEntity {
         this.username = username;
     }
 
+    public String getUsernameNormalized() {
+        return usernameNormalized;
+    }
+
+    public void setUsernameNormalized(String usernameNormalized) {
+        this.usernameNormalized = usernameNormalized;
+    }
+
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getEmailNormalized() {
+        return emailNormalized;
+    }
+
+    public void setEmailNormalized(String emailNormalized) {
+        this.emailNormalized = emailNormalized;
     }
 
     public String getPasswordHash() {

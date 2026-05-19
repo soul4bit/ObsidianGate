@@ -1,21 +1,21 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.19.6",
-    "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
+    "version":  "2026.05.19.7",
+    "baseUrl":  "https://obsidiangates.duckdns.org/client/",
     "launcher":  {
                      "serverHost":  "obsidiangates.duckdns.org",
                      "serverPort":  25565,
-                     "authBaseUrl":  "http://obsidiangates.duckdns.org:8081",
+                     "authBaseUrl":  "https://obsidiangates.duckdns.org:8081",
                      "serverId":  "obsidiangate-main",
                      "workingDirectory":  ".",
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.19.6",
+                           "version":  "2026.05.19.7",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "a8d48113c9ccdbca848d7342f2ef7143c47aaf1364d7c215e39d4c37d9c70da8",
-                           "size":  15609690,
+                           "sha256":  "d09114d861422a35382eb30559b7e272093c1a7067fae6b407f6650561fd7f6e",
+                           "size":  15620984,
                            "required":  false,
                            "artifactVersion":  "0.1.4-test",
                            "fileName":  "obsidian-gate-launcher.jar"
@@ -1064,7 +1064,7 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "40d112d05bbd380715f6b99d73283cb8e3424efdad4faba6edd0c6498f9e24be",
+                      "sha256":  "0229f63555ac9b40476dac8ee5b0438d582649aaba3800cb54b978f0205e33d7",
                       "size":  31606,
                       "executable":  false
                   },

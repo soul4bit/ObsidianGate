@@ -50,7 +50,7 @@ public class GameTicketService {
     public VerifiedGameTicket verify(String rawTicket, String serverId) {
         String normalizedServerId = normalizeServerId(serverId);
         String hashed = hashingService.sha256(requireText(rawTicket));
-        GameTicketEntity ticket = gameTicketRepository.findFirstByTicketHash(hashed)
+        GameTicketEntity ticket = gameTicketRepository.findForUpdateByTicketHash(hashed)
             .orElse(null);
 
         if (ticket == null) {

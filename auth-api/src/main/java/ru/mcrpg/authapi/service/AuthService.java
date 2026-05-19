@@ -44,18 +44,21 @@ public class AuthService {
     @Transactional
     public AuthSessionResult register(String username, String email, String password, String deviceName, String userAgent) {
         String normalizedUsername = normalizeUsername(username);
+        String usernameKey = normalizeLookupKey(normalizedUsername);
         String normalizedEmail = normalizeEmail(email);
 
-        if (accountRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
+        if (accountRepository.existsByUsernameNormalized(usernameKey)) {
             throw ApiException.conflict("username_taken", "Этот ник уже занят.");
         }
-        if (accountRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+        if (accountRepository.existsByEmailNormalized(normalizedEmail)) {
             throw ApiException.conflict("email_taken", "Этот email уже используется.");
         }
 
         AccountEntity account = new AccountEntity();
         account.setUsername(normalizedUsername);
+        account.setUsernameNormalized(usernameKey);
         account.setEmail(normalizedEmail);
+        account.setEmailNormalized(normalizedEmail);
         account.setPasswordHash(passwordEncoder.encode(password));
         account.setRole(DEFAULT_ROLE);
         account.setStatus(DEFAULT_STATUS);
@@ -67,7 +70,8 @@ public class AuthService {
     @Transactional
     public AuthSessionResult login(String login, String password, String deviceName, String userAgent) {
         String normalizedLogin = normalizeLogin(login);
-        AccountEntity account = accountRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(normalizedLogin, normalizedLogin)
+        String lookupKey = normalizeLookupKey(normalizedLogin);
+        AccountEntity account = accountRepository.findByUsernameNormalizedOrEmailNormalized(lookupKey, lookupKey)
             .orElseThrow(() -> ApiException.unauthorized("invalid_credentials", "Неверный ник, email или пароль."));
 
         if (!passwordEncoder.matches(password, account.getPasswordHash())) {
@@ -82,7 +86,7 @@ public class AuthService {
 
     @Transactional
     public AuthSessionResult refresh(String refreshToken) {
-        LauncherSessionEntity session = launcherSessionRepository.findFirstByRefreshTokenHash(hashingService.sha256(requireText(refreshToken, "Нужен refresh token.")))
+        LauncherSessionEntity session = launcherSessionRepository.findForUpdateByRefreshTokenHash(hashingService.sha256(requireText(refreshToken, "Нужен refresh token.")))
             .orElseThrow(() -> ApiException.unauthorized("invalid_refresh_token", "Refresh token недействителен."));
 
         if (session.getRevokedAt() != null) {
@@ -109,7 +113,7 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         String normalized = requireText(refreshToken, "Нужен refresh token.");
-        launcherSessionRepository.findFirstByRefreshTokenHash(hashingService.sha256(normalized))
+        launcherSessionRepository.findForUpdateByRefreshTokenHash(hashingService.sha256(normalized))
             .ifPresent(session -> {
                 if (session.getRevokedAt() == null) {
                     session.setRevokedAt(Instant.now());
@@ -121,10 +125,11 @@ public class AuthService {
     @Transactional
     public AccountEntity updateEmail(AccountEntity account, String newEmail) {
         String normalizedEmail = normalizeEmail(newEmail);
-        if (!account.getEmail().equalsIgnoreCase(normalizedEmail) && accountRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+        if (!account.getEmailNormalized().equals(normalizedEmail) && accountRepository.existsByEmailNormalized(normalizedEmail)) {
             throw ApiException.conflict("email_taken", "Этот email уже используется.");
         }
         account.setEmail(normalizedEmail);
+        account.setEmailNormalized(normalizedEmail);
         return accountRepository.save(account);
     }
 
@@ -165,6 +170,10 @@ public class AuthService {
 
     private static String normalizeLogin(String raw) {
         return requireText(raw, "Укажи логин.");
+    }
+
+    private static String normalizeLookupKey(String raw) {
+        return requireText(raw, "Укажи логин.").toLowerCase(java.util.Locale.ROOT);
     }
 
     private static String normalizeOptional(String raw, int maxLength) {

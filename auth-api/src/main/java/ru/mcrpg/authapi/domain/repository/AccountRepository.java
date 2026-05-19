@@ -7,9 +7,9 @@ import ru.mcrpg.authapi.domain.entity.AccountEntity;
 
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
-    boolean existsByUsernameIgnoreCase(String username);
+    boolean existsByUsernameNormalized(String usernameNormalized);
 
-    boolean existsByEmailIgnoreCase(String email);
+    boolean existsByEmailNormalized(String emailNormalized);
 
-    Optional<AccountEntity> findByUsernameIgnoreCaseOrEmailIgnoreCase(String username, String email);
+    Optional<AccountEntity> findByUsernameNormalizedOrEmailNormalized(String usernameNormalized, String emailNormalized);
 }

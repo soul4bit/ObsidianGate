@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$LauncherJar = "obsidian-gate-launcher.jar",
-    [string]$LauncherUrl = "http://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
+    [string]$LauncherUrl = "https://obsidiangates.duckdns.org/launcher/obsidian-gate-launcher.jar",
     [int]$MinimumJavaMajor = 17,
     [string]$RuntimeUrl = "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse"
 )

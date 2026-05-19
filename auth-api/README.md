@@ -48,6 +48,9 @@ cp auth-api/.env.example auth-api/.env
 - `launcher.serverId` в `manifest.json`
 - `-Dobsidiangate.serverId=...` у серверного Forge-мода
 
+Схема PostgreSQL управляется Flyway-миграциями из `src/main/resources/db/migration`.
+Hibernate работает в режиме `validate` и проверяет, что миграции уже применены.
+
 ## Локальный запуск
 
 ```bash
@@ -57,6 +60,7 @@ set DB_NAME=obsidiangate
 set DB_USER=obsidian
 set DB_PASSWORD=CHANGE_ME
 set JWT_SECRET=CHANGE_ME
+set SERVER_PORT=8081
 mvn -f auth-api/pom.xml spring-boot:run
 ```
 
