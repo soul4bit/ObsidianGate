@@ -60,6 +60,6 @@ class LauncherConfigStoreTest {
         store.save(config);
         LauncherConfig restored = store.load();
 
-        assertEquals("https://" + LauncherConfig.DEFAULT_SERVER_HOST + "/manifest.json", restored.getManifestUrl());
+        assertEquals("http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8080/manifest.json", restored.getManifestUrl());
     }
 }

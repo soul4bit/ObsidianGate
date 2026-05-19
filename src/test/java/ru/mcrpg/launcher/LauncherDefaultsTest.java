@@ -31,11 +31,11 @@ class LauncherDefaultsTest {
         assertEquals(LauncherConfig.DEFAULT_SERVER_HOST, config.getServerHost());
         assertEquals(LauncherConfig.DEFAULT_SERVER_PORT, config.getServerPort());
         assertEquals(
-            "https://" + LauncherConfig.DEFAULT_SERVER_HOST + "/manifest.json",
+            "http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8080/manifest.json",
             config.getManifestUrl()
         );
         assertEquals(
-            "https://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081",
+            "http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081",
             config.getAuthBaseUrl()
         );
         assertEquals("obsidiangate-main", config.getServerId());
@@ -45,11 +45,11 @@ class LauncherDefaultsTest {
     @Test
     void defaultManifestUrlUsesConfiguredServerHost() {
         assertEquals(
-            "https://example.local/manifest.json",
+            "http://example.local:8080/manifest.json",
             LauncherDefaults.defaultManifestUrl("example.local")
         );
         assertEquals(
-            "https://example.local:8081",
+            "http://example.local:8081",
             LauncherDefaults.defaultAuthBaseUrl("example.local")
         );
         assertEquals("obsidiangate-main", LauncherDefaults.defaultServerId());
@@ -57,26 +57,26 @@ class LauncherDefaultsTest {
     }
 
     @Test
-    void applyMissingValuesMigratesLegacyManifestUrlWithoutPort() {
+    void applyMissingValuesNormalizesManifestUrlWithoutPort() {
         LauncherConfig config = LauncherConfig.defaults();
         config.setServerHost("example.local");
         config.setManifestUrl("http://example.local/manifest.json");
 
         LauncherDefaults.applyMissingValues(config);
 
-        assertEquals("https://example.local/manifest.json", config.getManifestUrl());
+        assertEquals("http://example.local:8080/manifest.json", config.getManifestUrl());
     }
 
     @Test
-    void applyMissingValuesMigratesLegacyDefaultUrls() {
+    void applyMissingValuesNormalizesBrokenSecureDefaultUrls() {
         LauncherConfig config = LauncherConfig.defaults();
         config.setServerHost("example.local");
-        config.setManifestUrl("http://example.local:8080/manifest.json");
-        config.setAuthBaseUrl("http://example.local:8081");
+        config.setManifestUrl("https://example.local/manifest.json");
+        config.setAuthBaseUrl("https://example.local:8081");
 
         LauncherDefaults.applyMissingValues(config);
 
-        assertEquals("https://example.local/manifest.json", config.getManifestUrl());
-        assertEquals("https://example.local:8081", config.getAuthBaseUrl());
+        assertEquals("http://example.local:8080/manifest.json", config.getManifestUrl());
+        assertEquals("http://example.local:8081", config.getAuthBaseUrl());
     }
 }

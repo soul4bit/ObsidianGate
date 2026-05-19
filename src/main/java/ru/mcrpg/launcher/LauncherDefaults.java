@@ -8,8 +8,8 @@ public final class LauncherDefaults {
     private static final String DEFAULT_MANIFEST_PORT = "8080";
     private static final String DEFAULT_MANIFEST_PATH = "/manifest.json";
     private static final String DEFAULT_AUTH_PORT = "8081";
-    private static final String SECURE_SCHEME = "https://";
-    private static final String LEGACY_SCHEME = "http://";
+    private static final String HTTP_SCHEME = "http://";
+    private static final String HTTPS_SCHEME = "https://";
     private static final String DEFAULT_SERVER_ID = "obsidiangate-main";
 
     private LauncherDefaults() {
@@ -31,12 +31,12 @@ public final class LauncherDefaults {
         if (config.getServerPort() < 1 || config.getServerPort() > 65535) {
             config.setServerPort(LauncherConfig.DEFAULT_SERVER_PORT);
         }
-        if (isLegacyManifestUrl(config.getManifestUrl(), config.getServerHost())) {
+        if (isKnownDefaultManifestUrl(config.getManifestUrl(), config.getServerHost())) {
             config.setManifestUrl(defaultManifestUrl(config.getServerHost()));
         } else if (!hasText(config.getManifestUrl())) {
             config.setManifestUrl(defaultManifestUrl(config.getServerHost()));
         }
-        if (isLegacyAuthBaseUrl(config.getAuthBaseUrl(), config.getServerHost())) {
+        if (isKnownDefaultAuthBaseUrl(config.getAuthBaseUrl(), config.getServerHost())) {
             config.setAuthBaseUrl(defaultAuthBaseUrl(config.getServerHost()));
         } else if (!hasText(config.getAuthBaseUrl())) {
             config.setAuthBaseUrl(defaultAuthBaseUrl(config.getServerHost()));
@@ -56,12 +56,12 @@ public final class LauncherDefaults {
 
     public static String defaultManifestUrl(String serverHost) {
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return SECURE_SCHEME + host + DEFAULT_MANIFEST_PATH;
+        return HTTP_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH;
     }
 
     public static String defaultAuthBaseUrl(String serverHost) {
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return SECURE_SCHEME + host + ":" + DEFAULT_AUTH_PORT;
+        return HTTP_SCHEME + host + ":" + DEFAULT_AUTH_PORT;
     }
 
     public static String defaultServerId() {
@@ -81,21 +81,25 @@ public final class LauncherDefaults {
         return value != null && !value.trim().isEmpty();
     }
 
-    private static boolean isLegacyManifestUrl(String manifestUrl, String serverHost) {
+    private static boolean isKnownDefaultManifestUrl(String manifestUrl, String serverHost) {
         if (!hasText(manifestUrl)) {
             return false;
         }
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
         String normalized = manifestUrl.trim();
-        return (LEGACY_SCHEME + host + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized)
-            || (LEGACY_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized);
+        return (HTTP_SCHEME + host + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized)
+            || (HTTP_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized)
+            || (HTTPS_SCHEME + host + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized)
+            || (HTTPS_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH).equalsIgnoreCase(normalized);
     }
 
-    private static boolean isLegacyAuthBaseUrl(String authBaseUrl, String serverHost) {
+    private static boolean isKnownDefaultAuthBaseUrl(String authBaseUrl, String serverHost) {
         if (!hasText(authBaseUrl)) {
             return false;
         }
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return (LEGACY_SCHEME + host + ":" + DEFAULT_AUTH_PORT).equalsIgnoreCase(authBaseUrl.trim());
+        String normalized = authBaseUrl.trim();
+        return (HTTP_SCHEME + host + ":" + DEFAULT_AUTH_PORT).equalsIgnoreCase(normalized)
+            || (HTTPS_SCHEME + host + ":" + DEFAULT_AUTH_PORT).equalsIgnoreCase(normalized);
     }
 }
