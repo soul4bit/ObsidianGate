@@ -2,6 +2,7 @@
 param(
     [string]$ManifestPath = "examples/manifest.json",
     [string]$ClientSourceDir = "modpack/client",
+    [string]$ServerSourceDir = "modpack/server",
     [string]$DistDir = "dist",
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
     [string]$LauncherUpdatePath = "client/launcher/obsidian-gate-launcher.jar",
@@ -31,6 +32,7 @@ function Resolve-InputPath {
 
 $manifestFullPath = Resolve-InputPath $ManifestPath
 $clientSourceFullPath = Resolve-InputPath $ClientSourceDir
+$serverSourceFullPath = Resolve-InputPath $ServerSourceDir
 $distFullPath = Resolve-InputPath $DistDir
 $authMetadataPath = Join-Path $distFullPath "auth-release.json"
 $distManifestPath = Join-Path $distFullPath "manifest.json"
@@ -291,6 +293,22 @@ function Copy-DirectoryContent {
     }
 }
 
+function Copy-DirectoryContentMerge {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Destination
+    )
+
+    $null = New-Item -ItemType Directory -Path $Destination -Force
+
+    Get-ChildItem $Source -Force | ForEach-Object {
+        Copy-Item $_.FullName -Destination $Destination -Recurse -Force
+    }
+}
+
 function Copy-RelativeFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -388,6 +406,26 @@ foreach ($serverDirectoryName in @("config", "scripts")) {
             $relativePath = Get-RelativePath -Root $distServerRoot -Path $_.FullName
             $serverFiles.Add((Get-FileRecord -File $_ -RelativePath $relativePath))
         }
+}
+
+if (Test-Path -LiteralPath $serverSourceFullPath -PathType Container) {
+    foreach ($serverDirectoryName in @("config", "scripts", "systemd")) {
+        $sourceDirectory = Join-Path $serverSourceFullPath $serverDirectoryName
+        if (-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {
+            continue
+        }
+
+        $destinationDirectory = Join-Path $distServerRoot $serverDirectoryName
+        Copy-DirectoryContentMerge -Source $sourceDirectory -Destination $destinationDirectory
+        Get-ChildItem $sourceDirectory -Recurse -File -Force |
+            Sort-Object FullName |
+            ForEach-Object {
+                $sourceRelativePath = Get-RelativePath -Root $sourceDirectory -Path $_.FullName
+                $relativePath = Normalize-ManifestPath ("$serverDirectoryName/$sourceRelativePath")
+                $destinationPath = Join-Path $distServerRoot ($relativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+                $serverFiles.Add((Get-FileRecord -File (Get-Item -LiteralPath $destinationPath) -RelativePath $relativePath))
+            }
+    }
 }
 
 $manifest.version = $ManifestVersion
@@ -501,6 +539,7 @@ $metadata = [pscustomobject][ordered]@{
     }
     server = [pscustomobject][ordered]@{
         sourcePath = $ClientSourceDir
+        serverSourcePath = $ServerSourceDir
         distPath = "server"
         modCount = $serverModPaths.Count
         fileCount = $serverFiles.Count

@@ -1,0 +1,16 @@
+[Unit]
+Description=MC RPG world backup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+Environment=SERVER_ROOT=/home/minecraft/mc-rpg
+Environment=WORLD_NAME=world
+Environment=SERVICE_NAME=mc-rpg.service
+Environment=BACKUP_ROOT=/home/minecraft/mc-rpg/backups/world
+Environment=RETENTION=7
+Environment=STOP_SERVER=auto
+ExecStart=/home/minecraft/mc-rpg/scripts/obsidiangate-world-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

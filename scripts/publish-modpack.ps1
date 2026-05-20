@@ -2,6 +2,7 @@
 param(
     [string]$ManifestPath = "examples/manifest.json",
     [string]$ClientSourceDir = "modpack/client",
+    [string]$ServerSourceDir = "modpack/server",
     [string]$DistDir = "dist",
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
     [switch]$SkipSourceManifestUpdate,
@@ -53,6 +54,7 @@ if (-not $WhatIfPreference -and -not $SkipConnectivityCheck) {
 & $releaseScript `
     -ManifestPath $ManifestPath `
     -ClientSourceDir $ClientSourceDir `
+    -ServerSourceDir $ServerSourceDir `
     -DistDir $DistDir `
     -ManifestVersion $ManifestVersion `
     -SkipSourceManifestUpdate:$SkipSourceManifestUpdate `

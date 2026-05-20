@@ -90,6 +90,28 @@ if [ -d "$STAGE_DIR/server/scripts" ]; then
     rm -rf "$SERVER_ROOT/scripts"
     install -d "$SERVER_ROOT/scripts"
     cp -a "$STAGE_DIR/server/scripts/." "$SERVER_ROOT/scripts/"
+    find "$SERVER_ROOT/scripts" -type f -name "*.sh" -exec chmod 755 {} +
+fi
+
+if [ -d "$STAGE_DIR/server/systemd" ]; then
+    for unit in "$STAGE_DIR"/server/systemd/*.service "$STAGE_DIR"/server/systemd/*.timer; do
+        [ -e "$unit" ] || continue
+        unit_name="$(basename "$unit")"
+        case "$unit_name" in
+            mc-rpg-*.service|mc-rpg-*.timer|obsidiangate-*.service|obsidiangate-*.timer) ;;
+            *)
+                echo "Refusing to install unexpected systemd unit: $unit_name" >&2
+                exit 4
+                ;;
+        esac
+        install -m 644 "$unit" "/etc/systemd/system/$unit_name"
+    done
+
+    systemctl daemon-reload
+    if [ -f /etc/systemd/system/mc-rpg-world-backup.timer ]; then
+        systemctl enable --now mc-rpg-world-backup.timer
+        systemctl list-timers --all mc-rpg-world-backup.timer --no-pager
+    fi
 fi
 
 install -d "$WEB_ROOT"

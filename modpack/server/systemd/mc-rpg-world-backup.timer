@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily MC RPG world backup
+
+[Timer]
+OnCalendar=*-*-* 05:30:00
+RandomizedDelaySec=10min
+Persistent=true
+Unit=mc-rpg-world-backup.service
+
+[Install]
+WantedBy=timers.target
