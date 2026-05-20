@@ -1,0 +1,72 @@
+bq_standard.task.retrieval=Задание на сбор
+bq_standard.task.crafting=Задание на крафт
+bq_standard.task.hunt=Задание на охоту
+bq_standard.task.scoreboard=Задание по счетчику
+bq_standard.task.location=Задание на место
+bq_standard.task.fluid=Задание на жидкость
+bq_standard.task.meeting=Задание на встречу
+bq_standard.task.xp=Задание на опыт
+bq_standard.task.block_break=Задание на разрушение блока
+bq_standard.task.checkbox=Задание с отметкой
+bq_standard.task.advancement=Задание на достижение
+bq_standard.task.tame=Задание на приручение
+bq_standard.task.interact_item=Задание на взаимодействие с предметом
+bq_standard.task.interact_entity=Задание на взаимодействие с сущностью
+bq_standard.task.trigger=Задание на критерий
+
+bq_standard.reward.choice=Награда на выбор
+bq_standard.reward.item=Награда предметом
+bq_standard.reward.scoreboard=Награда счетчиком
+bq_standard.reward.command=Награда командой
+bq_standard.reward.xp=Награда опытом
+bq_standard.reward.recipe=Открытие рецептов
+
+bq_standard.title.edit_hunt=Настройка задания на охоту
+bq_standard.title.edit_meeting=Настройка задания на встречу
+bq_standard.title.edit_loot_groups=Настройка групп добычи
+bq_standard.title.edit_loot_entries=Настройка записей добычи
+bq_standard.title.edit_retrieval=Настройка задания на сбор
+bq_standard.title.edit_crafting=Настройка задания на крафт
+bq_standard.title.edit_scoreboard=Настройка задания по счетчику
+bq_standard.title.edit_advancement=Настройка задания на достижение
+bq_standard.title.edit_tame=Настройка задания на приручение
+
+bq_standard.btn.select_mob=Выбрать моба
+bq_standard.btn.add_remove_drops=Добавить/убрать добычу
+bq_standard.btn.edit_items=Добавить/убрать предметы
+bq_standard.btn.consume=Потреблять: %s
+
+bq_standard.gui.amount=Количество
+bq_standard.gui.kill=Убить %s
+bq_standard.gui.location=Место: %s
+bq_standard.gui.distance=Дистанция: %s
+bq_standard.gui.dimension=Измерение: %s
+bq_standard.gui.biome=Биом: %s
+bq_standard.gui.structure=Структура: %s
+bq_standard.gui.found=Найдено!
+bq_standard.gui.undiscovered=Не обнаружено
+bq_standard.gui.condition=Условие: %s
+bq_standard.gui.meet=Встретить %s
+bq_standard.gui.weight=Вес
+bq_standard.gui.experience=Опыт
+bq_standard.gui.tame=Приручить %s
+
+bq_standard.importer.hqm_bag.name=Импорт сумок HQM
+bq_standard.importer.hqm_bag.desc=Импортирует сумки наград HQM, экспортированные в формате JSON.
+bq_standard.importer.hqm_quest.name=Импорт заданий HQM
+bq_standard.importer.hqm_quest.desc=Импортирует линии заданий HQM, экспортированные в формате JSON. Из-за особенностей нумерации заданий HQM после экспорта возможны ошибки между заданиями с одинаковыми именами или условной разблокировкой.
+bq_standard.importer.nat_file.name=Импорт из файла
+bq_standard.importer.nat_file.desc=Импортирует файлы базы заданий и добавляет их к существующим.
+bq_standard.importer.nat_url.name=Импорт по URL
+bq_standard.importer.nat_url.desc=Импортирует базы заданий из интернета и добавляет их к существующим.
+bq_standard.importer.ftbq_quest.name=Импорт заданий FTB
+bq_standard.importer.ftbq_quest.desc=Импортирует главы и задания из NBT-файлов мода FTB Quests.
+bq_standard.importer.adv_json.name=Импорт достижений (JSON)
+bq_standard.importer.adv_json.desc=Импортирует ванильные достижения в формате JSON.%n%nВНИМАНИЕ: для корректного импорта файлы должны находиться в оригинальных папках vanilla или triumph!
+
+item.bq_standard.loot_chest.name=Сундук с добычей
+
+bq_standard.tooltip.fixed_loot=Набор добычи: %s
+bq_standard.tooltip.fixed_loot_size=Содержит предметов: %s
+bq_standard.tooltip.loot_table=Таблица добычи: %s
+bq_standard.tooltip.loot_chest=Редкость: %s

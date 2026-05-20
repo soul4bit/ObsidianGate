@@ -2,6 +2,8 @@ package ru.mcrpg.authapi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -103,6 +105,7 @@ class AuthApiIntegrationTest {
 
         String accessToken = registration.path("accessToken").asText();
         String accountId = registration.path("account").path("id").asText();
+        String expectedPlayerUuid = offlinePlayerUuid("TicketUser");
 
         JsonNode ticket = parse(mockMvc.perform(post("/game/tickets")
                 .header("Authorization", "Bearer " + accessToken)
@@ -114,16 +117,19 @@ class AuthApiIntegrationTest {
                     """))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.serverId").value("obsidiangate-main"))
+            .andExpect(jsonPath("$.uuid").value(expectedPlayerUuid))
             .andReturn());
 
         String rawTicket = ticket.path("ticket").asText();
+        assertFalse(accountId.equals(expectedPlayerUuid));
 
         mockMvc.perform(post("/game/tickets/verify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"ticket\":\"" + rawTicket + "\",\"serverId\":\"obsidiangate-main\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.valid").value(true))
-            .andExpect(jsonPath("$.accountId").value(accountId));
+            .andExpect(jsonPath("$.accountId").value(accountId))
+            .andExpect(jsonPath("$.uuid").value(expectedPlayerUuid));
 
         MvcResult secondVerification = mockMvc.perform(post("/game/tickets/verify")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -207,5 +213,9 @@ class AuthApiIntegrationTest {
 
     private JsonNode parse(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private static String offlinePlayerUuid(String username) {
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8)).toString();
     }
 }

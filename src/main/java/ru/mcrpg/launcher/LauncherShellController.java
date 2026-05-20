@@ -43,6 +43,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private static final String DASHBOARD_UNKNOWN = "—";
     private static final int PREVIEW_ENTRY_LIMIT = 4;
     private static final int RECONNECT_TICKET_COUNT = 5;
+    private static final String REQUIRED_LANGUAGE = "ru_ru";
     private static final String REQUIRED_RESOURCE_PACK = "ObsidianGate-Fixes-1.12.2";
 
     private final LaunchCommandBuilder commandBuilder = new LaunchCommandBuilder();
@@ -1131,6 +1132,9 @@ public final class LauncherShellController extends AbstractScreenController {
     private void ensureRequiredResourcePack(LauncherConfig config) {
         try {
             Path gameDirectory = resolveGameDirectory(config);
+            if (MinecraftResourcePackOptions.ensureLanguage(gameDirectory, REQUIRED_LANGUAGE)) {
+                appendLogAsync("Язык Minecraft установлен: " + REQUIRED_LANGUAGE);
+            }
             if (MinecraftResourcePackOptions.ensureEnabled(gameDirectory, REQUIRED_RESOURCE_PACK)) {
                 appendLogAsync("Обязательный ресурс-пак включен: " + REQUIRED_RESOURCE_PACK);
             }

@@ -34,6 +34,10 @@ final class MinecraftPlayerBridge {
     }
 
     String extractUsername(Object player) {
+        return extractUsernameStatic(player);
+    }
+
+    static String extractUsernameStatic(Object player) {
         Object value = invokeZeroArg(player, "func_70005_c_", "getName");
         return value == null ? "" : value.toString().trim();
     }

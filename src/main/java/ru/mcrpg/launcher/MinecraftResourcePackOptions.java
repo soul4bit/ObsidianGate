@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 final class MinecraftResourcePackOptions {
 
     private static final Pattern QUOTED_VALUE_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"\\\\])*)\"");
+    private static final String LANGUAGE_PREFIX = "lang:";
     private static final String RESOURCE_PACKS_PREFIX = "resourcePacks:";
 
     private MinecraftResourcePackOptions() {
@@ -23,11 +24,9 @@ final class MinecraftResourcePackOptions {
         }
 
         Path optionsFile = gameDirectory.resolve("options.txt");
-        List<String> lines = Files.isRegularFile(optionsFile)
-            ? Files.readAllLines(optionsFile, StandardCharsets.UTF_8)
-            : new ArrayList<String>();
+        List<String> lines = readOptions(optionsFile);
 
-        int resourcePacksLine = findResourcePacksLine(lines);
+        int resourcePacksLine = findLine(lines, RESOURCE_PACKS_PREFIX);
         List<String> packs = resourcePacksLine >= 0
             ? parseResourcePacks(lines.get(resourcePacksLine))
             : new ArrayList<String>();
@@ -52,15 +51,47 @@ final class MinecraftResourcePackOptions {
         return true;
     }
 
+    static boolean ensureLanguage(Path gameDirectory, String language) throws IOException {
+        if (gameDirectory == null || !hasText(language)) {
+            return false;
+        }
+
+        Path optionsFile = gameDirectory.resolve("options.txt");
+        List<String> lines = readOptions(optionsFile);
+        String normalizedLanguage = language.trim();
+        String updatedLine = LANGUAGE_PREFIX + normalizedLanguage;
+        int languageLine = findLine(lines, LANGUAGE_PREFIX);
+
+        if (languageLine >= 0 && updatedLine.equals(lines.get(languageLine))) {
+            return false;
+        }
+
+        if (languageLine >= 0) {
+            lines.set(languageLine, updatedLine);
+        } else {
+            lines.add(updatedLine);
+        }
+
+        Files.createDirectories(gameDirectory);
+        Files.write(optionsFile, lines, StandardCharsets.UTF_8);
+        return true;
+    }
+
+    private static List<String> readOptions(Path optionsFile) throws IOException {
+        return Files.isRegularFile(optionsFile)
+            ? Files.readAllLines(optionsFile, StandardCharsets.UTF_8)
+            : new ArrayList<String>();
+    }
+
     private static boolean isInstalled(Path gameDirectory, String packName) {
         Path resourcePacksDirectory = gameDirectory.resolve("resourcepacks");
         return Files.exists(resourcePacksDirectory.resolve(packName))
             || Files.exists(resourcePacksDirectory.resolve(packName + ".zip"));
     }
 
-    private static int findResourcePacksLine(List<String> lines) {
+    private static int findLine(List<String> lines, String prefix) {
         for (int index = 0; index < lines.size(); index++) {
-            if (lines.get(index).startsWith(RESOURCE_PACKS_PREFIX)) {
+            if (lines.get(index).startsWith(prefix)) {
                 return index;
             }
         }

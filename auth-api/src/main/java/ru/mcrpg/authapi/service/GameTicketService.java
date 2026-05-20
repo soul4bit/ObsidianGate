@@ -1,6 +1,8 @@
 package ru.mcrpg.authapi.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mcrpg.authapi.config.AuthApiProperties;
@@ -90,7 +92,7 @@ public class GameTicketService {
     }
 
     private static String playerUuidFor(AccountEntity account) {
-        return account.getId().toString();
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + account.getUsername()).getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     private static String requireText(String value) {

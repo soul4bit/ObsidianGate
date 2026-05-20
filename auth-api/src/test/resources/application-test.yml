@@ -1,3 +1,5 @@
+debug: false
+
 spring:
   datasource:
     url: jdbc:h2:mem:obsidiangate-auth;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
@@ -19,3 +21,9 @@ auth:
   refresh-token-ttl-days: 30
   game-ticket-ttl-seconds: 180
   server-id: obsidiangate-main
+
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN

@@ -57,7 +57,7 @@ mvn package
 Запуск собранного лаунчера:
 
 ```bash
-java -jar target/obsidian-gate-launcher-0.1.0-SNAPSHOT.jar
+java -jar target/obsidian-gate-launcher-0.1.6-test.jar
 ```
 
 Сборка auth API:
@@ -155,6 +155,8 @@ update.files.before.launch=true
 4. Клиентский Forge-мод читает `session.json` и после сетевого handshake отправляет ticket на сервер по каналу `ogauth`.
 5. Серверный Forge-мод вызывает `POST /game/tickets/verify`.
 6. Если ticket валиден, игрок остаётся в игре. Если нет, сервер разрывает соединение.
+
+Важно для offline-mode сервера: Minecraft привязывает `world/playerdata/<uuid>.dat` к точному нику игрока. Ник в auth-аккаунте должен оставаться стабильным, включая регистр, иначе сервер создаст новый playerdata-файл и инвентарь будет выглядеть пустым.
 
 ## Плейсхолдеры `launchTemplate`
 

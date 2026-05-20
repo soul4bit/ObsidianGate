@@ -14,6 +14,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -31,6 +33,7 @@ final class ForgeAuthServerLifecycle {
     private final ExecutorService verificationExecutor;
     private final Map<String, PlayerAuthState> authStates;
     private final Queue<Runnable> mainThreadActions;
+    private final ChatAppearanceService chatAppearance;
 
     private int serverTickCounter;
 
@@ -62,6 +65,7 @@ final class ForgeAuthServerLifecycle {
         this.verificationExecutor = Objects.requireNonNull(verificationExecutor, "verificationExecutor");
         this.authStates = Objects.requireNonNull(authStates, "authStates");
         this.mainThreadActions = Objects.requireNonNull(mainThreadActions, "mainThreadActions");
+        this.chatAppearance = new ChatAppearanceService(logger, this.authStates);
     }
 
     @SubscribeEvent
@@ -80,6 +84,7 @@ final class ForgeAuthServerLifecycle {
         PlayerAuthState existing = authStates.get(key);
         if (existing != null) {
             existing.player = player;
+            chatAppearance.applyPlayerAppearance(player, existing.role);
             logger.info(String.format(
                 "Player %s logged in. Preserving existing launcher auth state: verified=%s inFlight=%s.",
                 username,
@@ -90,6 +95,7 @@ final class ForgeAuthServerLifecycle {
         }
 
         authStates.put(key, new PlayerAuthState(player, username, Instant.now()));
+        chatAppearance.applyPlayerAppearance(player, "player");
         logger.info(String.format(
             "Игрок %s вошел. Ждем подтверждение авторизации лаунчера до %d секунд.",
             username,
@@ -104,6 +110,11 @@ final class ForgeAuthServerLifecycle {
         if (!username.isEmpty()) {
             authStates.remove(normalizeKey(username));
         }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onServerChat(ServerChatEvent event) {
+        chatAppearance.onServerChat(event);
     }
 
     @SubscribeEvent
@@ -230,6 +241,8 @@ final class ForgeAuthServerLifecycle {
         }
 
         state.verified = true;
+        state.role = result.getRole();
+        chatAppearance.applyPlayerAppearance(state.player, state.role);
         logger.info(String.format(
             "Авторизация лаунчера принята для %s. Роль=%s accountId=%s",
             expectedUsername,
@@ -291,17 +304,27 @@ final class ForgeAuthServerLifecycle {
         return Executors.newSingleThreadExecutor(factory);
     }
 
-    private static final class PlayerAuthState {
+    interface PlayerView {
+        String getRole();
+    }
+
+    private static final class PlayerAuthState implements PlayerView {
         private volatile Object player;
         private final String username;
         private final Instant connectedAt;
         private volatile boolean verificationInFlight;
         private volatile boolean verified;
+        private volatile String role = "player";
 
         private PlayerAuthState(Object player, String username, Instant connectedAt) {
             this.player = player;
             this.username = username;
             this.connectedAt = connectedAt;
+        }
+
+        @Override
+        public String getRole() {
+            return role;
         }
     }
 }

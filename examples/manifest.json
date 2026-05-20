@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.20.3",
+    "version":  "2026.05.20.4",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "launcher":  {
                      "serverHost":  "obsidiangates.duckdns.org",
@@ -12,10 +12,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.20.3",
+                           "version":  "2026.05.20.4",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "9643c9a290557241401711aa4e2814a187f9ce81390f0bbf8fe43c54ddbcf370",
-                           "size":  15635190,
+                           "sha256":  "01bbff2b2db07b327fb133b781c67f4e42ea6cc8c6005f08d029fa7223569752",
+                           "size":  15635571,
                            "required":  false,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
@@ -1064,7 +1064,7 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "eee44a8b405fe3a44630b9cb1d0f434df08608384ba564c459cc46f1617a1324",
+                      "sha256":  "2b01ea20730c822db2a1e072965b9d6efc83775b8d2689038625d3cc0320da78",
                       "size":  31606,
                       "executable":  false
                   },
@@ -1216,6 +1216,48 @@
                       "path":  "resourcepacks/ModdedFaithful 1.12.2-rv1.zip",
                       "sha256":  "35003161f71d18e2a79926aa1ad5b93da8237775f6fd2e7146fcab9d8f4d3ab8",
                       "size":  2433157,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/bq_standard/lang/ru_ru.lang",
+                      "sha256":  "6987a17dbfbd518d89ebcf0b5b4d1a2bc80a21fadd1f0f54f52022b83f82679a",
+                      "size":  4950,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/erebus/lang/ru_ru.lang",
+                      "sha256":  "9019b736daa95c9a700e94dee81e1fc99705c09bd410402ba5ea8cfc8439c8ed",
+                      "size":  5402,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/randompatches/lang/ru_ru.lang",
+                      "sha256":  "4d7ac234f9ca8a7eb61d47b60abaeb560169a0be57faaa0e54c02be6fcafd4d3",
+                      "size":  4942,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/thaumcraft/lang/en_us.lang",
+                      "sha256":  "1292f2bebae45e6bdf1ca27b184cc4407685f2c646bac2aae7586f0069fe5c3c",
+                      "size":  382,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/thaumcraft/lang/ru_ru.lang",
+                      "sha256":  "1292f2bebae45e6bdf1ca27b184cc4407685f2c646bac2aae7586f0069fe5c3c",
+                      "size":  382,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/xaeroworldmap/lang/ru_ru.lang",
+                      "sha256":  "7f418a4f7c82957f13d78ea9e1482c628f29f0591bf6c2319ad72812568b2c99",
+                      "size":  10087,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/pack.mcmeta",
+                      "sha256":  "937d410b0ffe7e8132424234f6ba12e0aec5922a2f52cf3086140fe041091be3",
+                      "size":  117,
                       "executable":  false
                   },
                   {

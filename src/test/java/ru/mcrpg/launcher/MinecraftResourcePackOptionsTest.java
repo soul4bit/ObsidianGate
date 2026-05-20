@@ -58,6 +58,41 @@ class MinecraftResourcePackOptionsTest {
         assertEquals(java.util.List.of("resourcePacks:[]"), Files.readAllLines(options, StandardCharsets.UTF_8));
     }
 
+    @Test
+    void addsRequiredLanguageWhenMissing() throws IOException {
+        Path options = tempDirectory.resolve("options.txt");
+        Files.write(options, "music:1.0\n".getBytes(StandardCharsets.UTF_8));
+
+        assertTrue(MinecraftResourcePackOptions.ensureLanguage(tempDirectory, "ru_ru"));
+
+        assertEquals(
+            java.util.List.of("music:1.0", "lang:ru_ru"),
+            Files.readAllLines(options, StandardCharsets.UTF_8)
+        );
+    }
+
+    @Test
+    void replacesExistingLanguage() throws IOException {
+        Path options = tempDirectory.resolve("options.txt");
+        Files.write(options, "lang:en_us\nresourcePacks:[]\n".getBytes(StandardCharsets.UTF_8));
+
+        assertTrue(MinecraftResourcePackOptions.ensureLanguage(tempDirectory, "ru_ru"));
+
+        assertEquals(
+            java.util.List.of("lang:ru_ru", "resourcePacks:[]"),
+            Files.readAllLines(options, StandardCharsets.UTF_8)
+        );
+    }
+
+    @Test
+    void doesNothingWhenLanguageAlreadySet() throws IOException {
+        Path options = tempDirectory.resolve("options.txt");
+        Files.write(options, "lang:ru_ru\n".getBytes(StandardCharsets.UTF_8));
+
+        assertFalse(MinecraftResourcePackOptions.ensureLanguage(tempDirectory, "ru_ru"));
+        assertEquals(java.util.List.of("lang:ru_ru"), Files.readAllLines(options, StandardCharsets.UTF_8));
+    }
+
     private void installPack(String name) throws IOException {
         Files.createDirectories(tempDirectory.resolve("resourcepacks").resolve(name));
     }

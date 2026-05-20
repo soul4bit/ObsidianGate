@@ -1,0 +1,61 @@
+randompatches.config.boats=Лодки
+randompatches.config.boats.patchEntityBoat=Исправление EntityBoat
+randompatches.config.boats.preventUnderwaterBoatPassengerEjection=Не выбрасывать пассажиров лодки под водой
+randompatches.config.boats.underwaterBoatBuoyancy=Плавучесть лодки под водой
+
+randompatches.config.client=Клиент
+randompatches.config.client.dismountKeybind=Клавиша спешивания
+randompatches.config.client.fastLanguageSwitch=Быстрое переключение языка
+randompatches.config.client.forceTitleScreenOnDisconnect=Возвращать на главный экран при отключении
+randompatches.config.client.framerateLimitSliderStepSize=Шаг ползунка лимита FPS
+randompatches.config.client.invisiblePlayerModelFix=Исправление невидимой модели игрока
+randompatches.config.client.narratorKeybind=Клавиша включения диктора
+randompatches.config.client.patchMinecraftClass=Исправлять класс Minecraft
+randompatches.config.client.patchTitleScreenOnDisconnect=Исправлять экран после отключения
+randompatches.config.client.patchPotionGlint=Исправлять блеск зелий
+randompatches.config.client.removePotionGlint=Убирать блеск зелий
+randompatches.config.client.patchSmoothEyeLevelChanges=Исправлять плавное изменение высоты камеры
+randompatches.config.client.smoothEyeLevelChanges=Плавное изменение высоты камеры
+randompatches.config.client.rpreloadclient=/rpreloadclient
+
+randompatches.config.client.window=Окно
+randompatches.config.client.window.icon16=Иконка окна (16x16)
+randompatches.config.client.window.icon32=Иконка окна (32x32)
+randompatches.config.client.window.icon256=Иконка окна (256x256)
+randompatches.config.client.window.title=Заголовок окна
+
+randompatches.config.misc=Разное
+randompatches.config.misc.disableObserverSignalOnPlace=Отключить сигнал наблюдателя при установке
+randompatches.config.misc.endPortalTweaks=Правки портала в Энд
+randompatches.config.misc.fixTickNextTickListOutOfSynch=Пытаться исправлять ошибку "TickNextTick list out of synch"
+randompatches.config.misc.mc2025Fix=Исправление MC-2025
+randompatches.config.misc.minecartAIFix=Исправление ИИ вагонеток
+randompatches.config.misc.miningGhostBlocksFix=Исправление блоков-призраков при добыче
+randompatches.config.misc.particleFixes=Исправления частиц
+randompatches.config.misc.patchNetHandlerPlayServer=Исправлять NetHandlerPlayServer
+randompatches.config.misc.patchPacketSizeLimit=Исправлять лимит размера пакета
+randompatches.config.misc.packetSizeLimit=Лимит размера пакета
+randompatches.config.misc.pistonGhostBlocksFix=Исправление блоков-призраков от поршней
+randompatches.config.misc.portalBucketReplacementFix=Исправление замены ведра порталом
+randompatches.config.misc.portalBucketReplacementFixForNetherPortals=Исправление замены ведра порталами Нижнего мира
+randompatches.config.misc.recipeBookNBTFix=Исправление NBT книги рецептов
+randompatches.config.misc.rpreload=/rpreload
+randompatches.config.misc.skullStackingFix=Исправление складывания голов
+randompatches.config.misc.skullStackingRequiresSameTextures=Складывать только головы с одинаковыми текстурами
+
+randompatches.config.speedLimits=Лимиты скорости
+randompatches.config.speedLimits.maxPlayerSpeed=Максимальная скорость игрока
+randompatches.config.speedLimits.maxPlayerElytraSpeed=Максимальная скорость игрока на элитрах
+randompatches.config.speedLimits.maxPlayerVehicleSpeed=Максимальная скорость транспорта игрока
+
+randompatches.config.timeouts=Таймауты отключения
+randompatches.config.timeouts.keepAlivePacketInterval=Интервал пакета keep-alive
+randompatches.config.timeouts.loginTimeout=Таймаут входа
+randompatches.config.timeouts.patchLoginTimeout=Исправлять таймаут входа
+randompatches.config.timeouts.readTimeout=Таймаут чтения
+
+commands.rpreloadclient.usage=/rpreloadclient
+commands.rpreloadclient.success=Клиентская конфигурация RandomPatches перезагружена!
+
+key.dismount=Спешиться
+key.narrator=Включить диктора
