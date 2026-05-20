@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.20.7",
+    "version":  "2026.05.20.8",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "launcher":  {
                      "serverHost":  "obsidiangates.duckdns.org",
@@ -12,9 +12,9 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.20.7",
+                           "version":  "2026.05.20.8",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "a1735867ac6e6b7086e7356b9c5ac6ee97f6126409a64c1c34e877d528ed222b",
+                           "sha256":  "771e081ed5ba73d56f874b463730aa43bda5a6a5bbf0739ef7f2f4d1131eda8b",
                            "size":  15635571,
                            "required":  false,
                            "artifactVersion":  "0.1.6-test",
@@ -1064,7 +1064,7 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "612efb9e73054b53fc1c1c77b8d11e445063b7980a777d22efd0fdc7f3aaa11c",
+                      "sha256":  "e64a51d81ffa3fa44fe595a3c17961e58f34834e5af91e51be23bc6fd9c08892",
                       "size":  31606,
                       "executable":  false
                   },

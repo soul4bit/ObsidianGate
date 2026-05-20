@@ -14,7 +14,7 @@ final class HomeCommand {
 
     private static final String SUBJECT = "Дом";
     private static final int MAX_HOMES = 3;
-    private static final long HOME_COOLDOWN_MILLIS = TimeUnit.SECONDS.toMillis(60L);
+    private static final long HOME_COOLDOWN_MILLIS = TimeUnit.SECONDS.toMillis(30L);
 
     private HomeCommand() {
     }
@@ -185,7 +185,7 @@ final class HomeCommand {
 
         int cooldownSeconds = guard.cooldownRemainingSeconds(playerId, TeleportGuardService.CHANNEL_HOME);
         if (cooldownSeconds > 0) {
-            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "cooldown: " + cooldownSeconds + " сек.");
+            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "перезарядка: осталось " + ServerChat.durationText(cooldownSeconds) + ".");
             return;
         }
 

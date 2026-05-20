@@ -16,7 +16,7 @@ final class RandomTeleportCommand {
     private static final String COMMAND_NAME = "rtp";
     private static final String SUBJECT = "RTP";
     private static final List<String> ALIASES = Collections.unmodifiableList(Arrays.asList("wild", "randomtp"));
-    private static final long RTP_COOLDOWN_MILLIS = TimeUnit.MINUTES.toMillis(5L);
+    private static final long RTP_COOLDOWN_MILLIS = TimeUnit.SECONDS.toMillis(150L);
     private static final int OVERWORLD_DIMENSION = 0;
     private static final int MIN_DISTANCE_FROM_SPAWN = 800;
     private static final int MAX_DISTANCE_FROM_SPAWN = 3000;
@@ -110,7 +110,7 @@ final class RandomTeleportCommand {
 
         int cooldownSeconds = guard.cooldownRemainingSeconds(playerId, TeleportGuardService.CHANNEL_RTP);
         if (cooldownSeconds > 0) {
-            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "cooldown: " + cooldownSeconds + " сек.");
+            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "перезарядка: осталось " + ServerChat.durationText(cooldownSeconds) + ".");
             return;
         }
 

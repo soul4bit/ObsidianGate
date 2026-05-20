@@ -127,6 +127,10 @@ final class ServerChat {
         return subject + " через " + duration(seconds) + ".";
     }
 
+    static String durationText(int seconds) {
+        return duration(seconds);
+    }
+
     private static void send(Object sender, String message) {
         if (sender == null) {
             return;
