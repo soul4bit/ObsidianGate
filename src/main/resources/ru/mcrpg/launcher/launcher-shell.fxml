@@ -149,7 +149,7 @@
                                                                     <children>
                                                                         <Button fx:id="launchButton" minWidth="278.0" prefWidth="278.0"
                                                                                 mnemonicParsing="false"
-                                                                                styleClass="primary-button, home-play-button, home-play-button-single"
+                                                                                styleClass="home-play-button, home-play-button-single"
                                                                                 text="Играть"/>
                                                                         <Button fx:id="launchArrowButton" focusTraversable="false"
                                                                                 managed="false" minWidth="57.0"
