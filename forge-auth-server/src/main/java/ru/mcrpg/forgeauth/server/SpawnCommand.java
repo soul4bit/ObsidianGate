@@ -6,25 +6,23 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 final class SpawnCommand {
 
     private static final String COMMAND_NAME = "spawn";
     private static final String PLAYER_CLASS_NAME = "net.minecraft.entity.player.EntityPlayerMP";
-    private static final long SPAWN_COOLDOWN_MILLIS = TimeUnit.SECONDS.toMillis(30L);
 
     private SpawnCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, TeleportGuardService guard) {
+    static void register(FMLServerStartingEvent event, TeleportGuardService guard, PlayerRoleLookup roles) {
         try {
             Class<?> commandType = Class.forName("net.minecraft.command.ICommand");
             Object command = Proxy.newProxyInstance(
                 SpawnCommand.class.getClassLoader(),
                 new Class<?>[] { commandType },
-                new SpawnCommandHandler(guard)
+                new SpawnCommandHandler(guard, roles)
             );
             Method registerMethod = event.getClass().getMethod("registerServerCommand", commandType);
             registerMethod.invoke(event, command);
@@ -35,9 +33,11 @@ final class SpawnCommand {
 
     private static final class SpawnCommandHandler implements InvocationHandler {
         private final TeleportGuardService guard;
+        private final PlayerRoleLookup roles;
 
-        private SpawnCommandHandler(TeleportGuardService guard) {
+        private SpawnCommandHandler(TeleportGuardService guard, PlayerRoleLookup roles) {
             this.guard = guard;
+            this.roles = roles;
         }
 
         @Override
@@ -53,7 +53,7 @@ final class SpawnCommand {
                 return Collections.emptyList();
             }
             if ("execute".equals(name) || "func_184881_a".equals(name)) {
-                execute(args[0], args[1], guard);
+                execute(args[0], args[1], guard, roles);
                 return null;
             }
             if ("checkPermission".equals(name) || "func_184882_a".equals(name)) {
@@ -93,7 +93,7 @@ final class SpawnCommand {
         }
     }
 
-    private static void execute(Object server, Object sender, TeleportGuardService guard) {
+    private static void execute(Object server, Object sender, TeleportGuardService guard, PlayerRoleLookup roles) {
         Object player = resolvePlayer(sender);
         if (player == null) {
             ServerChat.error(sender, "Команду " + ServerChat.command("/spawn") + " может использовать только игрок.");
@@ -101,6 +101,7 @@ final class SpawnCommand {
         }
 
         String playerId = PlayerIdentity.id(player);
+        RoleLimits limits = RoleLimits.forRole(roles.roleFor(player));
         int combatSeconds = guard.combatRemainingSeconds(player);
         if (combatSeconds > 0) {
             ServerChat.status(player, ServerChat.Tone.WARNING, "Спавн", "телепорт заблокирован боем. Подождите " + ServerChat.durationText(combatSeconds) + ".");
@@ -134,7 +135,7 @@ final class SpawnCommand {
             float yaw = readFloatField(player, 0.0F, "rotationYaw", "field_70177_z");
             float pitch = readFloatField(player, 0.0F, "rotationPitch", "field_70125_A");
             player = TeleportSupport.teleportToDimension(server, player, 0, x, y, z, yaw, pitch);
-            guard.startCooldown(playerId, TeleportGuardService.CHANNEL_SPAWN, SPAWN_COOLDOWN_MILLIS);
+            guard.startCooldown(playerId, TeleportGuardService.CHANNEL_SPAWN, limits.spawnCooldownMillis());
             ServerChat.success(player, "Вы телепортированы на спавн.");
         } catch (RuntimeException exception) {
             ServerChat.error(sender, "Не удалось телепортировать на спавн: " + exception.getMessage());

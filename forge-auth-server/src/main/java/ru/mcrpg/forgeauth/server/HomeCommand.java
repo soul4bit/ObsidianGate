@@ -7,23 +7,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 final class HomeCommand {
 
     private static final String SUBJECT = "Дом";
-    private static final int MAX_HOMES = 3;
-    private static final long HOME_COOLDOWN_MILLIS = TimeUnit.SECONDS.toMillis(30L);
-
     private HomeCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, HomeService homes, TeleportGuardService guard) {
-        register(event, "sethome", Mode.SET, Collections.emptyList(), homes, guard);
-        register(event, "home", Mode.TELEPORT, Collections.singletonList("h"), homes, guard);
-        register(event, "delhome", Mode.DELETE, Collections.singletonList("deletehome"), homes, guard);
-        register(event, "homes", Mode.LIST, Collections.singletonList("listhomes"), homes, guard);
+    static void register(FMLServerStartingEvent event, HomeService homes, TeleportGuardService guard, PlayerRoleLookup roles) {
+        register(event, "sethome", Mode.SET, Collections.emptyList(), homes, guard, roles);
+        register(event, "home", Mode.TELEPORT, Collections.singletonList("h"), homes, guard, roles);
+        register(event, "delhome", Mode.DELETE, Collections.singletonList("deletehome"), homes, guard, roles);
+        register(event, "homes", Mode.LIST, Collections.singletonList("listhomes"), homes, guard, roles);
     }
 
     private static void register(
@@ -32,14 +28,15 @@ final class HomeCommand {
         Mode mode,
         List<String> aliases,
         HomeService homes,
-        TeleportGuardService guard
+        TeleportGuardService guard,
+        PlayerRoleLookup roles
     ) {
         try {
             Class<?> commandType = Class.forName("net.minecraft.command.ICommand");
             Object command = Proxy.newProxyInstance(
                 HomeCommand.class.getClassLoader(),
                 new Class<?>[] { commandType },
-                new Handler(commandName, mode, aliases, homes, guard)
+                new Handler(commandName, mode, aliases, homes, guard, roles)
             );
             Method registerMethod = event.getClass().getMethod("registerServerCommand", commandType);
             registerMethod.invoke(event, command);
@@ -54,13 +51,22 @@ final class HomeCommand {
         private final List<String> aliases;
         private final HomeService homes;
         private final TeleportGuardService guard;
+        private final PlayerRoleLookup roles;
 
-        private Handler(String commandName, Mode mode, List<String> aliases, HomeService homes, TeleportGuardService guard) {
+        private Handler(
+            String commandName,
+            Mode mode,
+            List<String> aliases,
+            HomeService homes,
+            TeleportGuardService guard,
+            PlayerRoleLookup roles
+        ) {
             this.commandName = commandName;
             this.mode = mode;
             this.aliases = aliases;
             this.homes = homes;
             this.guard = guard;
+            this.roles = roles;
         }
 
         @Override
@@ -76,7 +82,7 @@ final class HomeCommand {
                 return aliases;
             }
             if ("execute".equals(name) || "func_184881_a".equals(name)) {
-                execute(commandName, mode, args[0], args[1], args[2], homes, guard);
+                execute(commandName, mode, args[0], args[1], args[2], homes, guard, roles);
                 return null;
             }
             if ("checkPermission".equals(name) || "func_184882_a".equals(name)) {
@@ -111,7 +117,8 @@ final class HomeCommand {
         Object sender,
         Object arguments,
         HomeService homes,
-        TeleportGuardService guard
+        TeleportGuardService guard,
+        PlayerRoleLookup roles
     ) {
         Object player = TeleportSupport.resolvePlayer(sender);
         if (player == null) {
@@ -128,12 +135,13 @@ final class HomeCommand {
         try {
             String playerId = PlayerIdentity.id(player);
             String homeName = args.length == 0 ? "home" : HomeService.normalizeName(args[0]);
+            RoleLimits limits = RoleLimits.forRole(roles.roleFor(player));
             if (mode == Mode.SET) {
-                setHome(player, playerId, homeName, homes, guard);
+                setHome(player, playerId, homeName, homes, guard, limits);
                 return;
             }
             if (mode == Mode.TELEPORT) {
-            teleportHome(server, player, playerId, homeName, homes, guard);
+                teleportHome(server, player, playerId, homeName, homes, guard, limits);
                 return;
             }
             if (mode == Mode.DELETE) {
@@ -148,7 +156,14 @@ final class HomeCommand {
         }
     }
 
-    private static void setHome(Object player, String playerId, String homeName, HomeService homes, TeleportGuardService guard) {
+    private static void setHome(
+        Object player,
+        String playerId,
+        String homeName,
+        HomeService homes,
+        TeleportGuardService guard,
+        RoleLimits limits
+    ) {
         int combatSeconds = guard.combatRemainingSeconds(player);
         if (combatSeconds > 0) {
             ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "нельзя ставить дом в бою. Подождите " + combatSeconds + " сек.");
@@ -163,9 +178,9 @@ final class HomeCommand {
             TeleportSupport.playerYaw(player),
             TeleportSupport.playerPitch(player)
         );
-        HomeService.SetHomeResult result = homes.setHome(playerId, homeName, location, MAX_HOMES);
+        HomeService.SetHomeResult result = homes.setHome(playerId, homeName, location, limits.maxHomes());
         if (!result.success) {
-            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "лимит домов: " + ServerChat.value(Integer.valueOf(result.limit)) + ".");
+            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "лимит домов для роли " + ServerChat.value(limits.role()) + ": " + ServerChat.value(RoleLimits.limitText(result.limit)) + ".");
             return;
         }
         ServerChat.status(
@@ -176,7 +191,15 @@ final class HomeCommand {
         );
     }
 
-    private static void teleportHome(Object server, Object player, String playerId, String homeName, HomeService homes, TeleportGuardService guard) {
+    private static void teleportHome(
+        Object server,
+        Object player,
+        String playerId,
+        String homeName,
+        HomeService homes,
+        TeleportGuardService guard,
+        RoleLimits limits
+    ) {
         int combatSeconds = guard.combatRemainingSeconds(player);
         if (combatSeconds > 0) {
             ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "телепорт заблокирован боем. Подождите " + combatSeconds + " сек.");
@@ -196,7 +219,7 @@ final class HomeCommand {
         }
 
         Object moved = TeleportSupport.teleportToDimension(server, player, location.dimension, location.x, location.y, location.z, location.yaw, location.pitch);
-        guard.startCooldown(playerId, TeleportGuardService.CHANNEL_HOME, HOME_COOLDOWN_MILLIS);
+        guard.startCooldown(playerId, TeleportGuardService.CHANNEL_HOME, limits.homeCooldownMillis());
         ServerChat.status(moved, ServerChat.Tone.SUCCESS, SUBJECT, "телепорт к " + ServerChat.value(homeName) + " выполнен.");
     }
 

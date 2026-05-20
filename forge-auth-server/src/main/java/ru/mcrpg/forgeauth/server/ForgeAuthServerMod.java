@@ -85,13 +85,13 @@ public final class ForgeAuthServerMod {
 
     @EventHandler
     public void onServerStarting(FMLServerStartingEvent event) {
-        SpawnCommand.register(event, TELEPORT_GUARD);
+        SpawnCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         WaypointTeleportCommand.register(event);
         CallCommand.register(event);
         KitCommand.register(event, KIT_SERVICE);
-        HomeCommand.register(event, HOME_SERVICE, TELEPORT_GUARD);
-        RandomTeleportCommand.register(event, TELEPORT_GUARD);
-        PlayerRegionCommand.register(event, PLAYER_REGIONS);
+        HomeCommand.register(event, HOME_SERVICE, TELEPORT_GUARD, LIFECYCLE);
+        RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
+        PlayerRegionCommand.register(event, PLAYER_REGIONS, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
         HelpCommand.register(event);
     }

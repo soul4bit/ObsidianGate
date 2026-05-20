@@ -22,7 +22,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import ru.mcrpg.gameauth.TicketVerificationClient;
 import ru.mcrpg.gameauth.TicketVerificationResult;
 
-final class ForgeAuthServerLifecycle {
+final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
 
     private static final String DISCONNECT_MESSAGE = "Для входа нужен лаунчер ObsidianGate.";
 
@@ -204,6 +204,16 @@ final class ForgeAuthServerLifecycle {
         verificationExecutor.shutdownNow();
         authStates.clear();
         mainThreadActions.clear();
+    }
+
+    @Override
+    public String roleFor(Object player) {
+        String username = playerBridge.extractUsername(player);
+        if (username.isEmpty()) {
+            return "player";
+        }
+        PlayerAuthState state = authStates.get(normalizeKey(username));
+        return state == null ? "player" : state.role;
     }
 
     private void verifyTicketAsync(String key, String expectedUsername, AuthTicketMessage message) {

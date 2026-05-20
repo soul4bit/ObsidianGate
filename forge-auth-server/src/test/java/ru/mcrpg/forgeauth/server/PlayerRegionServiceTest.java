@@ -57,6 +57,24 @@ class PlayerRegionServiceTest {
     }
 
     @Test
+    void customRegionLimitCanBeHigherOrUnlimited() {
+        PlayerRegionService service = new PlayerRegionService(Logger.getLogger("test"), tempDirectory.resolve("regions.properties"));
+        String owner = UUID.randomUUID().toString();
+
+        assertTrue(service.createAround(owner, "Owner", "one", 0, 0.0D, 0.0D, 4, 5).success);
+        assertTrue(service.createAround(owner, "Owner", "two", 0, 20.0D, 0.0D, 4, 5).success);
+        assertTrue(service.createAround(owner, "Owner", "three", 0, 40.0D, 0.0D, 4, 5).success);
+        assertTrue(service.createAround(owner, "Owner", "four", 0, 60.0D, 0.0D, 4, 5).success);
+        assertTrue(service.createAround(owner, "Owner", "five", 0, 80.0D, 0.0D, 4, 5).success);
+
+        PlayerRegionService.CreateResult limited = service.createAround(owner, "Owner", "six", 0, 100.0D, 0.0D, 4, 5);
+        assertFalse(limited.success);
+        assertEquals(5, limited.limit);
+
+        assertTrue(service.createAround(owner, "Owner", "six", 0, 100.0D, 0.0D, 4, RoleLimits.UNLIMITED).success);
+    }
+
+    @Test
     void trustedPlayersCanAccessProtectedRegion() {
         PlayerRegionService service = new PlayerRegionService(Logger.getLogger("test"), tempDirectory.resolve("regions.properties"));
         PlayerRegionProtectionService protection = new PlayerRegionProtectionService(Logger.getLogger("test"), service);

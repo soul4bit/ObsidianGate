@@ -52,13 +52,26 @@ final class PlayerRegionService {
     }
 
     synchronized CreateResult createAround(String ownerId, String ownerName, String name, int dimension, double centerX, double centerZ, int radius) {
+        return createAround(ownerId, ownerName, name, dimension, centerX, centerZ, radius, MAX_REGIONS_PER_PLAYER);
+    }
+
+    synchronized CreateResult createAround(
+        String ownerId,
+        String ownerName,
+        String name,
+        int dimension,
+        double centerX,
+        double centerZ,
+        int radius,
+        int maxRegions
+    ) {
         ensureLoaded();
         String normalizedName = normalizeName(name);
         int safeRadius = clampRadius(radius);
         String key = regionKey(ownerId, normalizedName);
         boolean existing = regions.containsKey(key);
-        if (!existing && list(ownerId).size() >= MAX_REGIONS_PER_PLAYER) {
-            return CreateResult.limitReached(MAX_REGIONS_PER_PLAYER);
+        if (!existing && !RoleLimits.isUnlimited(maxRegions) && list(ownerId).size() >= maxRegions) {
+            return CreateResult.limitReached(maxRegions);
         }
 
         Region next = new Region(

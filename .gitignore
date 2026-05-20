@@ -5,3 +5,5 @@ target/
 auth-api/.env
 dist/
 tmp/
+logs/
+forge-auth-server/logs/

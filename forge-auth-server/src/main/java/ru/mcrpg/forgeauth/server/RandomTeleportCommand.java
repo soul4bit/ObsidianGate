@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 final class RandomTeleportCommand {
@@ -16,7 +15,6 @@ final class RandomTeleportCommand {
     private static final String COMMAND_NAME = "rtp";
     private static final String SUBJECT = "RTP";
     private static final List<String> ALIASES = Collections.unmodifiableList(Arrays.asList("wild", "randomtp"));
-    private static final long RTP_COOLDOWN_MILLIS = TimeUnit.SECONDS.toMillis(150L);
     private static final int OVERWORLD_DIMENSION = 0;
     private static final int MIN_DISTANCE_FROM_SPAWN = 800;
     private static final int MAX_DISTANCE_FROM_SPAWN = 3000;
@@ -25,13 +23,13 @@ final class RandomTeleportCommand {
     private RandomTeleportCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, TeleportGuardService guard) {
+    static void register(FMLServerStartingEvent event, TeleportGuardService guard, PlayerRoleLookup roles) {
         try {
             Class<?> commandType = Class.forName("net.minecraft.command.ICommand");
             Object command = Proxy.newProxyInstance(
                 RandomTeleportCommand.class.getClassLoader(),
                 new Class<?>[] { commandType },
-                new Handler(guard)
+                new Handler(guard, roles)
             );
             Method registerMethod = event.getClass().getMethod("registerServerCommand", commandType);
             registerMethod.invoke(event, command);
@@ -42,9 +40,11 @@ final class RandomTeleportCommand {
 
     private static final class Handler implements InvocationHandler {
         private final TeleportGuardService guard;
+        private final PlayerRoleLookup roles;
 
-        private Handler(TeleportGuardService guard) {
+        private Handler(TeleportGuardService guard, PlayerRoleLookup roles) {
             this.guard = guard;
+            this.roles = roles;
         }
 
         @Override
@@ -60,7 +60,7 @@ final class RandomTeleportCommand {
                 return ALIASES;
             }
             if ("execute".equals(name) || "func_184881_a".equals(name)) {
-                execute(args[0], args[1], args[2], guard);
+                execute(args[0], args[1], args[2], guard, roles);
                 return null;
             }
             if ("checkPermission".equals(name) || "func_184882_a".equals(name)) {
@@ -88,7 +88,7 @@ final class RandomTeleportCommand {
         }
     }
 
-    private static void execute(Object server, Object sender, Object arguments, TeleportGuardService guard) {
+    private static void execute(Object server, Object sender, Object arguments, TeleportGuardService guard, PlayerRoleLookup roles) {
         Object player = TeleportSupport.resolvePlayer(sender);
         if (player == null) {
             ServerChat.status(sender, ServerChat.Tone.ERROR, SUBJECT, "команду " + ServerChat.command("/" + COMMAND_NAME) + " может использовать только игрок.");
@@ -102,6 +102,7 @@ final class RandomTeleportCommand {
         }
 
         String playerId = PlayerIdentity.id(player);
+        RoleLimits limits = RoleLimits.forRole(roles.roleFor(player));
         int combatSeconds = guard.combatRemainingSeconds(player);
         if (combatSeconds > 0) {
             ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "телепорт заблокирован боем. Подождите " + combatSeconds + " сек.");
@@ -125,7 +126,7 @@ final class RandomTeleportCommand {
             float yaw = TeleportSupport.playerYaw(player);
             float pitch = TeleportSupport.playerPitch(player);
             Object moved = TeleportSupport.teleportToDimension(server, player, OVERWORLD_DIMENSION, location.x, location.y, location.z, yaw, pitch);
-            guard.startCooldown(playerId, TeleportGuardService.CHANNEL_RTP, RTP_COOLDOWN_MILLIS);
+            guard.startCooldown(playerId, TeleportGuardService.CHANNEL_RTP, limits.randomTeleportCooldownMillis());
             ServerChat.status(
                 moved,
                 ServerChat.Tone.SUCCESS,

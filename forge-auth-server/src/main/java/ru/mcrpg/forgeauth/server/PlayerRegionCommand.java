@@ -19,13 +19,13 @@ final class PlayerRegionCommand {
     private PlayerRegionCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, PlayerRegionService service) {
+    static void register(FMLServerStartingEvent event, PlayerRegionService service, PlayerRoleLookup roles) {
         try {
             Class<?> commandType = Class.forName("net.minecraft.command.ICommand");
             Object command = Proxy.newProxyInstance(
                 PlayerRegionCommand.class.getClassLoader(),
                 new Class<?>[] { commandType },
-                new Handler(service)
+                new Handler(service, roles)
             );
             Method registerMethod = event.getClass().getMethod("registerServerCommand", commandType);
             registerMethod.invoke(event, command);
@@ -36,9 +36,11 @@ final class PlayerRegionCommand {
 
     private static final class Handler implements InvocationHandler {
         private final PlayerRegionService service;
+        private final PlayerRoleLookup roles;
 
-        private Handler(PlayerRegionService service) {
+        private Handler(PlayerRegionService service, PlayerRoleLookup roles) {
             this.service = service;
+            this.roles = roles;
         }
 
         @Override
@@ -54,7 +56,7 @@ final class PlayerRegionCommand {
                 return ALIASES;
             }
             if ("execute".equals(name) || "func_184881_a".equals(name)) {
-                execute(args[1], args[2], service);
+                execute(args[1], args[2], service, roles);
                 return null;
             }
             if ("checkPermission".equals(name) || "func_184882_a".equals(name)) {
@@ -82,7 +84,7 @@ final class PlayerRegionCommand {
         }
     }
 
-    private static void execute(Object sender, Object arguments, PlayerRegionService service) {
+    private static void execute(Object sender, Object arguments, PlayerRegionService service, PlayerRoleLookup roles) {
         Object player = TeleportSupport.resolvePlayer(sender);
         if (player == null) {
             ServerChat.status(sender, ServerChat.Tone.ERROR, SUBJECT, "команду " + ServerChat.command("/" + COMMAND_NAME) + " может использовать только игрок.");
@@ -98,7 +100,7 @@ final class PlayerRegionCommand {
         String action = args[0].trim().toLowerCase(Locale.ROOT);
         try {
             if ("create".equals(action) || "here".equals(action)) {
-                create(player, args, service);
+                create(player, args, service, RoleLimits.forRole(roles.roleFor(player)));
                 return;
             }
             if ("remove".equals(action) || "delete".equals(action) || "del".equals(action)) {
@@ -129,7 +131,7 @@ final class PlayerRegionCommand {
         }
     }
 
-    private static void create(Object player, String[] args, PlayerRegionService service) {
+    private static void create(Object player, String[] args, PlayerRegionService service, RoleLimits limits) {
         if (args.length != 3) {
             ServerChat.usage(player, "/" + COMMAND_NAME + " create <название> <радиус>");
             return;
@@ -142,14 +144,15 @@ final class PlayerRegionCommand {
             TeleportSupport.playerDimension(player),
             TeleportSupport.playerX(player),
             TeleportSupport.playerZ(player),
-            radius
+            radius,
+            limits.maxRegions()
         );
         if (!result.success) {
             if (result.overlap != null) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "пересекается с регионом " + regionName(result.overlap) + ".");
                 return;
             }
-            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "лимит регионов: " + ServerChat.value(Integer.valueOf(result.limit)) + ".");
+            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "лимит регионов для роли " + ServerChat.value(limits.role()) + ": " + ServerChat.value(RoleLimits.limitText(result.limit)) + ".");
             return;
         }
         ServerChat.status(
