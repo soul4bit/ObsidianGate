@@ -45,6 +45,7 @@ final class HelpCommand {
             entry("/call accept [игрок]", "/call accept ", "принять запрос"),
             entry("/call deny [игрок]", "/call deny ", "отклонить запрос"),
             entry("/call cancel [игрок]", "/call cancel ", "отменить свой запрос"),
+            entry("/back", "/back", "вернуться к месту последней смерти, перезарядка зависит от роли"),
             entry("/wptp <x> <y> <z>", "/wptp ", "телепорт по координатам метки")
         ),
         section(

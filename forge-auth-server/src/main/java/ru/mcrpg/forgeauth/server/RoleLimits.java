@@ -13,7 +13,8 @@ final class RoleLimits {
         3,
         TimeUnit.SECONDS.toMillis(30L),
         TimeUnit.SECONDS.toMillis(30L),
-        TimeUnit.SECONDS.toMillis(150L)
+        TimeUnit.SECONDS.toMillis(150L),
+        TimeUnit.SECONDS.toMillis(60L)
     );
     private static final RoleLimits VIP = new RoleLimits(
         "vip",
@@ -21,12 +22,14 @@ final class RoleLimits {
         5,
         TimeUnit.SECONDS.toMillis(15L),
         TimeUnit.SECONDS.toMillis(15L),
-        TimeUnit.SECONDS.toMillis(75L)
+        TimeUnit.SECONDS.toMillis(75L),
+        TimeUnit.SECONDS.toMillis(30L)
     );
     private static final RoleLimits ADMIN = new RoleLimits(
         "admin",
         UNLIMITED,
         UNLIMITED,
+        0L,
         0L,
         0L,
         0L
@@ -38,6 +41,7 @@ final class RoleLimits {
     private final long homeCooldownMillis;
     private final long spawnCooldownMillis;
     private final long randomTeleportCooldownMillis;
+    private final long backCooldownMillis;
 
     private RoleLimits(
         String role,
@@ -45,7 +49,8 @@ final class RoleLimits {
         int maxRegions,
         long homeCooldownMillis,
         long spawnCooldownMillis,
-        long randomTeleportCooldownMillis
+        long randomTeleportCooldownMillis,
+        long backCooldownMillis
     ) {
         this.role = role;
         this.maxHomes = maxHomes;
@@ -53,6 +58,7 @@ final class RoleLimits {
         this.homeCooldownMillis = homeCooldownMillis;
         this.spawnCooldownMillis = spawnCooldownMillis;
         this.randomTeleportCooldownMillis = randomTeleportCooldownMillis;
+        this.backCooldownMillis = backCooldownMillis;
     }
 
     static RoleLimits forRole(String role) {
@@ -96,6 +102,10 @@ final class RoleLimits {
 
     long randomTeleportCooldownMillis() {
         return randomTeleportCooldownMillis;
+    }
+
+    long backCooldownMillis() {
+        return backCooldownMillis;
     }
 
     private static String normalizeRole(String role) {

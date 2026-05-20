@@ -12,6 +12,7 @@ final class TeleportGuardService {
     static final String CHANNEL_HOME = "home";
     static final String CHANNEL_RTP = "rtp";
     static final String CHANNEL_SPAWN = "spawn";
+    static final String CHANNEL_BACK = "back";
     static final long DEFAULT_COMBAT_MILLIS = 15000L;
 
     private final ConcurrentMap<String, Long> combatUntil = new ConcurrentHashMap<String, Long>();

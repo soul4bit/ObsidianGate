@@ -17,6 +17,7 @@ class RoleLimitsTest {
         assertEquals(TimeUnit.SECONDS.toMillis(30L), limits.homeCooldownMillis());
         assertEquals(TimeUnit.SECONDS.toMillis(30L), limits.spawnCooldownMillis());
         assertEquals(TimeUnit.SECONDS.toMillis(150L), limits.randomTeleportCooldownMillis());
+        assertEquals(TimeUnit.SECONDS.toMillis(60L), limits.backCooldownMillis());
     }
 
     @Test
@@ -28,6 +29,7 @@ class RoleLimitsTest {
         assertEquals(TimeUnit.SECONDS.toMillis(15L), limits.homeCooldownMillis());
         assertEquals(TimeUnit.SECONDS.toMillis(15L), limits.spawnCooldownMillis());
         assertEquals(TimeUnit.SECONDS.toMillis(75L), limits.randomTeleportCooldownMillis());
+        assertEquals(TimeUnit.SECONDS.toMillis(30L), limits.backCooldownMillis());
     }
 
     @Test
@@ -39,6 +41,7 @@ class RoleLimitsTest {
         assertEquals(0L, limits.homeCooldownMillis());
         assertEquals(0L, limits.spawnCooldownMillis());
         assertEquals(0L, limits.randomTeleportCooldownMillis());
+        assertEquals(0L, limits.backCooldownMillis());
     }
 
     @Test

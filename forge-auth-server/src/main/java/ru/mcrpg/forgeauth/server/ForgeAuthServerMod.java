@@ -35,9 +35,11 @@ public final class ForgeAuthServerMod {
     private static final SpawnProtectionService SPAWN_PROTECTION = new SpawnProtectionService(LOGGER);
     private static final ItemCleanupService ITEM_CLEANUP = new ItemCleanupService(LOGGER);
     private static final KitService KIT_SERVICE = new KitService(LOGGER);
+    private static final FirstJoinWelcomeService FIRST_JOIN_WELCOME = new FirstJoinWelcomeService(LOGGER);
     private static final HomeService HOME_SERVICE = new HomeService(LOGGER);
     private static final HomeRespawnService HOME_RESPAWN = new HomeRespawnService(LOGGER, HOME_SERVICE);
     private static final TeleportGuardService TELEPORT_GUARD = new TeleportGuardService();
+    private static final BackLocationService BACK_LOCATIONS = new BackLocationService(LOGGER);
     private static final PlayerRegionService PLAYER_REGIONS = new PlayerRegionService(LOGGER);
     private static final PlayerRegionProtectionService PLAYER_REGION_PROTECTION =
         new PlayerRegionProtectionService(LOGGER, PLAYER_REGIONS);
@@ -58,13 +60,17 @@ public final class ForgeAuthServerMod {
         SPAWN_PROTECTION.load();
         ITEM_CLEANUP.load();
         KIT_SERVICE.load();
+        FIRST_JOIN_WELCOME.load();
         HOME_SERVICE.load();
+        BACK_LOCATIONS.load();
         PLAYER_REGIONS.load();
         MinecraftForge.EVENT_BUS.register(LIFECYCLE);
+        MinecraftForge.EVENT_BUS.register(FIRST_JOIN_WELCOME);
         MinecraftForge.EVENT_BUS.register(SPAWN_PROTECTION);
         MinecraftForge.EVENT_BUS.register(PLAYER_REGION_PROTECTION);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
         MinecraftForge.EVENT_BUS.register(TELEPORT_GUARD);
+        MinecraftForge.EVENT_BUS.register(BACK_LOCATIONS);
         MinecraftForge.EVENT_BUS.register(HOME_RESPAWN);
 
         AuthServerConfig config = AuthServerConfig.fromSystem();
@@ -90,6 +96,7 @@ public final class ForgeAuthServerMod {
         CallCommand.register(event);
         KitCommand.register(event, KIT_SERVICE);
         HomeCommand.register(event, HOME_SERVICE, TELEPORT_GUARD, LIFECYCLE);
+        BackCommand.register(event, BACK_LOCATIONS, TELEPORT_GUARD, LIFECYCLE);
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         PlayerRegionCommand.register(event, PLAYER_REGIONS, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
