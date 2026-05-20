@@ -26,7 +26,7 @@ final class HelpCommand {
             "Старт",
             "start", "старт", "basic", "основа",
             entry("/kit start", "/kit start", "одноразовый стартовый набор"),
-            entry("/spawn", "/spawn", "вернуться на спавн"),
+            entry("/spawn", "/spawn", "вернуться на спавн, перезарядка 30 секунд"),
             entry("/rtp", "/rtp", "случайная безопасная точка, перезарядка 2 минуты 30 секунд")
         ),
         section(

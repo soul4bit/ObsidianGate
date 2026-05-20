@@ -75,7 +75,7 @@ public final class ForgeAuthServerMod {
 
     @EventHandler
     public void onServerStarting(FMLServerStartingEvent event) {
-        SpawnCommand.register(event);
+        SpawnCommand.register(event, TELEPORT_GUARD);
         WaypointTeleportCommand.register(event);
         CallCommand.register(event);
         KitCommand.register(event, KIT_SERVICE);

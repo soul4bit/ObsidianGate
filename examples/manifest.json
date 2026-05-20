@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.20.8",
+    "version":  "2026.05.20.9",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "launcher":  {
                      "serverHost":  "obsidiangates.duckdns.org",
@@ -12,9 +12,9 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.20.8",
+                           "version":  "2026.05.20.9",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "771e081ed5ba73d56f874b463730aa43bda5a6a5bbf0739ef7f2f4d1131eda8b",
+                           "sha256":  "1409a683fa71649387479ffcd7077151cc4dc2f696643dc1b6e71d0b9bcc5917",
                            "size":  15635571,
                            "required":  false,
                            "artifactVersion":  "0.1.6-test",
@@ -944,8 +944,8 @@
                   },
                   {
                       "path":  "mods/BiblioCraft[v2.4.5][MC1.12.2].jar",
-                      "sha256":  "b3aab967cf9a2fcaf1330b5a5997f8d31e7a73884eac7451f1f31b2fa1394add",
-                      "size":  5122856,
+                      "sha256":  "7d52a71e5460781d7d10b5c07b3825812bf51b4ee6d6cbc2ace433577fa6b834",
+                      "size":  5122972,
                       "executable":  false
                   },
                   {
@@ -1064,7 +1064,7 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "e64a51d81ffa3fa44fe595a3c17961e58f34834e5af91e51be23bc6fd9c08892",
+                      "sha256":  "22ede0067e6b48ec9f3140430a9265606cf1c15b4f81292917664640d2f30859",
                       "size":  31606,
                       "executable":  false
                   },

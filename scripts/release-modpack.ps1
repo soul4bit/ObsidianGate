@@ -176,6 +176,71 @@ function Get-ArtifactFile {
     return $artifacts[0]
 }
 
+function Patch-BiblioCraftRecipes {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$JarPath
+    )
+
+    if (-not (Test-Path -LiteralPath $JarPath -PathType Leaf)) {
+        return
+    }
+
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $disabledRecipeJson = @"
+{
+    "conditions": [
+        {
+            "type": "forge:false"
+        }
+    ],
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "X"
+    ],
+    "key": {
+        "X": {
+            "item": "minecraft:barrier"
+        }
+    },
+    "result": {
+        "item": "minecraft:barrier"
+    },
+    "group": "bibliocraft"
+}
+"@
+
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $zip = [System.IO.Compression.ZipFile]::Open($JarPath, [System.IO.Compression.ZipArchiveMode]::Update)
+    try {
+        foreach ($entryName in @(
+            "assets/bibliocraft/recipes/markerpole.json",
+            "assets/bibliocraft/recipes/clipboard.json"
+        )) {
+            $existingEntry = $zip.GetEntry($entryName)
+            if ($existingEntry -ne $null) {
+                $existingEntry.Delete()
+            }
+
+            $entry = $zip.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+            $stream = $entry.Open()
+            try {
+                $writer = New-Object System.IO.StreamWriter($stream, $encoding)
+                try {
+                    $writer.Write($disabledRecipeJson)
+                } finally {
+                    $writer.Dispose()
+                }
+            } finally {
+                $stream.Dispose()
+            }
+        }
+    } finally {
+        $zip.Dispose()
+    }
+}
+
 function Get-ProjectVersion {
     $pomPath = Join-Path $repoRoot "pom.xml"
     [xml]$pom = Get-Content $pomPath
@@ -279,6 +344,7 @@ if (-not (Test-Path $clientJarPath)) {
 
 $distClientRoot = Join-Path $distFullPath "client"
 Copy-DirectoryContent -Source $clientSourceFullPath -Destination $distClientRoot
+Patch-BiblioCraftRecipes -JarPath (Join-Path $distClientRoot "mods/BiblioCraft[v2.4.5][MC1.12.2].jar")
 
 $distClientModsDir = Join-Path $distClientRoot "mods"
 $null = New-Item -ItemType Directory -Path $distClientModsDir -Force
@@ -301,6 +367,10 @@ foreach ($serverModPath in $serverModPaths) {
         -SourceRoot $clientSourceFullPath `
         -DestinationRoot $distServerRoot `
         -RelativePath $serverModPath
+    if ((Normalize-ManifestPath $serverModPath) -eq "mods/BiblioCraft[v2.4.5][MC1.12.2].jar") {
+        Patch-BiblioCraftRecipes -JarPath $serverModFile.FullName
+        $serverModFile = Get-Item -LiteralPath $serverModFile.FullName
+    }
     $serverFiles.Add((Get-FileRecord -File $serverModFile -RelativePath (Normalize-ManifestPath $serverModPath)))
 }
 
