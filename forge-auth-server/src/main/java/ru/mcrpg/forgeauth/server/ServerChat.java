@@ -11,6 +11,8 @@ final class ServerChat {
     private static final String INFO = "\u00A7b";
     private static final String COMMAND = "\u00A76";
     private static final String VALUE = "\u00A7f";
+    private static final String DARK_GRAY = "\u00A78";
+    private static final String GRAY = "\u00A77";
     private static final String RESET = "\u00A7r";
     private static final String BUTTON_FRAME = "\u00A78";
 
@@ -75,6 +77,38 @@ final class ServerChat {
             ERROR,
             "Выполнить " + command(denyCommand)
         );
+    }
+
+    static void helpTitle(Object sender, String title, String detail) {
+        send(sender, DARK_GRAY + "\u00A7m                         " + RESET);
+        send(sender, COMMAND + title + RESET + DARK_GRAY + " | " + GRAY + detail);
+    }
+
+    static void helpSection(Object sender, String title) {
+        send(sender, DARK_GRAY + "\u00A7m-----" + RESET + " " + INFO + title + RESET);
+    }
+
+    static void helpCommand(Object sender, String command, String description) {
+        helpCommand(sender, command, description, command);
+    }
+
+    static void helpCommand(Object sender, String command, String description, String suggestion) {
+        if (sender == null) {
+            return;
+        }
+
+        try {
+            Object root = component(PREFIX + "  ");
+            appendSibling(root, suggestCommand(command, suggestion));
+            appendSibling(root, component(" " + DARK_GRAY + "\u00BB" + " " + VALUE + description));
+            sendComponent(sender, root);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            send(sender, "  " + command(command) + " " + DARK_GRAY + "\u00BB" + " " + VALUE + description);
+        }
+    }
+
+    static void helpHint(Object sender, String message) {
+        send(sender, GRAY + message);
     }
 
     static String command(String value) {
@@ -153,6 +187,31 @@ final class ServerChat {
         invokeIfPresent(style, new Object[] { hoverEvent }, "setHoverEvent", "func_150209_a");
         invokeIfPresent(button, new Object[] { style }, "setStyle", "func_150255_a");
         return button;
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static Object suggestCommand(String command, String suggestion) throws ReflectiveOperationException {
+        Object text = component(COMMAND + command + RESET);
+        Object style = Class.forName("net.minecraft.util.text.Style").getConstructor().newInstance();
+
+        Class<?> clickEventType = Class.forName("net.minecraft.util.text.event.ClickEvent");
+        Class<?> clickActionType = Class.forName("net.minecraft.util.text.event.ClickEvent$Action");
+        Object suggestCommand = Enum.valueOf((Class<Enum>) clickActionType.asSubclass(Enum.class), "SUGGEST_COMMAND");
+        Object clickEvent = clickEventType
+            .getConstructor(clickActionType, String.class)
+            .newInstance(suggestCommand, suggestion == null ? command : suggestion);
+        invokeIfPresent(style, new Object[] { clickEvent }, "setClickEvent", "func_150241_a");
+
+        Class<?> hoverEventType = Class.forName("net.minecraft.util.text.event.HoverEvent");
+        Class<?> hoverActionType = Class.forName("net.minecraft.util.text.event.HoverEvent$Action");
+        Class<?> textComponentType = Class.forName("net.minecraft.util.text.ITextComponent");
+        Object showText = Enum.valueOf((Class<Enum>) hoverActionType.asSubclass(Enum.class), "SHOW_TEXT");
+        Object hoverEvent = hoverEventType
+            .getConstructor(hoverActionType, textComponentType)
+            .newInstance(showText, component(GRAY + "Нажмите, чтобы вставить " + COMMAND + (suggestion == null ? command : suggestion)));
+        invokeIfPresent(style, new Object[] { hoverEvent }, "setHoverEvent", "func_150209_a");
+        invokeIfPresent(text, new Object[] { style }, "setStyle", "func_150255_a");
+        return text;
     }
 
     private static Object component(String text) throws ReflectiveOperationException {

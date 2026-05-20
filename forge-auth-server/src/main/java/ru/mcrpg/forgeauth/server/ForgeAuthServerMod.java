@@ -81,6 +81,7 @@ public final class ForgeAuthServerMod {
         RandomTeleportCommand.register(event, TELEPORT_GUARD);
         PlayerRegionCommand.register(event, PLAYER_REGIONS);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
+        HelpCommand.register(event);
     }
 
     @EventHandler
