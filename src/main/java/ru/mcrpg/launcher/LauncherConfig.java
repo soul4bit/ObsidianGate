@@ -4,6 +4,8 @@ public final class LauncherConfig {
 
     public static final String DEFAULT_SERVER_HOST = "obsidiangates.duckdns.org";
     public static final int DEFAULT_SERVER_PORT = 25565;
+    public static final int DEFAULT_MEMORY_MIN_MB = 1024;
+    public static final int DEFAULT_MEMORY_MAX_MB = 4096;
     public static final String DEFAULT_LAUNCH_TEMPLATE =
         "{java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}";
 
@@ -17,6 +19,8 @@ public final class LauncherConfig {
     private String manifestUrl;
     private String authBaseUrl;
     private String serverId;
+    private int memoryMinMb;
+    private int memoryMaxMb;
     private boolean updateFilesBeforeLaunch;
     private boolean launcherUpdatesEnabled;
 
@@ -32,6 +36,8 @@ public final class LauncherConfig {
         config.setManifestUrl(LauncherDefaults.defaultManifestUrl(DEFAULT_SERVER_HOST));
         config.setAuthBaseUrl(LauncherDefaults.defaultAuthBaseUrl(DEFAULT_SERVER_HOST));
         config.setServerId(LauncherDefaults.defaultServerId());
+        config.setMemoryMinMb(DEFAULT_MEMORY_MIN_MB);
+        config.setMemoryMaxMb(DEFAULT_MEMORY_MAX_MB);
         config.setUpdateFilesBeforeLaunch(true);
         config.setLauncherUpdatesEnabled(true);
         return config;
@@ -49,6 +55,8 @@ public final class LauncherConfig {
         copy.setManifestUrl(manifestUrl);
         copy.setAuthBaseUrl(authBaseUrl);
         copy.setServerId(serverId);
+        copy.setMemoryMinMb(memoryMinMb);
+        copy.setMemoryMaxMb(memoryMaxMb);
         copy.setUpdateFilesBeforeLaunch(updateFilesBeforeLaunch);
         copy.setLauncherUpdatesEnabled(launcherUpdatesEnabled);
         return copy;
@@ -132,6 +140,22 @@ public final class LauncherConfig {
 
     public void setServerId(String serverId) {
         this.serverId = sanitize(serverId);
+    }
+
+    public int getMemoryMinMb() {
+        return memoryMinMb;
+    }
+
+    public void setMemoryMinMb(int memoryMinMb) {
+        this.memoryMinMb = memoryMinMb;
+    }
+
+    public int getMemoryMaxMb() {
+        return memoryMaxMb;
+    }
+
+    public void setMemoryMaxMb(int memoryMaxMb) {
+        this.memoryMaxMb = memoryMaxMb;
     }
 
     public boolean isUpdateFilesBeforeLaunch() {

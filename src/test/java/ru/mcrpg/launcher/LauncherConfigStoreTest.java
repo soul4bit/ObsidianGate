@@ -28,6 +28,8 @@ class LauncherConfigStoreTest {
         config.setManifestUrl("https://example.com/manifest.json");
         config.setAuthBaseUrl("https://example.com/api");
         config.setServerId("obsidiangate-main");
+        config.setMemoryMinMb(2048);
+        config.setMemoryMaxMb(6144);
         config.setUpdateFilesBeforeLaunch(false);
         config.setLauncherUpdatesEnabled(false);
 
@@ -44,6 +46,8 @@ class LauncherConfigStoreTest {
         assertEquals("https://example.com/manifest.json", restored.getManifestUrl());
         assertEquals("https://example.com/api", restored.getAuthBaseUrl());
         assertEquals("obsidiangate-main", restored.getServerId());
+        assertEquals(2048, restored.getMemoryMinMb());
+        assertEquals(6144, restored.getMemoryMaxMb());
         assertEquals(false, restored.isUpdateFilesBeforeLaunch());
         assertEquals(false, restored.isLauncherUpdatesEnabled());
     }

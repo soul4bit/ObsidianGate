@@ -26,6 +26,10 @@ public final class LaunchCommandBuilder {
         placeholders.put("accessToken", trim(identity.getAccessToken()));
         placeholders.put("userType", trim(identity.getUserType()));
         placeholders.put("gameSessionFile", identity.hasSessionFile() ? identity.getSessionFile().toString() : "");
+        placeholders.put("memoryMin", formatMemory(config.getMemoryMinMb()));
+        placeholders.put("memoryMax", formatMemory(config.getMemoryMaxMb()));
+        placeholders.put("memoryMinMb", Integer.toString(config.getMemoryMinMb()));
+        placeholders.put("memoryMaxMb", Integer.toString(config.getMemoryMaxMb()));
 
         List<String> tokens = tokenize(template);
         if (tokens.isEmpty()) {
@@ -39,6 +43,7 @@ public final class LaunchCommandBuilder {
                 resolved.add(value);
             }
         }
+        maybeInjectMemoryArguments(config, template, resolved);
         maybeInjectSessionFileProperty(config, identity, template, resolved);
         return resolved;
     }
@@ -171,6 +176,42 @@ public final class LaunchCommandBuilder {
         if (!resolved.contains(sessionArg)) {
             resolved.add(1, sessionArg);
         }
+    }
+
+    private static void maybeInjectMemoryArguments(LauncherConfig config, String template, List<String> resolved) {
+        if (resolved.isEmpty() || containsMemoryConfiguration(template, resolved)) {
+            return;
+        }
+
+        String javaCommand = trim(config.getJavaCommand());
+        if (javaCommand.isEmpty() || !javaCommand.equals(resolved.get(0))) {
+            return;
+        }
+
+        List<String> memoryArguments = new ArrayList<String>(2);
+        if (config.getMemoryMinMb() > 0) {
+            memoryArguments.add("-Xms" + formatMemory(config.getMemoryMinMb()));
+        }
+        if (config.getMemoryMaxMb() > 0) {
+            memoryArguments.add("-Xmx" + formatMemory(config.getMemoryMaxMb()));
+        }
+        resolved.addAll(1, memoryArguments);
+    }
+
+    private static boolean containsMemoryConfiguration(String template, List<String> resolved) {
+        if (template != null && (template.contains("{memoryMin") || template.contains("{memoryMax"))) {
+            return true;
+        }
+        for (String token : resolved) {
+            if (token.startsWith("-Xms") || token.startsWith("-Xmx")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String formatMemory(int memoryMb) {
+        return Math.max(0, memoryMb) + "M";
     }
 
 }

@@ -11,6 +11,8 @@ public final class LauncherDefaults {
     private static final String HTTP_SCHEME = "http://";
     private static final String HTTPS_SCHEME = "https://";
     private static final String DEFAULT_SERVER_ID = "obsidiangate-main";
+    private static final int MIN_MEMORY_MB = 512;
+    private static final int MAX_MEMORY_MB = 65536;
 
     private LauncherDefaults() {
     }
@@ -47,6 +49,7 @@ public final class LauncherDefaults {
         if (!hasText(config.getLaunchTemplate())) {
             config.setLaunchTemplate(LauncherConfig.DEFAULT_LAUNCH_TEMPLATE);
         }
+        normalizeMemory(config);
         return config;
     }
 
@@ -101,5 +104,22 @@ public final class LauncherDefaults {
         String normalized = authBaseUrl.trim();
         return (HTTP_SCHEME + host + ":" + DEFAULT_AUTH_PORT).equalsIgnoreCase(normalized)
             || (HTTPS_SCHEME + host + ":" + DEFAULT_AUTH_PORT).equalsIgnoreCase(normalized);
+    }
+
+    private static void normalizeMemory(LauncherConfig config) {
+        int minMemory = normalizeMemoryValue(config.getMemoryMinMb(), LauncherConfig.DEFAULT_MEMORY_MIN_MB);
+        int maxMemory = normalizeMemoryValue(config.getMemoryMaxMb(), LauncherConfig.DEFAULT_MEMORY_MAX_MB);
+        if (maxMemory < minMemory) {
+            maxMemory = minMemory;
+        }
+        config.setMemoryMinMb(minMemory);
+        config.setMemoryMaxMb(maxMemory);
+    }
+
+    private static int normalizeMemoryValue(int value, int fallback) {
+        if (value < MIN_MEMORY_MB || value > MAX_MEMORY_MB) {
+            return fallback;
+        }
+        return value;
     }
 }

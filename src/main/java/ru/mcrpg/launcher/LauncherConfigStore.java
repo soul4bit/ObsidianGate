@@ -20,6 +20,8 @@ public final class LauncherConfigStore {
     private static final String KEY_MANIFEST_URL = "manifest.url";
     private static final String KEY_AUTH_BASE_URL = "auth.base.url";
     private static final String KEY_SERVER_ID = "server.id";
+    private static final String KEY_MEMORY_MIN_MB = "memory.min.mb";
+    private static final String KEY_MEMORY_MAX_MB = "memory.max.mb";
     private static final String KEY_UPDATE_FILES_BEFORE_LAUNCH = "update.files.before.launch";
     private static final String KEY_LAUNCHER_UPDATE_ENABLED = "launcher.update.enabled";
 
@@ -62,6 +64,14 @@ public final class LauncherConfigStore {
         defaults.setManifestUrl(properties.getProperty(KEY_MANIFEST_URL, defaults.getManifestUrl()));
         defaults.setAuthBaseUrl(properties.getProperty(KEY_AUTH_BASE_URL, defaults.getAuthBaseUrl()));
         defaults.setServerId(properties.getProperty(KEY_SERVER_ID, defaults.getServerId()));
+        defaults.setMemoryMinMb(parseInteger(
+            properties.getProperty(KEY_MEMORY_MIN_MB),
+            defaults.getMemoryMinMb()
+        ));
+        defaults.setMemoryMaxMb(parseInteger(
+            properties.getProperty(KEY_MEMORY_MAX_MB),
+            defaults.getMemoryMaxMb()
+        ));
         defaults.setUpdateFilesBeforeLaunch(parseBoolean(
             properties.getProperty(KEY_UPDATE_FILES_BEFORE_LAUNCH),
             defaults.isUpdateFilesBeforeLaunch()
@@ -85,6 +95,8 @@ public final class LauncherConfigStore {
         properties.setProperty(KEY_MANIFEST_URL, config.getManifestUrl());
         properties.setProperty(KEY_AUTH_BASE_URL, config.getAuthBaseUrl());
         properties.setProperty(KEY_SERVER_ID, config.getServerId());
+        properties.setProperty(KEY_MEMORY_MIN_MB, Integer.toString(config.getMemoryMinMb()));
+        properties.setProperty(KEY_MEMORY_MAX_MB, Integer.toString(config.getMemoryMaxMb()));
         properties.setProperty(KEY_UPDATE_FILES_BEFORE_LAUNCH, Boolean.toString(config.isUpdateFilesBeforeLaunch()));
         properties.setProperty(KEY_LAUNCHER_UPDATE_ENABLED, Boolean.toString(config.isLauncherUpdatesEnabled()));
 
@@ -103,6 +115,14 @@ public final class LauncherConfigStore {
     }
 
     private static int parsePort(String value, int fallback) {
+        int parsed = parseInteger(value, fallback);
+        if (parsed < 1 || parsed > 65535) {
+            return fallback;
+        }
+        return parsed;
+    }
+
+    private static int parseInteger(String value, int fallback) {
         if (value == null || value.trim().isEmpty()) {
             return fallback;
         }

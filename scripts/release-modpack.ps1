@@ -191,12 +191,16 @@ function Build-LauncherArtifact {
         throw "Launcher Maven build failed."
     }
 
-    $shadedArtifact = Get-ChildItem (Join-Path $repoRoot "target") -File -Filter "obsidian-gate-launcher-*-shaded.jar" |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
+    $projectVersion = Get-ProjectVersion
+    $targetDirectory = Join-Path $repoRoot "target"
+    $versionedArtifact = Join-Path $targetDirectory "obsidian-gate-launcher-$projectVersion.jar"
+    if (Test-Path -LiteralPath $versionedArtifact -PathType Leaf) {
+        return (Get-Item -LiteralPath $versionedArtifact)
+    }
 
-    if ($shadedArtifact) {
-        return $shadedArtifact
+    $versionedShadedArtifact = Join-Path $targetDirectory "obsidian-gate-launcher-$projectVersion-shaded.jar"
+    if (Test-Path -LiteralPath $versionedShadedArtifact -PathType Leaf) {
+        return (Get-Item -LiteralPath $versionedShadedArtifact)
     }
 
     return (Get-ArtifactFile -Directory "target" -Pattern "obsidian-gate-launcher-*.jar")

@@ -165,7 +165,7 @@ public final class ProfileController extends AbstractScreenController {
 
     @FXML
     private void openSettings() {
-        openLauncherConfigLocation();
+        router().open(ScreenRouter.Screen.SETTINGS);
     }
 
     private void logoutAndOpenAuth() {

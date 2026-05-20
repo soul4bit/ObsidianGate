@@ -21,6 +21,8 @@ class LauncherDefaultsTest {
         config.setServerHost("");
         config.setServerPort(0);
         config.setLaunchTemplate("");
+        config.setMemoryMinMb(0);
+        config.setMemoryMaxMb(0);
         config.setUpdateFilesBeforeLaunch(true);
 
         LauncherDefaults.applyMissingValues(config);
@@ -40,6 +42,8 @@ class LauncherDefaultsTest {
         );
         assertEquals("obsidiangate-main", config.getServerId());
         assertEquals(LauncherConfig.DEFAULT_LAUNCH_TEMPLATE, config.getLaunchTemplate());
+        assertEquals(LauncherConfig.DEFAULT_MEMORY_MIN_MB, config.getMemoryMinMb());
+        assertEquals(LauncherConfig.DEFAULT_MEMORY_MAX_MB, config.getMemoryMaxMb());
     }
 
     @Test
@@ -78,5 +82,17 @@ class LauncherDefaultsTest {
 
         assertEquals("http://example.local:8080/manifest.json", config.getManifestUrl());
         assertEquals("http://example.local:8081", config.getAuthBaseUrl());
+    }
+
+    @Test
+    void applyMissingValuesKeepsMemoryMaxAtLeastMin() {
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setMemoryMinMb(8192);
+        config.setMemoryMaxMb(4096);
+
+        LauncherDefaults.applyMissingValues(config);
+
+        assertEquals(8192, config.getMemoryMinMb());
+        assertEquals(8192, config.getMemoryMaxMb());
     }
 }

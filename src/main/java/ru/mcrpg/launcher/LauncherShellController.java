@@ -254,7 +254,7 @@ public final class LauncherShellController extends AbstractScreenController {
 
     @FXML
     private void openSettings() {
-        openConfigLocation();
+        router().open(ScreenRouter.Screen.SETTINGS);
     }
 
     private void openConfigLocation() {
@@ -295,7 +295,7 @@ public final class LauncherShellController extends AbstractScreenController {
         previewButton.setOnAction(event -> previewSyncChanges());
         launchButton.setOnAction(event -> launchClient());
         launchArrowButton.setOnAction(event -> launchClient());
-        settingsButton.setOnAction(event -> openConfigLocation());
+        settingsButton.setOnAction(event -> router().open(ScreenRouter.Screen.SETTINGS));
         openSiteButton.setOnAction(event -> openDownloadBaseLocation());
         if (openLogButton != null) {
             openLogButton.setOnAction(event -> focusLaunchLog());

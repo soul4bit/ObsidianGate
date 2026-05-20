@@ -25,7 +25,17 @@ class LaunchCommandBuilderTest {
         List<String> command = builder.build(config, identity("Player One"));
 
         assertEquals(
-            Arrays.asList("java", "-jar", "forge.jar", "--gameDir", "C:/Games/MC RPG", "--username", "Player One"),
+            Arrays.asList(
+                "java",
+                "-Xms1024M",
+                "-Xmx4096M",
+                "-jar",
+                "forge.jar",
+                "--gameDir",
+                "C:/Games/MC RPG",
+                "--username",
+                "Player One"
+            ),
             command
         );
     }
@@ -42,7 +52,18 @@ class LaunchCommandBuilderTest {
 
         List<String> command = builder.build(config, identity("RPG"));
 
-        assertEquals(Arrays.asList("java", "--label", "Player RPG", "--server", LauncherConfig.DEFAULT_SERVER_HOST), command);
+        assertEquals(
+            Arrays.asList(
+                "java",
+                "-Xms1024M",
+                "-Xmx4096M",
+                "--label",
+                "Player RPG",
+                "--server",
+                LauncherConfig.DEFAULT_SERVER_HOST
+            ),
+            command
+        );
     }
 
     @Test
@@ -58,7 +79,7 @@ class LaunchCommandBuilderTest {
         );
 
         assertEquals(
-            "Неизвестный плейсхолдер {server}. Доступны: [java, username, gameDir, workingDir, serverHost, serverPort, uuid, accessToken, userType, gameSessionFile]",
+            "Неизвестный плейсхолдер {server}. Доступны: [java, username, gameDir, workingDir, serverHost, serverPort, uuid, accessToken, userType, gameSessionFile, memoryMin, memoryMax, memoryMinMb, memoryMaxMb]",
             exception.getMessage()
         );
     }
@@ -89,6 +110,8 @@ class LaunchCommandBuilderTest {
         assertEquals(
             Arrays.asList(
                 "java",
+                "-Xms1024M",
+                "-Xmx4096M",
                 "--uuid",
                 "uuid-Soul4",
                 "--token",
@@ -115,6 +138,8 @@ class LaunchCommandBuilderTest {
             Arrays.asList(
                 "java",
                 "-Dobsidiangate.sessionFile=" + Path.of("C:/Games/.obsidiangate/session.json"),
+                "-Xms1024M",
+                "-Xmx4096M",
                 "-jar",
                 "forge.jar",
                 "--username",
@@ -122,6 +147,31 @@ class LaunchCommandBuilderTest {
             ),
             command
         );
+    }
+
+    @Test
+    void buildSupportsMemoryPlaceholders() {
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setMemoryMinMb(2048);
+        config.setMemoryMaxMb(6144);
+        config.setLaunchTemplate("{java} -Xms{memoryMin} -Xmx{memoryMax} --min {memoryMinMb} --max {memoryMaxMb}");
+
+        List<String> command = builder.build(config, identity("Soul4"));
+
+        assertEquals(
+            Arrays.asList("java", "-Xms2048M", "-Xmx6144M", "--min", "2048", "--max", "6144"),
+            command
+        );
+    }
+
+    @Test
+    void buildDoesNotInjectMemoryWhenTemplateAlreadyConfiguresIt() {
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setLaunchTemplate("{java} -Xmx2G -jar forge.jar --username {username}");
+
+        List<String> command = builder.build(config, identity("Soul4"));
+
+        assertEquals(Arrays.asList("java", "-Xmx2G", "-jar", "forge.jar", "--username", "Soul4"), command);
     }
 
     private static LaunchIdentity identity(String username) {
