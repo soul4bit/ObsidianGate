@@ -66,6 +66,17 @@ final class HomeService {
         return value == null ? null : HomeLocation.parse(value);
     }
 
+    synchronized String primaryHomeName(String playerId) {
+        List<String> names = listHomes(playerId);
+        if (names.isEmpty()) {
+            return null;
+        }
+        if (names.contains("home")) {
+            return "home";
+        }
+        return names.get(0);
+    }
+
     synchronized SetHomeResult setHome(String playerId, String name, HomeLocation location, int maxHomes) {
         ensureLoaded();
         String key = homeKey(playerId, name);

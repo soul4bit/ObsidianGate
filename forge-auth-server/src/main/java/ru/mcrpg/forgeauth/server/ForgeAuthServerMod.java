@@ -31,6 +31,7 @@ public final class ForgeAuthServerMod {
     private static final ItemCleanupService ITEM_CLEANUP = new ItemCleanupService(LOGGER);
     private static final KitService KIT_SERVICE = new KitService(LOGGER);
     private static final HomeService HOME_SERVICE = new HomeService(LOGGER);
+    private static final HomeRespawnService HOME_RESPAWN = new HomeRespawnService(LOGGER, HOME_SERVICE);
     private static final TeleportGuardService TELEPORT_GUARD = new TeleportGuardService();
     private static final PlayerRegionService PLAYER_REGIONS = new PlayerRegionService(LOGGER);
     private static final PlayerRegionProtectionService PLAYER_REGION_PROTECTION =
@@ -54,6 +55,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(PLAYER_REGION_PROTECTION);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
         MinecraftForge.EVENT_BUS.register(TELEPORT_GUARD);
+        MinecraftForge.EVENT_BUS.register(HOME_RESPAWN);
 
         AuthServerConfig config = AuthServerConfig.fromSystem();
         if (config.isReady()) {

@@ -32,7 +32,7 @@ final class HelpCommand {
         section(
             "Дом",
             "home", "дом", "homes", "дома",
-            entry("/sethome [название]", "/sethome ", "сохранить точку дома"),
+            entry("/sethome [название]", "/sethome ", "сохранить точку дома и возрождения"),
             entry("/home [название]", "/home ", "телепортироваться домой"),
             entry("/homes", "/homes", "список ваших домов"),
             entry("/delhome [название]", "/delhome ", "удалить точку дома")

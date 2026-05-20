@@ -52,6 +52,18 @@ class HomeServiceTest {
     }
 
     @Test
+    void primaryHomePrefersDefaultHomeName() {
+        HomeService service = new HomeService(Logger.getLogger("test"), tempDirectory.resolve("homes.properties"));
+        service.load();
+
+        assertTrue(service.setHome("player", "mine", location(1.0D), 3).success);
+        assertTrue(service.setHome("player", "home", location(2.0D), 3).success);
+        assertTrue(service.setHome("player", "base", location(3.0D), 3).success);
+
+        assertEquals("home", service.primaryHomeName("player"));
+    }
+
+    @Test
     void homeNamesAreValidated() {
         assertEquals("home", HomeService.normalizeName(""));
         assertEquals("base_1", HomeService.normalizeName("Base_1"));
