@@ -12,7 +12,10 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import ru.mcrpg.launcher.ui.AvatarImages;
@@ -22,6 +25,13 @@ public final class SettingsController extends AbstractScreenController {
 
     private static final int MIN_MEMORY_MB = 512;
     private static final int MAX_MEMORY_MB = 65536;
+    private static final int DEFAULT_MEMORY_MIN_MB = 1024;
+    private static final int MEMORY_PRESET_2_GB_MB = 2048;
+    private static final int MEMORY_PRESET_4_GB_MB = 4096;
+    private static final int MEMORY_PRESET_6_GB_MB = 6144;
+    private static final int MEMORY_PRESET_8_GB_MB = 8192;
+
+    private final ToggleGroup memoryToggleGroup = new ToggleGroup();
 
     @FXML
     private Label versionLabel;
@@ -67,6 +77,27 @@ public final class SettingsController extends AbstractScreenController {
 
     @FXML
     private TextField memoryMaxField;
+
+    @FXML
+    private ToggleButton memory2Button;
+
+    @FXML
+    private ToggleButton memory4Button;
+
+    @FXML
+    private ToggleButton memory6Button;
+
+    @FXML
+    private ToggleButton memory8Button;
+
+    @FXML
+    private ToggleButton memoryManualButton;
+
+    @FXML
+    private HBox manualMemoryBox;
+
+    @FXML
+    private Label memorySummaryLabel;
 
     @FXML
     private TextField serverHostField;
@@ -116,6 +147,7 @@ public final class SettingsController extends AbstractScreenController {
     @FXML
     private void initialize() {
         configureChrome();
+        configureMemoryPresets();
     }
 
     @Override
@@ -223,8 +255,14 @@ public final class SettingsController extends AbstractScreenController {
         config.setGameDirectory(requireText(gameDirectoryField.getText(), "Укажите папку игры."));
         config.setJavaCommand(requireText(javaCommandField.getText(), "Укажите команду Java."));
         config.setWorkingDirectory(optionalText(workingDirectoryField.getText()));
-        config.setMemoryMinMb(parseMemory(memoryMinField.getText(), "Минимальная RAM"));
-        config.setMemoryMaxMb(parseMemory(memoryMaxField.getText(), "Максимальная RAM"));
+        Integer presetMemoryMaxMb = selectedMemoryMaxMb();
+        if (presetMemoryMaxMb == null) {
+            config.setMemoryMinMb(parseMemory(memoryMinField.getText(), "Минимальная RAM"));
+            config.setMemoryMaxMb(parseMemory(memoryMaxField.getText(), "Максимальная RAM"));
+        } else {
+            config.setMemoryMinMb(DEFAULT_MEMORY_MIN_MB);
+            config.setMemoryMaxMb(presetMemoryMaxMb);
+        }
         if (config.getMemoryMaxMb() < config.getMemoryMinMb()) {
             throw new IllegalArgumentException("Максимальная RAM не может быть меньше минимальной.");
         }
@@ -251,6 +289,8 @@ public final class SettingsController extends AbstractScreenController {
         workingDirectoryField.setText(resolved.getWorkingDirectory());
         memoryMinField.setText(Integer.toString(resolved.getMemoryMinMb()));
         memoryMaxField.setText(Integer.toString(resolved.getMemoryMaxMb()));
+        selectMemoryPreset(resolved.getMemoryMinMb(), resolved.getMemoryMaxMb());
+        updateMemoryPresetState();
         serverHostField.setText(resolved.getServerHost());
         serverPortField.setText(Integer.toString(resolved.getServerPort()));
         manifestUrlField.setText(resolved.getManifestUrl());
@@ -259,6 +299,80 @@ public final class SettingsController extends AbstractScreenController {
         launchTemplateArea.setText(resolved.getLaunchTemplate());
         updateFilesBeforeLaunchCheck.setSelected(resolved.isUpdateFilesBeforeLaunch());
         launcherUpdatesEnabledCheck.setSelected(resolved.isLauncherUpdatesEnabled());
+    }
+
+    private void configureMemoryPresets() {
+        configureMemoryPresetButton(memory2Button, MEMORY_PRESET_2_GB_MB);
+        configureMemoryPresetButton(memory4Button, MEMORY_PRESET_4_GB_MB);
+        configureMemoryPresetButton(memory6Button, MEMORY_PRESET_6_GB_MB);
+        configureMemoryPresetButton(memory8Button, MEMORY_PRESET_8_GB_MB);
+        memoryManualButton.setToggleGroup(memoryToggleGroup);
+
+        memoryToggleGroup.selectedToggleProperty().addListener((observable, oldToggle, selectedToggle) -> {
+            if (selectedToggle == null && oldToggle != null) {
+                memoryToggleGroup.selectToggle(oldToggle);
+                return;
+            }
+            updateMemoryPresetState();
+        });
+        memoryMinField.textProperty().addListener((observable, oldValue, newValue) -> updateMemorySummary());
+        memoryMaxField.textProperty().addListener((observable, oldValue, newValue) -> updateMemorySummary());
+        memoryToggleGroup.selectToggle(memory4Button);
+        updateMemoryPresetState();
+    }
+
+    private void configureMemoryPresetButton(ToggleButton button, int maxMemoryMb) {
+        button.setToggleGroup(memoryToggleGroup);
+        button.setUserData(maxMemoryMb);
+    }
+
+    private void selectMemoryPreset(int minMemoryMb, int maxMemoryMb) {
+        ToggleButton presetButton = null;
+        if (minMemoryMb == DEFAULT_MEMORY_MIN_MB) {
+            presetButton = switch (maxMemoryMb) {
+                case MEMORY_PRESET_2_GB_MB -> memory2Button;
+                case MEMORY_PRESET_4_GB_MB -> memory4Button;
+                case MEMORY_PRESET_6_GB_MB -> memory6Button;
+                case MEMORY_PRESET_8_GB_MB -> memory8Button;
+                default -> null;
+            };
+        }
+        memoryToggleGroup.selectToggle(presetButton == null ? memoryManualButton : presetButton);
+    }
+
+    private void updateMemoryPresetState() {
+        Integer presetMemoryMaxMb = selectedMemoryMaxMb();
+        boolean manualMemory = presetMemoryMaxMb == null;
+        manualMemoryBox.setManaged(manualMemory);
+        manualMemoryBox.setVisible(manualMemory);
+        if (!manualMemory) {
+            memoryMinField.setText(Integer.toString(DEFAULT_MEMORY_MIN_MB));
+            memoryMaxField.setText(Integer.toString(presetMemoryMaxMb));
+        }
+        updateMemorySummary();
+    }
+
+    private void updateMemorySummary() {
+        Integer presetMemoryMaxMb = selectedMemoryMaxMb();
+        if (presetMemoryMaxMb != null) {
+            memorySummaryLabel.setText(formatMemory(presetMemoryMaxMb) + " RAM");
+            return;
+        }
+        String minMemory = optionalText(memoryMinField.getText());
+        String maxMemory = optionalText(memoryMaxField.getText());
+        if (minMemory.isEmpty() || maxMemory.isEmpty()) {
+            memorySummaryLabel.setText("Вручную");
+            return;
+        }
+        memorySummaryLabel.setText(minMemory + "-" + maxMemory + " MB");
+    }
+
+    private Integer selectedMemoryMaxMb() {
+        if (memoryToggleGroup.getSelectedToggle() == null || memoryToggleGroup.getSelectedToggle() == memoryManualButton) {
+            return null;
+        }
+        Object userData = memoryToggleGroup.getSelectedToggle().getUserData();
+        return userData instanceof Integer memoryMb ? memoryMb : null;
     }
 
     private void applyProfileState() {
@@ -310,6 +424,13 @@ public final class SettingsController extends AbstractScreenController {
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException(label + " должна быть числом.", exception);
         }
+    }
+
+    private static String formatMemory(int memoryMb) {
+        if (memoryMb % 1024 == 0) {
+            return (memoryMb / 1024) + " GB";
+        }
+        return memoryMb + " MB";
     }
 
     private static String requireText(String value, String message) {

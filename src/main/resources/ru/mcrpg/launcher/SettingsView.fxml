@@ -7,6 +7,8 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
@@ -109,28 +111,39 @@
             <center>
                 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
                     <content>
-                        <VBox spacing="16.0" styleClass="settings-content">
+                        <VBox spacing="18.0" styleClass="settings-content">
                             <padding>
                                 <Insets bottom="32.0" left="34.0" right="34.0" top="28.0"/>
                             </padding>
                             <children>
-                                <VBox spacing="7.0" styleClass="profile-page-heading">
+                                <HBox alignment="CENTER_LEFT" spacing="18.0" styleClass="settings-hero-card">
                                     <children>
-                                        <Label styleClass="page-title" text="Настройки"/>
-                                        <Label styleClass="muted" text="Локальная конфигурация клиента"/>
+                                        <VBox spacing="7.0" HBox.hgrow="ALWAYS">
+                                            <children>
+                                                <Label styleClass="page-title" text="Настройки"/>
+                                                <Label styleClass="muted" text="Параметры клиента, памяти и подключения"/>
+                                            </children>
+                                        </VBox>
+                                        <Label fx:id="statusLabel" maxWidth="420.0" styleClass="settings-status" text="Готово"
+                                               wrapText="true"/>
                                     </children>
-                                </VBox>
+                                </HBox>
 
                                 <HBox spacing="16.0" styleClass="settings-grid">
                                     <children>
                                         <VBox spacing="16.0" HBox.hgrow="ALWAYS">
                                             <children>
-                                                <VBox spacing="14.0" styleClass="settings-card">
+                                                <VBox spacing="16.0" styleClass="settings-card">
                                                     <children>
                                                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                                                             <children>
                                                                 <Label fx:id="clientIconLabel" styleClass="profile-card-icon"/>
-                                                                <Label styleClass="section-title" text="Клиент"/>
+                                                                <VBox spacing="3.0">
+                                                                    <children>
+                                                                        <Label styleClass="section-title" text="Клиент"/>
+                                                                        <Label styleClass="muted" text="Где лежит сборка и какой Java запускать"/>
+                                                                    </children>
+                                                                </VBox>
                                                             </children>
                                                         </HBox>
 
@@ -172,52 +185,64 @@
                                                             </children>
                                                         </VBox>
 
-                                                        <VBox spacing="7.0">
+                                                        <VBox spacing="10.0">
                                                             <children>
-                                                                <Label styleClass="field-label" text="Рабочая папка"/>
-                                                                <HBox spacing="10.0">
+                                                                <HBox alignment="CENTER_LEFT" spacing="10.0">
                                                                     <children>
-                                                                        <TextField fx:id="workingDirectoryField"
-                                                                                   maxWidth="1.7976931348623157E308"
-                                                                                   promptText="по умолчанию: папка игры"
-                                                                                   styleClass="settings-input"
-                                                                                   HBox.hgrow="ALWAYS"/>
-                                                                        <Button fx:id="browseWorkingDirectoryButton"
-                                                                                mnemonicParsing="false"
-                                                                                onAction="#onBrowseWorkingDirectory"
-                                                                                styleClass="settings-icon-button"/>
+                                                                        <Label styleClass="field-label" text="Память"/>
+                                                                        <Region HBox.hgrow="ALWAYS"/>
+                                                                        <Label fx:id="memorySummaryLabel" styleClass="settings-inline-status"
+                                                                               text="4 GB"/>
+                                                                    </children>
+                                                                </HBox>
+                                                                <HBox spacing="8.0" styleClass="settings-segmented">
+                                                                    <children>
+                                                                        <ToggleButton fx:id="memory2Button" mnemonicParsing="false"
+                                                                                      text="2 GB"/>
+                                                                        <ToggleButton fx:id="memory4Button" mnemonicParsing="false"
+                                                                                      text="4 GB"/>
+                                                                        <ToggleButton fx:id="memory6Button" mnemonicParsing="false"
+                                                                                      text="6 GB"/>
+                                                                        <ToggleButton fx:id="memory8Button" mnemonicParsing="false"
+                                                                                      text="8 GB"/>
+                                                                        <ToggleButton fx:id="memoryManualButton" mnemonicParsing="false"
+                                                                                      text="Вручную"/>
+                                                                    </children>
+                                                                </HBox>
+                                                                <HBox fx:id="manualMemoryBox" managed="false" spacing="14.0" visible="false">
+                                                                    <children>
+                                                                        <VBox spacing="7.0" HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="field-label" text="Мин. RAM, MB"/>
+                                                                                <TextField fx:id="memoryMinField" promptText="1024"
+                                                                                           styleClass="settings-input"/>
+                                                                            </children>
+                                                                        </VBox>
+                                                                        <VBox spacing="7.0" HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="field-label" text="Макс. RAM, MB"/>
+                                                                                <TextField fx:id="memoryMaxField" promptText="4096"
+                                                                                           styleClass="settings-input"/>
+                                                                            </children>
+                                                                        </VBox>
                                                                     </children>
                                                                 </HBox>
                                                             </children>
                                                         </VBox>
-
-                                                        <HBox spacing="14.0">
-                                                            <children>
-                                                                <VBox spacing="7.0" HBox.hgrow="ALWAYS">
-                                                                    <children>
-                                                                        <Label styleClass="field-label" text="Мин. RAM, MB"/>
-                                                                        <TextField fx:id="memoryMinField" promptText="1024"
-                                                                                   styleClass="settings-input"/>
-                                                                    </children>
-                                                                </VBox>
-                                                                <VBox spacing="7.0" HBox.hgrow="ALWAYS">
-                                                                    <children>
-                                                                        <Label styleClass="field-label" text="Макс. RAM, MB"/>
-                                                                        <TextField fx:id="memoryMaxField" promptText="4096"
-                                                                                   styleClass="settings-input"/>
-                                                                    </children>
-                                                                </VBox>
-                                                            </children>
-                                                        </HBox>
                                                     </children>
                                                 </VBox>
 
-                                                <VBox spacing="14.0" styleClass="settings-card">
+                                                <VBox spacing="16.0" styleClass="settings-card">
                                                     <children>
                                                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                                                             <children>
                                                                 <Label fx:id="serverIconLabel" styleClass="profile-card-icon"/>
-                                                                <Label styleClass="section-title" text="Сервер и API"/>
+                                                                <VBox spacing="3.0">
+                                                                    <children>
+                                                                        <Label styleClass="section-title" text="Подключение"/>
+                                                                        <Label styleClass="muted" text="Minecraft-сервер, manifest и Auth API"/>
+                                                                    </children>
+                                                                </VBox>
                                                             </children>
                                                         </HBox>
 
@@ -260,16 +285,6 @@
                                                                            styleClass="settings-input"/>
                                                             </children>
                                                         </VBox>
-
-                                                        <VBox spacing="7.0">
-                                                            <children>
-                                                                <Label styleClass="field-label" text="Server ID"/>
-                                                                <TextField fx:id="serverIdField"
-                                                                           maxWidth="1.7976931348623157E308"
-                                                                           promptText="obsidiangate-main"
-                                                                           styleClass="settings-input"/>
-                                                            </children>
-                                                        </VBox>
                                                     </children>
                                                 </VBox>
                                             </children>
@@ -277,25 +292,13 @@
 
                                         <VBox prefWidth="380.0" spacing="16.0">
                                             <children>
-                                                <VBox spacing="14.0" styleClass="settings-card">
+                                                <VBox spacing="12.0" styleClass="settings-card, settings-actions-card">
                                                     <children>
-                                                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                                            <children>
-                                                                <Label fx:id="launchIconLabel" styleClass="profile-card-icon"/>
-                                                                <Label styleClass="section-title" text="Запуск"/>
-                                                            </children>
-                                                        </HBox>
-
-                                                        <VBox spacing="7.0">
-                                                            <children>
-                                                                <Label styleClass="field-label" text="Шаблон команды"/>
-                                                                <TextArea fx:id="launchTemplateArea" prefRowCount="7"
-                                                                          promptText="{java} -jar forge.jar --username {username}"
-                                                                          styleClass="settings-textarea" wrapText="true"/>
-                                                            </children>
-                                                        </VBox>
-
-                                                        <VBox spacing="11.0" styleClass="settings-check-list">
+                                                        <Button fx:id="saveButton" maxWidth="1.7976931348623157E308"
+                                                                mnemonicParsing="false" onAction="#onSaveSettings"
+                                                                styleClass="settings-save-button"
+                                                                text="Сохранить"/>
+                                                        <VBox spacing="10.0" styleClass="settings-check-list">
                                                             <children>
                                                                 <CheckBox fx:id="updateFilesBeforeLaunchCheck"
                                                                           text="Синхронизировать файлы перед запуском"/>
@@ -308,10 +311,7 @@
 
                                                 <VBox spacing="12.0" styleClass="settings-card">
                                                     <children>
-                                                        <Button fx:id="saveButton" maxWidth="1.7976931348623157E308"
-                                                                mnemonicParsing="false" onAction="#onSaveSettings"
-                                                                styleClass="primary-button, settings-save-button"
-                                                                text="Сохранить"/>
+                                                        <Label styleClass="section-title" text="Быстрые действия"/>
                                                         <Button fx:id="resetButton" maxWidth="1.7976931348623157E308"
                                                                 mnemonicParsing="false" onAction="#onResetDefaults"
                                                                 styleClass="profile-action-button"
@@ -325,9 +325,62 @@
                                                                 mnemonicParsing="false" onAction="#onOpenConfigFile"
                                                                 styleClass="profile-action-button"
                                                                 text="Открыть файл настроек"/>
-                                                        <Label fx:id="statusLabel" styleClass="settings-status" wrapText="true"/>
                                                     </children>
                                                 </VBox>
+
+                                                <TitledPane animated="true" expanded="false" styleClass="settings-advanced-pane"
+                                                            text="Расширенные">
+                                                    <content>
+                                                        <VBox spacing="14.0" styleClass="settings-card, settings-advanced-content">
+                                                            <children>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                                                    <children>
+                                                                        <Label fx:id="launchIconLabel" styleClass="profile-card-icon"/>
+                                                                        <Label styleClass="section-title" text="Запуск"/>
+                                                                    </children>
+                                                                </HBox>
+
+                                                                <VBox spacing="7.0">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Рабочая папка"/>
+                                                                        <HBox spacing="10.0">
+                                                                            <children>
+                                                                                <TextField fx:id="workingDirectoryField"
+                                                                                           maxWidth="1.7976931348623157E308"
+                                                                                           promptText="по умолчанию: папка игры"
+                                                                                           styleClass="settings-input"
+                                                                                           HBox.hgrow="ALWAYS"/>
+                                                                                <Button fx:id="browseWorkingDirectoryButton"
+                                                                                        mnemonicParsing="false"
+                                                                                        onAction="#onBrowseWorkingDirectory"
+                                                                                        styleClass="settings-icon-button"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                    </children>
+                                                                </VBox>
+
+                                                                <VBox spacing="7.0">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Server ID"/>
+                                                                        <TextField fx:id="serverIdField"
+                                                                                   maxWidth="1.7976931348623157E308"
+                                                                                   promptText="obsidiangate-main"
+                                                                                   styleClass="settings-input"/>
+                                                                    </children>
+                                                                </VBox>
+
+                                                                <VBox spacing="7.0">
+                                                                    <children>
+                                                                        <Label styleClass="field-label" text="Шаблон команды"/>
+                                                                        <TextArea fx:id="launchTemplateArea" prefRowCount="8"
+                                                                                  promptText="{java} -jar forge.jar --username {username}"
+                                                                                  styleClass="settings-textarea" wrapText="true"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </VBox>
+                                                    </content>
+                                                </TitledPane>
                                             </children>
                                         </VBox>
                                     </children>

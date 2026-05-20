@@ -10,6 +10,7 @@ public final class ScreenRouter {
 
     private static final double DEFAULT_SCENE_WIDTH = 1500;
     private static final double DEFAULT_SCENE_HEIGHT = 900;
+    private static final String THEME_STYLESHEET = "/ru/mcrpg/launcher/theme.css";
 
     public enum Screen {
         AUTH("/ru/mcrpg/launcher/AuthView.fxml", "/ru/mcrpg/launcher/account.css"),
@@ -48,6 +49,7 @@ public final class ScreenRouter {
             double sceneHeight = stage.getHeight() > 0 ? stage.getHeight() : DEFAULT_SCENE_HEIGHT;
             Scene scene = new Scene(root, sceneWidth, sceneHeight);
             scene.getStylesheets().add(ScreenRouter.class.getResource(screen.stylesheetPath).toExternalForm());
+            scene.getStylesheets().add(ScreenRouter.class.getResource(THEME_STYLESHEET).toExternalForm());
             stage.setScene(scene);
             if (!stage.isShowing()) {
                 stage.show();

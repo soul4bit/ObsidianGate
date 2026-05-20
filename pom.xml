@@ -6,7 +6,7 @@
 
     <groupId>ru.mcrpg</groupId>
     <artifactId>obsidian-gate-launcher</artifactId>
-    <version>0.1.5-test</version>
+    <version>0.1.6-test</version>
     <name>ObsidianGate Launcher</name>
 
     <properties>
