@@ -5,6 +5,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -25,6 +26,10 @@ public final class ForgeAuthServerMod {
     public static final String VERSION = "0.1.0-SNAPSHOT";
     public static final String NETWORK_CHANNEL = "ogauth";
 
+    static {
+        BiblioCraftWarningFilter.install();
+    }
+
     private static final Logger LOGGER = Logger.getLogger(MOD_NAME);
     private static final ForgeAuthServerLifecycle LIFECYCLE = new ForgeAuthServerLifecycle(LOGGER);
     private static final SpawnProtectionService SPAWN_PROTECTION = new SpawnProtectionService(LOGGER);
@@ -39,6 +44,11 @@ public final class ForgeAuthServerMod {
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
+    }
+
+    @EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+        BiblioCraftWarningFilter.install();
     }
 
     @EventHandler
