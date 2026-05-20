@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.20.4",
+    "version":  "2026.05.20.5",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "launcher":  {
                      "serverHost":  "obsidiangates.duckdns.org",
@@ -12,9 +12,9 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.20.4",
+                           "version":  "2026.05.20.5",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "01bbff2b2db07b327fb133b781c67f4e42ea6cc8c6005f08d029fa7223569752",
+                           "sha256":  "048bf8b7c3927969fc8d5bec08264386e267c40836124b8bb78c5eaf2081406a",
                            "size":  15635571,
                            "required":  false,
                            "artifactVersion":  "0.1.6-test",
@@ -1064,7 +1064,7 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "2b01ea20730c822db2a1e072965b9d6efc83775b8d2689038625d3cc0320da78",
+                      "sha256":  "8db1450032d8b3230ca356897f9dc6728288cf8efb2338353041ff73677b987c",
                       "size":  31606,
                       "executable":  false
                   },
@@ -1250,8 +1250,8 @@
                   },
                   {
                       "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/xaeroworldmap/lang/ru_ru.lang",
-                      "sha256":  "7f418a4f7c82957f13d78ea9e1482c628f29f0591bf6c2319ad72812568b2c99",
-                      "size":  10087,
+                      "sha256":  "a2e2e2cf4b02b0ed814d20d816e5a198ead53d3df03fded71172f480ae04cc27",
+                      "size":  10086,
                       "executable":  false
                   },
                   {

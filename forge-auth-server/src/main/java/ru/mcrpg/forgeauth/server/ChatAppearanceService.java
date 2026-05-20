@@ -18,7 +18,6 @@ final class ChatAppearanceService {
     private static final String DARK_GRAY = "\u00A78";
     private static final String WHITE = "\u00A7f";
     private static final String GRAY = "\u00A77";
-    private static final String BRAND = DARK_GRAY + "[" + "\u00A75OG" + DARK_GRAY + "]" + RESET;
     private static final String TEAM_PREFIX = "og";
     private static final int TEAM_NAME_LIMIT = 16;
 
@@ -91,9 +90,7 @@ final class ChatAppearanceService {
     }
 
     private static String formatChatLine(RoleStyle style, String username, String message) {
-        return BRAND
-            + " "
-            + DARK_GRAY + "[" + style.roleColor + style.label + DARK_GRAY + "]"
+        return DARK_GRAY + "[" + style.roleColor + style.label + DARK_GRAY + "]"
             + " "
             + style.nameColor + username
             + " " + DARK_GRAY + "\u00BB" + " "

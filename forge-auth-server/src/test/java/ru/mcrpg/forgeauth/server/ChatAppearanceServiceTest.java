@@ -16,7 +16,7 @@ class ChatAppearanceServiceTest {
         String line = ChatAppearanceService.formatChatLine("admin", "soul4bit", "\u00A7ksecret привет");
 
         assertEquals(
-            "\u00A78[\u00A75OG\u00A78]\u00A7r \u00A78[\u00A74Админ\u00A78] \u00A7csoul4bit \u00A78\u00BB \u00A7fsecret привет",
+            "\u00A78[\u00A74Админ\u00A78] \u00A7csoul4bit \u00A78\u00BB \u00A7fsecret привет",
             line
         );
     }
