@@ -351,8 +351,8 @@ foreach ($path in @($authMetadataPath, $distManifestPath)) {
     }
 }
 
-$authMetadata = Get-Content $authMetadataPath -Raw | ConvertFrom-Json
-$manifest = Get-Content $distManifestPath -Raw | ConvertFrom-Json
+$authMetadata = Get-Content $authMetadataPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$manifest = Get-Content $distManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $clientJarName = $authMetadata.artifacts.client.fileName
 $clientJarPath = Join-Path $distFullPath $clientJarName
 

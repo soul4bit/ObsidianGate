@@ -42,6 +42,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private static final int SERVER_STATUS_TIMEOUT_MS = 1500;
     private static final String DASHBOARD_UNKNOWN = "—";
     private static final int PREVIEW_ENTRY_LIMIT = 4;
+    private static final int NEWS_SECTION_ITEM_LIMIT = 5;
     private static final int RECONNECT_TICKET_COUNT = 5;
     private static final String REQUIRED_LANGUAGE = "ru_ru";
     private static final String REQUIRED_RESOURCE_PACK = "ObsidianGate-Fixes-1.12.2";
@@ -179,6 +180,18 @@ public final class LauncherShellController extends AbstractScreenController {
     private VBox previewChangesBox;
 
     @FXML
+    private Label newsTitleLabel;
+
+    @FXML
+    private Label newsDateLabel;
+
+    @FXML
+    private Label newsBodyLabel;
+
+    @FXML
+    private VBox newsHighlightsBox;
+
+    @FXML
     private HBox launcherUpdateCard;
 
     @FXML
@@ -229,6 +242,7 @@ public final class LauncherShellController extends AbstractScreenController {
         updateProgressState(false, "Синхронизация модпака", "Готово", 0.0d);
         syncFileLabel.setText("Лаунчер готов к работе.");
         syncBytesLabel.setText("Файловая активность пока отсутствует.");
+        resetNewsState();
         resetPreviewState();
         updateOnlinePlayersValue(DASHBOARD_UNKNOWN);
         updateServerDetailValues(DASHBOARD_UNKNOWN, DASHBOARD_UNKNOWN);
@@ -383,6 +397,7 @@ public final class LauncherShellController extends AbstractScreenController {
         manifestUrlValueLabel.setText(formatManifestLocation(manifestUrl));
         downloadBaseValueLabel.setText(deriveManifestDirectory(manifestUrl));
         updateModpackSizeValue(DASHBOARD_UNKNOWN);
+        applyNewsLoadingState(hasText(manifestUrl));
         resetPreviewState();
         hideLauncherUpdateCard();
         applyDashboardLoadingState(hasText(manifestUrl));
@@ -687,6 +702,7 @@ public final class LauncherShellController extends AbstractScreenController {
             "Загружено " + syncResult.getDownloadedFiles() + " файлов, переиспользовано "
                 + syncResult.getReusedFiles() + "."
         );
+        applyNews(syncResult.getManifest());
         applyPreviewFromSyncResult(syncResult);
         manifestUrlValueLabel.setText(formatManifestLocation(resolvedConfig.getManifestUrl()));
         serverRouteValueLabel.setText(formatRoute(resolvedConfig));
@@ -709,6 +725,7 @@ public final class LauncherShellController extends AbstractScreenController {
         int totalFiles = previewResult.getEntries().size();
         String manifestVersion = resolveManifestVersion(previewResult.getManifest());
         updateModpackSizeValue(formatManifestSize(previewResult.getManifest()));
+        applyNews(previewResult.getManifest());
 
         if (downloadFiles <= 0) {
             updateProgressState(false, "Локальные файлы актуальны", "ПРОСМОТР", 0.0d);
@@ -756,6 +773,164 @@ public final class LauncherShellController extends AbstractScreenController {
         setPreviewChanges(
             createPreviewEmptyState("Нажмите «Предпросмотр», чтобы заранее увидеть изменения перед синхронизацией.")
         );
+    }
+
+    private void resetNewsState() {
+        setNewsDetails(
+            "Последние новости",
+            "Manifest не загружен",
+            "После загрузки manifest лаунчер покажет последние новости и changelog этой версии.",
+            createNewsEmptyState("Ожидаем данные сервера.")
+        );
+    }
+
+    private void applyNewsLoadingState(boolean hasManifestUrl) {
+        if (!hasManifestUrl) {
+            setNewsDetails(
+                "Последние новости",
+                "Manifest не указан",
+                "Укажите URL manifest.json в настройках, чтобы увидеть changelog.",
+                createNewsEmptyState("Источник обновлений пока не настроен.")
+            );
+            return;
+        }
+
+        setNewsDetails(
+            "Последние новости",
+            "Загрузка manifest",
+            "Получаем последние новости, changelog и важные изменения этой версии.",
+            createNewsEmptyState("Проверяем manifest.json...")
+        );
+    }
+
+    private void applyNewsLoadFailed(boolean hasManifestUrl) {
+        if (!hasManifestUrl) {
+            applyNewsLoadingState(false);
+            return;
+        }
+
+        setNewsDetails(
+            "Последние новости",
+            "Manifest недоступен",
+            "Не удалось загрузить manifest.json, поэтому changelog временно скрыт.",
+            createNewsEmptyState("Проверьте HTTP-раздачу manifest и повторите проверку обновлений.")
+        );
+    }
+
+    private void applyNews(ModpackManifest manifest) {
+        ModpackNews news = resolveManifestNews(manifest);
+        String manifestVersion = resolveManifestVersion(manifest);
+        if (news == null || !news.hasContent()) {
+            setNewsDetails(
+                "Последние новости",
+                "Manifest " + manifestVersion,
+                "Для этой версии новости и changelog не указаны.",
+                createNewsEmptyState("Администратор может заполнить news или changelog в manifest.json.")
+            );
+            return;
+        }
+
+        List<Node> nodes = new ArrayList<Node>();
+        addNewsSection(nodes, "Последние новости", news.getHighlights(), "update-news-dot-default");
+        addNewsSection(nodes, "Новые моды", news.getNewMods(), "update-news-dot-new");
+        addNewsSection(nodes, "Удалены", news.getRemovedMods(), "update-news-dot-removed");
+        addNewsSection(nodes, "Важно", news.getImportant(), "update-news-dot-important");
+
+        if (nodes.isEmpty()) {
+            nodes.add(createNewsEmptyState("Подробных пунктов нет."));
+        }
+
+        setNewsDetails(
+            valueOrFallback(news.getTitle(), "Последние новости"),
+            valueOrFallback(news.getDate(), "Manifest " + manifestVersion),
+            valueOrFallback(news.getBody(), "Список изменений указан ниже."),
+            nodes
+        );
+    }
+
+    private void addNewsSection(List<Node> nodes, String title, List<String> values, String toneStyleClass) {
+        List<String> items = sanitizeNewsItems(values);
+        if (items.isEmpty()) {
+            return;
+        }
+
+        VBox section = new VBox(7.0);
+        section.getStyleClass().add("update-news-section");
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("update-news-section-title");
+        section.getChildren().add(titleLabel);
+
+        int shown = 0;
+        for (String item : items) {
+            if (shown >= NEWS_SECTION_ITEM_LIMIT) {
+                break;
+            }
+            section.getChildren().add(createNewsItem(item, toneStyleClass));
+            shown++;
+        }
+
+        if (items.size() > shown) {
+            Label moreLabel = new Label("Еще " + (items.size() - shown) + " пунктов в manifest.");
+            moreLabel.getStyleClass().add("update-news-note");
+            section.getChildren().add(moreLabel);
+        }
+
+        nodes.add(section);
+    }
+
+    private Node createNewsItem(String text, String toneStyleClass) {
+        HBox row = new HBox(8.0);
+        row.getStyleClass().add("update-news-item");
+
+        Region dot = new Region();
+        dot.getStyleClass().add("update-news-dot");
+        dot.getStyleClass().add(toneStyleClass);
+
+        Label label = new Label(text);
+        label.getStyleClass().add("update-news-item-text");
+        label.setWrapText(true);
+        HBox.setHgrow(label, Priority.ALWAYS);
+
+        row.getChildren().addAll(dot, label);
+        return row;
+    }
+
+    private Node createNewsEmptyState(String text) {
+        VBox box = new VBox();
+        box.getStyleClass().add("update-news-empty");
+
+        Label label = new Label(text);
+        label.getStyleClass().add("update-news-note");
+        label.setWrapText(true);
+        box.getChildren().add(label);
+        return box;
+    }
+
+    private void setNewsDetails(String title, String date, String body, Node... nodes) {
+        List<Node> nodeList = new ArrayList<Node>();
+        for (Node node : nodes) {
+            nodeList.add(node);
+        }
+        setNewsDetails(title, date, body, nodeList);
+    }
+
+    private void setNewsDetails(String title, String date, String body, List<Node> nodes) {
+        if (newsTitleLabel != null) {
+            newsTitleLabel.setText(valueOrFallback(title, "Последние новости"));
+        }
+        if (newsDateLabel != null) {
+            String normalizedDate = hasText(date) ? date.trim() : "";
+            newsDateLabel.setText(normalizedDate);
+            newsDateLabel.setManaged(hasText(normalizedDate));
+            newsDateLabel.setVisible(hasText(normalizedDate));
+        }
+        if (newsBodyLabel != null) {
+            newsBodyLabel.setText(valueOrFallback(body, "Changelog этой версии пока не указан."));
+        }
+        if (newsHighlightsBox != null) {
+            newsHighlightsBox.getChildren().setAll(nodes);
+        }
     }
 
     private void renderPreviewChanges(List<ModpackSyncPreviewEntry> entries, int totalChanged) {
@@ -873,10 +1048,14 @@ public final class LauncherShellController extends AbstractScreenController {
             String manifestVersion = hasText(manifestUrl) ? "Нет данных" : "Не указан";
             String minecraftVersion = hasText(manifestUrl) ? DASHBOARD_UNKNOWN : "Не указан";
             String modpackSize = hasText(manifestUrl) ? DASHBOARD_UNKNOWN : "Не указан";
+            ModpackManifest manifestNews = null;
+            boolean manifestLoadSucceeded = false;
 
             try {
                 LoadedManifest loadedManifest = manifestClient.load(manifestUrl);
                 ModpackManifest manifest = loadedManifest.getManifest();
+                manifestNews = manifest;
+                manifestLoadSucceeded = true;
                 applyManifestSettings(previewConfig, manifest);
                 downloadBase = resolveDisplayDownloadBase(loadedManifest);
                 manifestVersion = resolveManifestVersion(manifest);
@@ -896,6 +1075,8 @@ public final class LauncherShellController extends AbstractScreenController {
             String resolvedManifestVersion = manifestVersion;
             String resolvedMinecraftVersion = minecraftVersion;
             String resolvedModpackSize = modpackSize;
+            ModpackManifest resolvedManifestNews = manifestNews;
+            boolean resolvedManifestLoadSucceeded = manifestLoadSucceeded;
             LauncherUpdateCandidate resolvedLauncherUpdate = launcherUpdate;
             boolean resolvedLauncherUpdateCheckSucceeded = launcherUpdateCheckSucceeded;
 
@@ -907,6 +1088,11 @@ public final class LauncherShellController extends AbstractScreenController {
                 downloadBaseValueLabel.setText(resolvedDownloadBase);
                 updateVersionValues(resolvedMinecraftVersion, resolvedManifestVersion);
                 updateModpackSizeValue(resolvedModpackSize);
+                if (resolvedManifestLoadSucceeded) {
+                    applyNews(resolvedManifestNews);
+                } else {
+                    applyNewsLoadFailed(hasText(config.getManifestUrl()));
+                }
                 applyLauncherUpdateState(resolvedLauncherUpdate, resolvedLauncherUpdateCheckSucceeded);
                 refreshServerPresenceAsync(resolvedHost, resolvedPort, resolvedRoute);
             });
@@ -1066,6 +1252,30 @@ public final class LauncherShellController extends AbstractScreenController {
         updateOnlinePlayersValue(DASHBOARD_UNKNOWN);
         updateServerDetailValues(DASHBOARD_UNKNOWN, DASHBOARD_UNKNOWN);
         updateModpackSizeValue(hasManifestUrl ? DASHBOARD_UNKNOWN : "не указан");
+    }
+
+    private static ModpackNews resolveManifestNews(ModpackManifest manifest) {
+        if (manifest == null) {
+            return null;
+        }
+        ModpackNews news = manifest.getNews();
+        if (news != null && news.hasContent()) {
+            return news;
+        }
+        return manifest.getChangelog();
+    }
+
+    private static List<String> sanitizeNewsItems(List<String> values) {
+        List<String> items = new ArrayList<String>();
+        if (values == null) {
+            return items;
+        }
+        for (String value : values) {
+            if (hasText(value)) {
+                items.add(value.trim());
+            }
+        }
+        return items;
     }
 
     private static String resolveManifestVersion(ModpackManifest manifest) {

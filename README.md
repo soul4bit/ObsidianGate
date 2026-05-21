@@ -189,6 +189,7 @@ update.files.before.launch=true
 
 - `schemaVersion`: версия схемы, сейчас используется `1`
 - `baseUrl`: базовый URL для файлов модпака
+- `news` или `changelog`: текст обновления, важные пункты, новые и удалённые моды для главного экрана лаунчера
 - `launcher.serverHost`: хост Minecraft-сервера
 - `launcher.serverPort`: порт Minecraft-сервера
 - `launcher.authBaseUrl`: базовый URL `auth-api`
@@ -208,6 +209,15 @@ update.files.before.launch=true
   "id": "rpg",
   "version": "2026.05.05",
   "baseUrl": "http://obsidiangates.duckdns.org:8080/client/",
+  "news": {
+    "title": "Последние новости",
+    "date": "2026-05-21",
+    "body": "Коротко опишите, что поменялось в этой версии.",
+    "highlights": ["Добавлен подробный прогресс синхронизации"],
+    "newMods": ["ExampleNewMod"],
+    "removedMods": ["LegacyOldMod"],
+    "important": ["Перед запуском дождитесь окончания проверки файлов."]
+  },
   "launcher": {
     "serverHost": "obsidiangates.duckdns.org",
     "serverPort": 25565,

@@ -50,7 +50,7 @@ foreach ($command in @("scp", "ssh")) {
 $rsyncCommand = if ($DisableRsync) { $null } else { Get-Command "rsync" -ErrorAction SilentlyContinue }
 $useRsync = $null -ne $rsyncCommand
 
-$metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
+$metadata = Get-Content $metadataPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $serverFileName = $metadata.artifacts.server.fileName
 $launcherUpdateFileName = if ($metadata.launcherUpdate -and $metadata.launcherUpdate.fileName) {
     [string]$metadata.launcherUpdate.fileName

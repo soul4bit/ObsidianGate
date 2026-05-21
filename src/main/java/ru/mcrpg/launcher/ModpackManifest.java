@@ -9,6 +9,8 @@ public final class ModpackManifest {
     private String id;
     private String version;
     private String baseUrl;
+    private ModpackNews news = new ModpackNews();
+    private ModpackNews changelog = new ModpackNews();
     private LauncherManifestSettings launcher = new LauncherManifestSettings();
     private LauncherUpdateSettings launcherUpdate = new LauncherUpdateSettings();
     private ModpackRuntime runtime = new ModpackRuntime();
@@ -45,6 +47,22 @@ public final class ModpackManifest {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    public ModpackNews getNews() {
+        return news;
+    }
+
+    public void setNews(ModpackNews news) {
+        this.news = news == null ? new ModpackNews() : news;
+    }
+
+    public ModpackNews getChangelog() {
+        return changelog;
+    }
+
+    public void setChangelog(ModpackNews changelog) {
+        this.changelog = changelog == null ? new ModpackNews() : changelog;
     }
 
     public LauncherManifestSettings getLauncher() {

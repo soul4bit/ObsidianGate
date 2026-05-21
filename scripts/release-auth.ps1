@@ -110,7 +110,7 @@ $commonRecord = Get-ArtifactRecord -File $commonJar
 $clientRecord = Get-ArtifactRecord -File $clientJar -ManifestFilePath $clientManifestPath
 $serverRecord = Get-ArtifactRecord -File $serverJar
 
-$manifest = Get-Content $manifestFullPath -Raw | ConvertFrom-Json
+$manifest = Get-Content $manifestFullPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 if (-not $manifest.PSObject.Properties.Name.Contains("files")) {
     $manifest | Add-Member -NotePropertyName "files" -NotePropertyValue @()

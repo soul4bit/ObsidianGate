@@ -367,6 +367,32 @@
                                             </children>
                                         </VBox>
 
+                                        <VBox spacing="11.0" styleClass="panel, update-news-panel">
+                                            <children>
+                                                <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="update-news-header">
+                                                    <children>
+                                                        <Label fx:id="newsTitleLabel" maxWidth="1.7976931348623157E308"
+                                                               styleClass="update-news-title" text="Последние новости"
+                                                               wrapText="true" HBox.hgrow="ALWAYS"/>
+                                                        <Label fx:id="newsDateLabel" styleClass="update-news-date"
+                                                               text="Manifest"/>
+                                                    </children>
+                                                </HBox>
+                                                <Label fx:id="newsBodyLabel" maxWidth="1.7976931348623157E308"
+                                                       styleClass="update-news-body"
+                                                       text="Changelog этой версии появится после загрузки manifest."
+                                                       wrapText="true"/>
+                                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="286.0"
+                                                            prefHeight="252.0" styleClass="update-news-scroll"
+                                                            vbarPolicy="AS_NEEDED">
+                                                    <content>
+                                                        <VBox fx:id="newsHighlightsBox" spacing="8.0"
+                                                              styleClass="update-news-list"/>
+                                                    </content>
+                                                </ScrollPane>
+                                            </children>
+                                        </VBox>
+
                                     </children>
                                 </VBox>
                             </children>
