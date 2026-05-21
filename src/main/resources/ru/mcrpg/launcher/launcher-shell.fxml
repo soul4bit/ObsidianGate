@@ -342,7 +342,8 @@
                                     </children>
                                 </VBox>
 
-                                <VBox prefWidth="292.0" spacing="14.0" styleClass="right-column">
+                                <VBox maxHeight="1.7976931348623157E308" prefWidth="292.0" spacing="14.0"
+                                      styleClass="right-column">
                                     <children>
                                         <VBox spacing="12.0" styleClass="panel, profile-panel">
                                             <children>
@@ -367,7 +368,8 @@
                                             </children>
                                         </VBox>
 
-                                        <VBox spacing="11.0" styleClass="panel, update-news-panel">
+                                        <VBox maxHeight="1.7976931348623157E308" spacing="11.0"
+                                              styleClass="panel, update-news-panel" VBox.vgrow="ALWAYS">
                                             <children>
                                                 <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="update-news-header">
                                                     <children>
@@ -382,8 +384,10 @@
                                                        styleClass="update-news-body"
                                                        text="Changelog этой версии появится после загрузки manifest."
                                                        wrapText="true"/>
-                                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="182.0"
-                                                            styleClass="update-news-scroll" vbarPolicy="AS_NEEDED">
+                                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER"
+                                                            maxHeight="1.7976931348623157E308" minHeight="0.0"
+                                                            styleClass="update-news-scroll" vbarPolicy="AS_NEEDED"
+                                                            VBox.vgrow="ALWAYS">
                                                     <content>
                                                         <VBox fx:id="newsHighlightsBox" spacing="8.0"
                                                               styleClass="update-news-list"/>
