@@ -43,6 +43,8 @@ public final class LauncherShellController extends AbstractScreenController {
     private static final String DASHBOARD_UNKNOWN = "—";
     private static final int PREVIEW_ENTRY_LIMIT = 4;
     private static final int NEWS_SECTION_ITEM_LIMIT = 3;
+    private static final int UPDATE_HISTORY_LIMIT = 5;
+    private static final int UPDATE_HISTORY_ITEM_LIMIT = 2;
     private static final int RECONNECT_TICKET_COUNT = 5;
     private static final String REQUIRED_LANGUAGE = "ru_ru";
     private static final String REQUIRED_RESOURCE_PACK = "ObsidianGate-Fixes-1.12.2";
@@ -835,6 +837,7 @@ public final class LauncherShellController extends AbstractScreenController {
         addNewsSection(nodes, "Новые моды", news.getNewMods(), "update-news-dot-new");
         addNewsSection(nodes, "Удалены", news.getRemovedMods(), "update-news-dot-removed");
         addNewsSection(nodes, "Важно", news.getImportant(), "update-news-dot-important");
+        addUpdateHistory(nodes, manifest.getHistory());
 
         if (nodes.isEmpty()) {
             nodes.add(createNewsEmptyState("Подробных пунктов нет."));
@@ -877,6 +880,89 @@ public final class LauncherShellController extends AbstractScreenController {
         }
 
         nodes.add(section);
+    }
+
+    private void addUpdateHistory(List<Node> nodes, List<ModpackNews> history) {
+        List<ModpackNews> entries = sanitizeUpdateHistory(history);
+        if (entries.isEmpty()) {
+            return;
+        }
+
+        VBox section = new VBox(8.0);
+        section.getStyleClass().add("update-history-section");
+
+        Label titleLabel = new Label("История обновлений");
+        titleLabel.getStyleClass().add("update-news-section-title");
+        section.getChildren().add(titleLabel);
+
+        int shown = 0;
+        for (ModpackNews entry : entries) {
+            if (shown >= UPDATE_HISTORY_LIMIT) {
+                break;
+            }
+            section.getChildren().add(createUpdateHistoryEntry(entry));
+            shown++;
+        }
+
+        if (entries.size() > shown) {
+            Label moreLabel = new Label("Еще " + (entries.size() - shown) + " версий.");
+            moreLabel.getStyleClass().add("update-news-note");
+            section.getChildren().add(moreLabel);
+        }
+
+        nodes.add(section);
+    }
+
+    private Node createUpdateHistoryEntry(ModpackNews entry) {
+        VBox card = new VBox(6.0);
+        card.getStyleClass().add("update-history-entry");
+
+        HBox header = new HBox(7.0);
+        header.getStyleClass().add("update-history-header");
+
+        String version = valueOrFallback(entry.getVersion(), valueOrFallback(entry.getDate(), "Версия"));
+        Label versionLabel = new Label(version);
+        versionLabel.getStyleClass().add("update-history-version");
+        header.getChildren().add(versionLabel);
+
+        String date = hasText(entry.getDate()) ? entry.getDate().trim() : "";
+        if (hasText(date) && !date.equals(version)) {
+            Label dateLabel = new Label(date);
+            dateLabel.getStyleClass().add("update-history-date");
+            header.getChildren().add(dateLabel);
+        }
+
+        card.getChildren().add(header);
+
+        if (hasText(entry.getTitle())) {
+            Label titleLabel = new Label(entry.getTitle().trim());
+            titleLabel.getStyleClass().add("update-history-title");
+            titleLabel.setWrapText(true);
+            card.getChildren().add(titleLabel);
+        }
+
+        List<String> items = collectUpdateHistoryItems(entry);
+        int shown = 0;
+        for (String item : items) {
+            if (shown >= UPDATE_HISTORY_ITEM_LIMIT) {
+                break;
+            }
+            card.getChildren().add(createNewsItem(item, "update-news-dot-default"));
+            shown++;
+        }
+
+        if (items.size() > shown) {
+            Label moreLabel = new Label("Еще " + (items.size() - shown) + " пунктов.");
+            moreLabel.getStyleClass().add("update-news-note");
+            card.getChildren().add(moreLabel);
+        } else if (items.isEmpty() && hasText(entry.getBody())) {
+            Label bodyLabel = new Label(entry.getBody().trim());
+            bodyLabel.getStyleClass().add("update-history-body");
+            bodyLabel.setWrapText(true);
+            card.getChildren().add(bodyLabel);
+        }
+
+        return card;
     }
 
     private Node createNewsItem(String text, String toneStyleClass) {
@@ -1279,6 +1365,55 @@ public final class LauncherShellController extends AbstractScreenController {
             }
         }
         return items;
+    }
+
+    private static List<ModpackNews> sanitizeUpdateHistory(List<ModpackNews> values) {
+        List<ModpackNews> items = new ArrayList<ModpackNews>();
+        if (values == null) {
+            return items;
+        }
+        for (ModpackNews value : values) {
+            if (value != null && value.hasContent()) {
+                items.add(value);
+            }
+        }
+        return items;
+    }
+
+    private static List<String> collectUpdateHistoryItems(ModpackNews entry) {
+        List<String> items = new ArrayList<String>();
+        if (entry == null) {
+            return items;
+        }
+
+        items.addAll(sanitizeNewsItems(entry.getHighlights()));
+        addJoinedHistorySummary(items, "Новые моды", entry.getNewMods());
+        addJoinedHistorySummary(items, "Удалены", entry.getRemovedMods());
+        items.addAll(sanitizeNewsItems(entry.getImportant()));
+        return items;
+    }
+
+    private static void addJoinedHistorySummary(List<String> items, String label, List<String> values) {
+        List<String> sanitizedValues = sanitizeNewsItems(values);
+        if (sanitizedValues.isEmpty()) {
+            return;
+        }
+        items.add(label + ": " + joinLimited(sanitizedValues, 3));
+    }
+
+    private static String joinLimited(List<String> values, int limit) {
+        StringBuilder builder = new StringBuilder();
+        int shown = Math.min(values.size(), limit);
+        for (int index = 0; index < shown; index++) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(values.get(index));
+        }
+        if (values.size() > shown) {
+            builder.append(" +").append(values.size() - shown);
+        }
+        return builder.toString();
     }
 
     private static String resolveManifestVersion(ModpackManifest manifest) {

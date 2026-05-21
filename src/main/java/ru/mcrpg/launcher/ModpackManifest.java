@@ -11,6 +11,7 @@ public final class ModpackManifest {
     private String baseUrl;
     private ModpackNews news = new ModpackNews();
     private ModpackNews changelog = new ModpackNews();
+    private List<ModpackNews> history = new ArrayList<ModpackNews>();
     private LauncherManifestSettings launcher = new LauncherManifestSettings();
     private LauncherUpdateSettings launcherUpdate = new LauncherUpdateSettings();
     private ModpackRuntime runtime = new ModpackRuntime();
@@ -65,6 +66,14 @@ public final class ModpackManifest {
         this.changelog = changelog == null ? new ModpackNews() : changelog;
     }
 
+    public List<ModpackNews> getHistory() {
+        return history;
+    }
+
+    public void setHistory(List<ModpackNews> history) {
+        this.history = sanitizeHistory(history);
+    }
+
     public LauncherManifestSettings getLauncher() {
         return launcher;
     }
@@ -103,5 +112,18 @@ public final class ModpackManifest {
 
     public void setFiles(List<ModpackFile> files) {
         this.files = files == null ? new ArrayList<ModpackFile>() : files;
+    }
+
+    private static List<ModpackNews> sanitizeHistory(List<ModpackNews> values) {
+        List<ModpackNews> sanitized = new ArrayList<ModpackNews>();
+        if (values == null) {
+            return sanitized;
+        }
+        for (ModpackNews value : values) {
+            if (value != null && value.hasContent()) {
+                sanitized.add(value);
+            }
+        }
+        return sanitized;
     }
 }

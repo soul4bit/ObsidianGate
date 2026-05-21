@@ -57,6 +57,19 @@ class ModpackManifestClientTest {
                 "removedMods": ["LegacyOldMod"],
                 "important": ["Перед запуском дождитесь окончания проверки файлов."]
               },
+              "history": [
+                {
+                  "version": "2026.05.21.4",
+                  "date": "2026-05-21",
+                  "title": "News layout",
+                  "highlights": ["News panel now reaches the build file card."]
+                },
+                {
+                  "version": "2026.05.21.3",
+                  "title": "Compact news",
+                  "highlights": ["News text is shorter."]
+                }
+              ],
               "files": []
             }
             """,
@@ -73,5 +86,12 @@ class ModpackManifestClientTest {
         assertIterableEquals(List.of("ExampleNewMod"), news.getNewMods());
         assertIterableEquals(List.of("LegacyOldMod"), news.getRemovedMods());
         assertIterableEquals(List.of("Перед запуском дождитесь окончания проверки файлов."), news.getImportant());
+        assertEquals(2, loadedManifest.getManifest().getHistory().size());
+        assertEquals("2026.05.21.4", loadedManifest.getManifest().getHistory().get(0).getVersion());
+        assertEquals("News layout", loadedManifest.getManifest().getHistory().get(0).getTitle());
+        assertIterableEquals(
+            List.of("News panel now reaches the build file card."),
+            loadedManifest.getManifest().getHistory().get(0).getHighlights()
+        );
     }
 }

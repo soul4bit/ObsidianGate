@@ -5,6 +5,7 @@ import java.util.List;
 
 public final class ModpackNews {
 
+    private String version;
     private String title;
     private String date;
     private String body;
@@ -12,6 +13,14 @@ public final class ModpackNews {
     private List<String> newMods = new ArrayList<String>();
     private List<String> removedMods = new ArrayList<String>();
     private List<String> important = new ArrayList<String>();
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
     public String getTitle() {
         return title;
@@ -70,7 +79,8 @@ public final class ModpackNews {
     }
 
     public boolean hasContent() {
-        return hasText(title)
+        return hasText(version)
+            || hasText(title)
             || hasText(date)
             || hasText(body)
             || hasAny(highlights)

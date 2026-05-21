@@ -189,7 +189,8 @@ update.files.before.launch=true
 
 - `schemaVersion`: версия схемы, сейчас используется `1`
 - `baseUrl`: базовый URL для файлов модпака
-- `news` или `changelog`: текст обновления, важные пункты, новые и удалённые моды для главного экрана лаунчера
+- `news` или `changelog`: текст текущего обновления, важные пункты, новые и удалённые моды для главного экрана лаунчера
+- `history[]`: короткая история обновлений по версиям для блока changelog
 - `launcher.serverHost`: хост Minecraft-сервера
 - `launcher.serverPort`: порт Minecraft-сервера
 - `launcher.authBaseUrl`: базовый URL `auth-api`
@@ -218,6 +219,14 @@ update.files.before.launch=true
     "removedMods": ["LegacyOldMod"],
     "important": ["Важное предупреждение для игрока."]
   },
+  "history": [
+    {
+      "version": "2026.05.21.4",
+      "date": "2026-05-21",
+      "title": "Улучшены новости",
+      "highlights": ["Блок новостей растянут до низа карточки файла сборки."]
+    }
+  ],
   "launcher": {
     "serverHost": "obsidiangates.duckdns.org",
     "serverPort": 25565,

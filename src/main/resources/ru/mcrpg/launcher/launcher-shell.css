@@ -181,6 +181,50 @@
     -fx-padding: 0 6px 0 0;
 }
 
+.update-history-section {
+    -fx-padding: 8px 0 0 0;
+}
+
+.update-history-entry {
+    -fx-padding: 8px 9px;
+    -fx-background-color: rgba(13, 16, 27, 0.44);
+    -fx-background-radius: 7px;
+    -fx-border-color: rgba(255, 255, 255, 0.055);
+    -fx-border-radius: 7px;
+}
+
+.update-history-header {
+    -fx-alignment: center-left;
+}
+
+.update-history-version {
+    -fx-padding: 2px 6px;
+    -fx-background-color: rgba(96, 165, 250, 0.16);
+    -fx-background-radius: 999px;
+    -fx-border-color: rgba(96, 165, 250, 0.24);
+    -fx-border-radius: 999px;
+    -fx-text-fill: #bfdbfe;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.update-history-date {
+    -fx-text-fill: #778399;
+    -fx-font-size: 11px;
+}
+
+.update-history-title {
+    -fx-text-fill: #edf2fb;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.update-history-body {
+    -fx-text-fill: #aeb8c9;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 1px;
+}
+
 .update-panel {
     -fx-border-color: #4b3a20;
 }

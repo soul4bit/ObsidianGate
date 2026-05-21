@@ -87,6 +87,9 @@ public final class ModpackManifestClient {
         if (manifest.getChangelog() == null) {
             manifest.setChangelog(new ModpackNews());
         }
+        if (manifest.getHistory() == null) {
+            manifest.setHistory(null);
+        }
         if (manifest.getRuntime() == null) {
             manifest.setRuntime(new ModpackRuntime());
         }
