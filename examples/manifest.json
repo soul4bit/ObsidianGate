@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.21.3",
+    "version":  "2026.05.21.4",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Последние новости",
@@ -31,10 +31,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.21.3",
+                           "version":  "2026.05.21.4",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "de9e6fc83ffa691d830fb472138107785c0943a49763b6232774d7fda6c0d855",
-                           "size":  15652746,
+                           "sha256":  "7902d7286ea3cdbf6f5516140f296abc91f451169c90dabf0e599eb54d7e730c",
+                           "size":  15652775,
                            "required":  false,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
@@ -963,7 +963,7 @@
                   },
                   {
                       "path":  "mods/BiblioCraft[v2.4.5][MC1.12.2].jar",
-                      "sha256":  "278dd26abbb6c42d561d87f6ce794b0e51396a1bce72f035230006e32c193e61",
+                      "sha256":  "29d11f507f71ac3d2aa67b73a71aa163211242ef0cab8a63050dc4ed00a61b1d",
                       "size":  5122972,
                       "executable":  false
                   },
@@ -1083,7 +1083,7 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "3b64fb9db9045ee22270c7fb07e764a19666d8edf657ddb67efa23a1fdd0f3c0",
+                      "sha256":  "6ea080fa62410c5b5914668036dd502a950fb88215df2751fcd4bedbcf9618e3",
                       "size":  31606,
                       "executable":  false
                   },
