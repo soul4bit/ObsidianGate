@@ -382,9 +382,8 @@
                                                        styleClass="update-news-body"
                                                        text="Changelog этой версии появится после загрузки manifest."
                                                        wrapText="true"/>
-                                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="286.0"
-                                                            prefHeight="252.0" styleClass="update-news-scroll"
-                                                            vbarPolicy="AS_NEEDED">
+                                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="182.0"
+                                                            styleClass="update-news-scroll" vbarPolicy="AS_NEEDED">
                                                     <content>
                                                         <VBox fx:id="newsHighlightsBox" spacing="8.0"
                                                               styleClass="update-news-list"/>

@@ -212,11 +212,11 @@ update.files.before.launch=true
   "news": {
     "title": "Последние новости",
     "date": "2026-05-21",
-    "body": "Коротко опишите, что поменялось в этой версии.",
-    "highlights": ["Добавлен подробный прогресс синхронизации"],
+    "body": "Коротко о последнем обновлении.",
+    "highlights": ["Видно ход синхронизации: текущий файл, скорость и сколько осталось."],
     "newMods": ["ExampleNewMod"],
     "removedMods": ["LegacyOldMod"],
-    "important": ["Перед запуском дождитесь окончания проверки файлов."]
+    "important": ["Важное предупреждение для игрока."]
   },
   "launcher": {
     "serverHost": "obsidiangates.duckdns.org",

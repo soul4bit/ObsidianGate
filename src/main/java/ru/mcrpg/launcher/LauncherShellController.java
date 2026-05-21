@@ -42,7 +42,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private static final int SERVER_STATUS_TIMEOUT_MS = 1500;
     private static final String DASHBOARD_UNKNOWN = "—";
     private static final int PREVIEW_ENTRY_LIMIT = 4;
-    private static final int NEWS_SECTION_ITEM_LIMIT = 5;
+    private static final int NEWS_SECTION_ITEM_LIMIT = 3;
     private static final int RECONNECT_TICKET_COUNT = 5;
     private static final String REQUIRED_LANGUAGE = "ru_ru";
     private static final String REQUIRED_RESOURCE_PACK = "ObsidianGate-Fixes-1.12.2";
@@ -831,7 +831,7 @@ public final class LauncherShellController extends AbstractScreenController {
         }
 
         List<Node> nodes = new ArrayList<Node>();
-        addNewsSection(nodes, "Последние новости", news.getHighlights(), "update-news-dot-default");
+        addNewsSection(nodes, "Что изменилось", news.getHighlights(), "update-news-dot-default");
         addNewsSection(nodes, "Новые моды", news.getNewMods(), "update-news-dot-new");
         addNewsSection(nodes, "Удалены", news.getRemovedMods(), "update-news-dot-removed");
         addNewsSection(nodes, "Важно", news.getImportant(), "update-news-dot-important");
@@ -843,7 +843,7 @@ public final class LauncherShellController extends AbstractScreenController {
         setNewsDetails(
             valueOrFallback(news.getTitle(), "Последние новости"),
             valueOrFallback(news.getDate(), "Manifest " + manifestVersion),
-            valueOrFallback(news.getBody(), "Список изменений указан ниже."),
+            valueOrFallback(news.getBody(), ""),
             nodes
         );
     }
@@ -871,7 +871,7 @@ public final class LauncherShellController extends AbstractScreenController {
         }
 
         if (items.size() > shown) {
-            Label moreLabel = new Label("Еще " + (items.size() - shown) + " пунктов в manifest.");
+            Label moreLabel = new Label("Еще " + (items.size() - shown) + " пунктов.");
             moreLabel.getStyleClass().add("update-news-note");
             section.getChildren().add(moreLabel);
         }
@@ -926,7 +926,10 @@ public final class LauncherShellController extends AbstractScreenController {
             newsDateLabel.setVisible(hasText(normalizedDate));
         }
         if (newsBodyLabel != null) {
-            newsBodyLabel.setText(valueOrFallback(body, "Changelog этой версии пока не указан."));
+            String normalizedBody = hasText(body) ? body.trim() : "";
+            newsBodyLabel.setText(normalizedBody);
+            newsBodyLabel.setManaged(hasText(normalizedBody));
+            newsBodyLabel.setVisible(hasText(normalizedBody));
         }
         if (newsHighlightsBox != null) {
             newsHighlightsBox.getChildren().setAll(nodes);
