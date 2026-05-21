@@ -433,7 +433,11 @@ public final class LauncherShellController extends AbstractScreenController {
         Task<ModpackSyncPreviewResult> task = new Task<ModpackSyncPreviewResult>() {
             @Override
             protected ModpackSyncPreviewResult call() throws Exception {
-                return modpackSyncService.preview(config, LauncherShellController.this::appendLogAsync);
+                return modpackSyncService.preview(
+                    config,
+                    LauncherShellController.this::appendLogAsync,
+                    LauncherShellController.this::applySyncProgressAsync
+                );
             }
         };
 
@@ -573,7 +577,11 @@ public final class LauncherShellController extends AbstractScreenController {
                 AuthSession effectiveSession = state().getSession();
 
                 if (action == LauncherAction.SYNC_ONLY || shouldSyncBeforeLaunch(effectiveConfig)) {
-                    syncResult = modpackSyncService.sync(effectiveConfig, LauncherShellController.this::appendLogAsync);
+                    syncResult = modpackSyncService.sync(
+                        effectiveConfig,
+                        LauncherShellController.this::appendLogAsync,
+                        LauncherShellController.this::applySyncProgressAsync
+                    );
                     effectiveConfig = syncResult.getResolvedConfig();
                 }
 
@@ -1192,9 +1200,39 @@ public final class LauncherShellController extends AbstractScreenController {
         syncProgressBar.setProgress(progress);
         syncStatusLabel.setText(statusText);
         syncPercentLabel.setText(percentText);
+        boolean showProgress = busy || progress > 0.0d || progress == ProgressBar.INDETERMINATE_PROGRESS;
+        syncProgressBar.setManaged(showProgress);
+        syncProgressBar.setVisible(showProgress);
+        syncPercentLabel.setManaged(showProgress);
+        syncPercentLabel.setVisible(showProgress);
+        if (syncFileLabel != null) {
+            syncFileLabel.setManaged(true);
+            syncFileLabel.setVisible(true);
+        }
         if (busy) {
             syncBytesLabel.setText("Лаунчер выполняет операцию...");
         }
+    }
+
+    private void applySyncProgressAsync(ModpackSyncProgress progress) {
+        if (progress == null) {
+            return;
+        }
+        Platform.runLater(() -> applySyncProgress(progress));
+    }
+
+    private void applySyncProgress(ModpackSyncProgress progress) {
+        double progressValue = progress.getProgress() < 0.0d
+            ? ProgressBar.INDETERMINATE_PROGRESS
+            : progress.getProgress();
+        updateProgressState(
+            progress.getPhase() != ModpackSyncProgress.Phase.COMPLETE,
+            progress.getMessage(),
+            formatProgressPercent(progressValue),
+            progressValue
+        );
+        syncBytesLabel.setText(formatProgressSummary(progress));
+        syncFileLabel.setText(formatProgressDetail(progress));
     }
 
     private void applyLastLaunchResult(int exitCode) {
@@ -1411,6 +1449,66 @@ public final class LauncherShellController extends AbstractScreenController {
         return deriveManifestDirectory(manifestUrl);
     }
 
+    private static String formatProgressPercent(double progress) {
+        if (progress == ProgressBar.INDETERMINATE_PROGRESS || progress < 0.0d) {
+            return "...";
+        }
+        int percent = (int) Math.round(Math.max(0.0d, Math.min(1.0d, progress)) * 100.0d);
+        return percent + "%";
+    }
+
+    private static String formatProgressSummary(ModpackSyncProgress progress) {
+        if (progress.getPhase() == ModpackSyncProgress.Phase.CHECKING) {
+            return "Проверено " + progress.getCheckedFiles() + "/" + progress.getTotalFiles()
+                + " файлов • актуальны " + progress.getReusedFiles();
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.DOWNLOADING) {
+            String bytes = progress.getTotalDownloadBytes() > 0L
+                ? formatBytes(progress.getDownloadedBytes()) + " / " + formatBytes(progress.getTotalDownloadBytes())
+                : formatBytes(progress.getDownloadedBytes());
+            return "Скачано " + progress.getDownloadedFiles() + "/" + progress.getDownloadFiles()
+                + " файлов • " + bytes;
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.COMPLETE) {
+            return "Проверено " + progress.getCheckedFiles() + "/" + progress.getTotalFiles()
+                + " файлов • скачано " + progress.getDownloadedFiles() + "/" + progress.getDownloadFiles();
+        }
+        return progress.getDownloadFiles() > 0
+            ? "К скачиванию " + progress.getDownloadFiles() + " файлов • " + formatBytes(progress.getTotalDownloadBytes())
+            : "Подготовка синхронизации...";
+    }
+
+    private static String formatProgressDetail(ModpackSyncProgress progress) {
+        String currentFile = shortenPath(progress.getCurrentFile());
+        if (progress.getPhase() == ModpackSyncProgress.Phase.CHECKING) {
+            return hasText(currentFile) ? "Проверяется: " + currentFile : "Сканируем папку игры.";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.DOWNLOADING) {
+            StringBuilder builder = new StringBuilder();
+            builder.append(hasText(currentFile) ? "Скачивается: " + currentFile : "Ожидаем загрузку файлов.");
+            if (progress.getBytesPerSecond() > 0L) {
+                builder.append(" • ").append(formatBytes(progress.getBytesPerSecond())).append("/s");
+            }
+            if (progress.getEstimatedRemainingMillis() >= 0L) {
+                builder.append(" • осталось ").append(formatDuration(progress.getEstimatedRemainingMillis()));
+            }
+            return builder.toString();
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.RUNTIME) {
+            return "Проверяем portable Java и при необходимости устанавливаем runtime.";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.MINECRAFT) {
+            return "Проверяем клиент Minecraft, Forge, библиотеки, assets и natives.";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.CLEANUP) {
+            return "Сверяем папку mods с manifest и переносим устаревшие файлы.";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.COMPLETE) {
+            return "Синхронизация завершена.";
+        }
+        return "Готовим manifest и локальный каталог.";
+    }
+
     private static String formatSyncSummary(ModpackSyncResult syncResult) {
         String summary = syncResult.getDownloadedFiles()
             + " загружено / "
@@ -1441,6 +1539,23 @@ public final class LauncherShellController extends AbstractScreenController {
         }
         double megabytes = kilobytes / 1024.0d;
         return String.format(Locale.US, "%.1f MB", Double.valueOf(megabytes));
+    }
+
+    private static String formatDuration(long millis) {
+        long seconds = Math.max(0L, (millis + 999L) / 1000L);
+        long hours = seconds / 3600L;
+        long minutes = (seconds % 3600L) / 60L;
+        long remainingSeconds = seconds % 60L;
+        if (hours > 0L) {
+            return String.format(
+                Locale.US,
+                "%d:%02d:%02d",
+                Long.valueOf(hours),
+                Long.valueOf(minutes),
+                Long.valueOf(remainingSeconds)
+            );
+        }
+        return String.format(Locale.US, "%d:%02d", Long.valueOf(minutes), Long.valueOf(remainingSeconds));
     }
 
     private static String formatManifestSize(ModpackManifest manifest) {
@@ -1481,6 +1596,24 @@ public final class LauncherShellController extends AbstractScreenController {
             return trimmed;
         }
         return trimmed.substring(0, 12) + "..." + trimmed.substring(trimmed.length() - 8);
+    }
+
+    private static String shortenPath(String value) {
+        if (!hasText(value)) {
+            return "";
+        }
+        String normalized = value.trim().replace('\\', '/');
+        if (normalized.length() <= 86) {
+            return normalized;
+        }
+        int separator = normalized.lastIndexOf('/');
+        if (separator > 0 && separator < normalized.length() - 1) {
+            String fileName = normalized.substring(separator + 1);
+            if (fileName.length() <= 72) {
+                return "..." + normalized.substring(separator);
+            }
+        }
+        return "..." + normalized.substring(normalized.length() - 83);
     }
 
     private static String resolvePreviewCategory(String path) {

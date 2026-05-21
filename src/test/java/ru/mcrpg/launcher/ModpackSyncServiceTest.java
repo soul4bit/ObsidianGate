@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -68,6 +69,41 @@ class ModpackSyncServiceTest {
         assertEquals(3, secondRun.getReusedFiles());
         assertEquals(0, secondRun.getRemovedFiles());
         assertTrue(Files.isRegularFile(tempDirectory.resolve("client/.launcher-cache/verified-files.json")));
+    }
+
+    @Test
+    void syncReportsStructuredProgress() throws Exception {
+        Path sourceDirectory = Files.createDirectories(tempDirectory.resolve("source"));
+        Path forgeJar = writeFile(sourceDirectory, "forge-1.12.2-14.23.5.2847.jar", "forge-client");
+        Path modJar = writeFile(sourceDirectory, "mods/examplemod.jar", "example-mod");
+        Path configFile = writeFile(sourceDirectory, "config/rpg.cfg", "difficulty=hard");
+
+        Path manifest = tempDirectory.resolve("manifest.json");
+        Files.write(
+            manifest,
+            buildManifest(sourceDirectory, forgeJar, modJar, configFile).getBytes(StandardCharsets.UTF_8)
+        );
+
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setManifestUrl(manifest.toUri().toURL().toString());
+        config.setGameDirectory(tempDirectory.resolve("client-progress").toString());
+
+        List<ModpackSyncProgress> progressEvents = Collections.synchronizedList(new ArrayList<ModpackSyncProgress>());
+        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncResult result = service.sync(config, null, progressEvents::add);
+
+        assertTrue(containsPhase(progressEvents, ModpackSyncProgress.Phase.CHECKING));
+        assertTrue(containsPhase(progressEvents, ModpackSyncProgress.Phase.DOWNLOADING));
+        assertTrue(containsPhase(progressEvents, ModpackSyncProgress.Phase.COMPLETE));
+
+        ModpackSyncProgress lastEvent = progressEvents.get(progressEvents.size() - 1);
+        assertEquals(ModpackSyncProgress.Phase.COMPLETE, lastEvent.getPhase());
+        assertEquals(3, lastEvent.getTotalFiles());
+        assertEquals(3, lastEvent.getCheckedFiles());
+        assertEquals(3, lastEvent.getDownloadFiles());
+        assertEquals(result.getDownloadedFiles(), lastEvent.getDownloadedFiles());
+        assertEquals(result.getDownloadedBytes(), lastEvent.getDownloadedBytes());
+        assertEquals(1.0d, lastEvent.getProgress());
     }
 
     @Test
@@ -692,6 +728,17 @@ class ModpackSyncServiceTest {
             }
         }
         throw new AssertionError("Preview entry was not found: " + path);
+    }
+
+    private static boolean containsPhase(List<ModpackSyncProgress> progressEvents, ModpackSyncProgress.Phase phase) {
+        synchronized (progressEvents) {
+            for (ModpackSyncProgress progressEvent : progressEvents) {
+                if (progressEvent.getPhase() == phase) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static Path onlyChild(Path directory) throws IOException {

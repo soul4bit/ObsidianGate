@@ -42,21 +42,26 @@ final class VerifiedFileCache {
         return new VerifiedFileCache(objectMapper, normalizedRoot, cacheFile, document);
     }
 
-    synchronized boolean matches(Path path, String algorithm, String expectedHash, Long expectedSize)
-        throws IOException {
+    boolean matches(Path path, String algorithm, String expectedHash, Long expectedSize) throws IOException {
         if (!hasText(expectedHash) || !Files.isRegularFile(path)) {
             return false;
         }
 
+        String expectedAlgorithm = normalizeAlgorithm(algorithm);
+        String normalizedExpectedHash = normalizeHash(expectedHash);
         String key = key(path);
-        CacheEntry entry = document.entries.get(key);
-        if (entry == null) {
-            return false;
-        }
+        CacheEntrySnapshot entry;
+        synchronized (this) {
+            CacheEntry cachedEntry = document.entries.get(key);
+            if (cachedEntry == null) {
+                return false;
+            }
 
-        if (!normalizeAlgorithm(algorithm).equals(normalizeAlgorithm(entry.algorithm))
-            || !normalizeHash(expectedHash).equals(normalizeHash(entry.hash))) {
-            return false;
+            if (!expectedAlgorithm.equals(normalizeAlgorithm(cachedEntry.algorithm))
+                || !normalizedExpectedHash.equals(normalizeHash(cachedEntry.hash))) {
+                return false;
+            }
+            entry = CacheEntrySnapshot.from(cachedEntry);
         }
 
         long actualSize = Files.size(path);
@@ -75,7 +80,7 @@ final class VerifiedFileCache {
         return true;
     }
 
-    synchronized void recordVerified(Path path, String algorithm, String expectedHash) throws IOException {
+    void recordVerified(Path path, String algorithm, String expectedHash) throws IOException {
         if (!hasText(expectedHash) || !Files.isRegularFile(path)) {
             return;
         }
@@ -85,11 +90,13 @@ final class VerifiedFileCache {
         entry.hash = normalizeHash(expectedHash);
         entry.size = Files.size(path);
         entry.lastModifiedMillis = Files.getLastModifiedTime(path).toMillis();
-        document.entries.put(key(path), entry);
-        dirty = true;
+        synchronized (this) {
+            document.entries.put(key(path), entry);
+            dirty = true;
+        }
     }
 
-    synchronized void remove(Path path) {
+    void remove(Path path) {
         remove(key(path));
     }
 
@@ -145,7 +152,7 @@ final class VerifiedFileCache {
         return normalized.toString().replace('\\', '/');
     }
 
-    private void remove(String key) {
+    private synchronized void remove(String key) {
         if (document.entries.remove(key) != null) {
             dirty = true;
         }
@@ -173,5 +180,19 @@ final class VerifiedFileCache {
         public String hash;
         public long size;
         public long lastModifiedMillis;
+    }
+
+    private static final class CacheEntrySnapshot {
+        private final long size;
+        private final long lastModifiedMillis;
+
+        private CacheEntrySnapshot(long size, long lastModifiedMillis) {
+            this.size = size;
+            this.lastModifiedMillis = lastModifiedMillis;
+        }
+
+        private static CacheEntrySnapshot from(CacheEntry entry) {
+            return new CacheEntrySnapshot(entry.size, entry.lastModifiedMillis);
+        }
     }
 }

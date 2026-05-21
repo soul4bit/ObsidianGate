@@ -19,7 +19,15 @@ final class DownloadUtils {
     private DownloadUtils() {
     }
 
+    interface ProgressSink {
+        void transferred(long bytes);
+    }
+
     static long download(URL downloadUrl, Path target, int readTimeoutMs) throws IOException {
+        return download(downloadUrl, target, readTimeoutMs, null);
+    }
+
+    static long download(URL downloadUrl, Path target, int readTimeoutMs, ProgressSink progressSink) throws IOException {
         URLConnection connection = downloadUrl.openConnection();
         connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
         connection.setReadTimeout(readTimeoutMs);
@@ -37,19 +45,26 @@ final class DownloadUtils {
                  StandardOpenOption.TRUNCATE_EXISTING,
                  StandardOpenOption.WRITE
              )) {
-            return copy(inputStream, outputStream);
+            return copy(inputStream, outputStream, progressSink);
         } catch (IOException exception) {
             throw enrichDownloadFailure(downloadUrl, exception);
         }
     }
 
     static long copy(InputStream inputStream, OutputStream outputStream) throws IOException {
+        return copy(inputStream, outputStream, null);
+    }
+
+    static long copy(InputStream inputStream, OutputStream outputStream, ProgressSink progressSink) throws IOException {
         long totalBytes = 0L;
         byte[] buffer = new byte[BUFFER_SIZE];
         int read;
         while ((read = inputStream.read(buffer)) != -1) {
             outputStream.write(buffer, 0, read);
             totalBytes += read;
+            if (progressSink != null) {
+                progressSink.transferred(read);
+            }
         }
         return totalBytes;
     }

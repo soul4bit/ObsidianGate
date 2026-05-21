@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class ModpackSyncService {
 
@@ -19,6 +22,10 @@ public final class ModpackSyncService {
 
     public interface LogSink {
         void log(String message);
+    }
+
+    public interface ProgressSink {
+        void progress(ModpackSyncProgress progress);
     }
 
     private final ModpackManifestClient manifestClient;
@@ -40,8 +47,16 @@ public final class ModpackSyncService {
     }
 
     public ModpackSyncPreviewResult preview(LauncherConfig baseConfig, LogSink logSink) throws IOException {
+        return preview(baseConfig, logSink, null);
+    }
+
+    public ModpackSyncPreviewResult preview(LauncherConfig baseConfig, LogSink logSink, ProgressSink progressSink)
+        throws IOException {
+        SyncProgressTracker progressTracker = SyncProgressTracker.start(progressSink);
+        progressTracker.phase(ModpackSyncProgress.Phase.PREPARING, "Загружаем manifest для предпросмотра", true);
         PreparedSyncContext prepared = prepareSync(baseConfig, logSink, "Предпросмотр manifest");
         log(logSink, "Файлов в manifest для предпросмотра: " + prepared.manifest.getFiles().size());
+        progressTracker.startChecking(prepared.manifest.getFiles().size(), "Проверяем локальные файлы");
 
         int downloadFiles = 0;
         int reusedFiles = 0;
@@ -53,7 +68,8 @@ public final class ModpackSyncService {
             List<FileInspection> inspections = inspectFiles(
                 prepared.gameDirectory,
                 prepared.manifest.getFiles(),
-                verifiedFileCache
+                verifiedFileCache,
+                progressTracker
             );
 
             for (int index = 0; index < prepared.manifest.getFiles().size(); index++) {
@@ -73,6 +89,8 @@ public final class ModpackSyncService {
             saveCache(verifiedFileCache, logSink);
         }
 
+        progressTracker.complete("Предпросмотр завершен");
+
         log(
             logSink,
             "Предпросмотр завершен. Нужно синхронизировать: " + downloadFiles
@@ -91,6 +109,13 @@ public final class ModpackSyncService {
     }
 
     public ModpackSyncResult sync(LauncherConfig baseConfig, LogSink logSink) throws IOException {
+        return sync(baseConfig, logSink, null);
+    }
+
+    public ModpackSyncResult sync(LauncherConfig baseConfig, LogSink logSink, ProgressSink progressSink)
+        throws IOException {
+        SyncProgressTracker progressTracker = SyncProgressTracker.start(progressSink);
+        progressTracker.phase(ModpackSyncProgress.Phase.PREPARING, "Загружаем manifest", true);
         PreparedSyncContext prepared = prepareSync(baseConfig, logSink, "Загружаем manifest");
         LauncherConfig resolvedConfig = prepared.resolvedConfig;
         LoadedManifest loadedManifest = prepared.loadedManifest;
@@ -106,28 +131,56 @@ public final class ModpackSyncService {
         VerifiedFileCache verifiedFileCache = VerifiedFileCache.open(gameDirectory);
 
         try {
-            List<FileSyncOutcome> outcomes = syncFiles(
+            progressTracker.startChecking(manifest.getFiles().size(), "Проверяем manifest.files[]");
+            List<FileInspection> inspections = inspectFiles(
                 gameDirectory,
-                loadedManifest,
-                manifest,
+                manifest.getFiles(),
                 verifiedFileCache,
-                logSink
+                progressTracker
             );
 
-            for (FileSyncOutcome outcome : outcomes) {
-                if (outcome.isDownloaded()) {
-                    downloadedFiles++;
-                    downloadedBytes += outcome.getDownloadedBytes();
-                } else {
+            List<PendingDownload> pendingDownloads = new ArrayList<PendingDownload>();
+            long plannedDownloadBytes = 0L;
+            for (int index = 0; index < manifest.getFiles().size(); index++) {
+                ModpackFile file = manifest.getFiles().get(index);
+                FileInspection inspection = inspections.get(index);
+                if (inspection.isReused()) {
                     reusedFiles++;
+                } else {
+                    pendingDownloads.add(new PendingDownload(file, inspection));
+                    if (file.getSize() != null && file.getSize().longValue() > 0L) {
+                        plannedDownloadBytes += file.getSize().longValue();
+                    }
                 }
             }
 
+            progressTracker.startDownloading(pendingDownloads.size(), plannedDownloadBytes);
+            List<FileSyncOutcome> outcomes = downloadFiles(
+                gameDirectory,
+                loadedManifest,
+                manifest,
+                pendingDownloads,
+                verifiedFileCache,
+                progressTracker,
+                logSink
+            );
+
+            downloadedFiles = outcomes.size();
+            for (FileSyncOutcome outcome : outcomes) {
+                downloadedBytes += outcome.getDownloadedBytes();
+            }
+
+            if (hasRuntime(manifest.getRuntime())) {
+                progressTracker.phase(ModpackSyncProgress.Phase.RUNTIME, "Проверяем portable Java", true);
+            }
             RuntimeResolution runtimeResolution = runtimeSyncService.sync(loadedManifest, manifest, gameDirectory, logSink);
             if (runtimeResolution != null) {
                 resolvedConfig.setJavaCommand(runtimeResolution.getJavaExecutable().toString());
             }
 
+            if (isMinecraftBootstrapEnabled(manifest.getMinecraft())) {
+                progressTracker.phase(ModpackSyncProgress.Phase.MINECRAFT, "Подготавливаем Minecraft и Forge", true);
+            }
             MinecraftBootstrapResult bootstrapResult = minecraftBootstrapService.bootstrap(
                 manifest.getMinecraft(),
                 gameDirectory,
@@ -146,6 +199,7 @@ public final class ModpackSyncService {
             saveCache(verifiedFileCache, logSink);
         }
 
+        progressTracker.phase(ModpackSyncProgress.Phase.CLEANUP, "Проверяем устаревшие моды", true);
         int removedFiles = cleanupObsoleteModEntries(gameDirectory, manifest, logSink);
         if (removedFiles > 0) {
             log(logSink, "Устаревших модов убрано: " + removedFiles);
@@ -157,6 +211,7 @@ public final class ModpackSyncService {
                 + ", переиспользовано: " + reusedFiles
                 + ", байт: " + downloadedBytes
         );
+        progressTracker.complete("Синхронизация завершена");
 
         return new ModpackSyncResult(resolvedConfig, manifest, downloadedFiles, reusedFiles, removedFiles, downloadedBytes);
     }
@@ -177,46 +232,59 @@ public final class ModpackSyncService {
     private static List<FileInspection> inspectFiles(
         Path gameDirectory,
         List<ModpackFile> files,
-        VerifiedFileCache verifiedFileCache
+        VerifiedFileCache verifiedFileCache,
+        SyncProgressTracker progressTracker
     ) throws IOException {
         List<Callable<FileInspection>> tasks = new ArrayList<Callable<FileInspection>>(files.size());
         for (ModpackFile file : files) {
-            tasks.add(() -> inspectFile(gameDirectory, file, verifiedFileCache));
+            tasks.add(() -> {
+                FileInspection inspection = inspectFile(gameDirectory, file, verifiedFileCache);
+                progressTracker.fileInspected(file, inspection);
+                return inspection;
+            });
         }
         return ParallelIo.run("modpack-preview", tasks);
     }
 
-    private List<FileSyncOutcome> syncFiles(
+    private List<FileSyncOutcome> downloadFiles(
         Path gameDirectory,
         LoadedManifest loadedManifest,
         ModpackManifest manifest,
+        List<PendingDownload> pendingDownloads,
         VerifiedFileCache verifiedFileCache,
+        SyncProgressTracker progressTracker,
         LogSink logSink
     ) throws IOException {
-        List<Callable<FileSyncOutcome>> tasks = new ArrayList<Callable<FileSyncOutcome>>(manifest.getFiles().size());
-        for (ModpackFile file : manifest.getFiles()) {
-            tasks.add(() -> syncFile(gameDirectory, loadedManifest, manifest, file, verifiedFileCache, logSink));
+        List<Callable<FileSyncOutcome>> tasks = new ArrayList<Callable<FileSyncOutcome>>(pendingDownloads.size());
+        for (PendingDownload pendingDownload : pendingDownloads) {
+            tasks.add(() -> downloadFile(
+                gameDirectory,
+                loadedManifest,
+                manifest,
+                pendingDownload,
+                verifiedFileCache,
+                progressTracker,
+                logSink
+            ));
         }
         return ParallelIo.run("modpack-sync", tasks);
     }
 
-    private FileSyncOutcome syncFile(
+    private FileSyncOutcome downloadFile(
         Path gameDirectory,
         LoadedManifest loadedManifest,
         ModpackManifest manifest,
-        ModpackFile file,
+        PendingDownload pendingDownload,
         VerifiedFileCache verifiedFileCache,
+        SyncProgressTracker progressTracker,
         LogSink logSink
     ) throws IOException {
-        FileInspection inspection = inspectFile(gameDirectory, file, verifiedFileCache);
+        ModpackFile file = pendingDownload.getFile();
+        FileInspection inspection = pendingDownload.getInspection();
         Path target = inspection.getTarget();
 
-        if (inspection.isReused()) {
-            log(logSink, "Актуально: " + file.getPath());
-            return FileSyncOutcome.reused();
-        }
-
         URL downloadUrl = resolveDownloadUrl(loadedManifest, manifest, file);
+        progressTracker.downloadStarted(file);
         log(logSink, "Скачиваем: " + file.getPath() + " <- " + downloadUrl);
 
         Path parent = target.getParent();
@@ -226,7 +294,7 @@ public final class ModpackSyncService {
 
         Path tempFile = Files.createTempFile(parent, target.getFileName().toString(), ".part");
         try {
-            long downloadedBytes = download(downloadUrl, tempFile);
+            long downloadedBytes = download(downloadUrl, tempFile, progressTracker);
             verifyDownloadedFile(tempFile, file, inspection.getExpectedSha256());
             Files.move(tempFile, target, StandardCopyOption.REPLACE_EXISTING);
             verifiedFileCache.recordVerified(target, "SHA-256", inspection.getExpectedSha256());
@@ -235,6 +303,7 @@ public final class ModpackSyncService {
                 target.toFile().setExecutable(true, false);
             }
 
+            progressTracker.downloadCompleted(file);
             return FileSyncOutcome.downloaded(downloadedBytes);
         } finally {
             Files.deleteIfExists(tempFile);
@@ -291,8 +360,8 @@ public final class ModpackSyncService {
         );
     }
 
-    private static long download(URL downloadUrl, Path target) throws IOException {
-        return DownloadUtils.download(downloadUrl, target, FILE_DOWNLOAD_READ_TIMEOUT_MS);
+    private static long download(URL downloadUrl, Path target, SyncProgressTracker progressTracker) throws IOException {
+        return DownloadUtils.download(downloadUrl, target, FILE_DOWNLOAD_READ_TIMEOUT_MS, progressTracker::bytesDownloaded);
     }
 
     private static void verifyDownloadedFile(Path path, ModpackFile file, String expectedSha256) throws IOException {
@@ -520,30 +589,47 @@ public final class ModpackSyncService {
         return value.replace('\\', '/');
     }
 
+    private static boolean hasRuntime(ModpackRuntime runtime) {
+        return runtime != null && runtime.getPackages() != null && !runtime.getPackages().isEmpty();
+    }
+
+    private static boolean isMinecraftBootstrapEnabled(MinecraftBootstrapSettings settings) {
+        return settings != null && settings.isEnabled();
+    }
+
     private static final class FileSyncOutcome {
 
-        private final boolean downloaded;
         private final long downloadedBytes;
 
-        private FileSyncOutcome(boolean downloaded, long downloadedBytes) {
-            this.downloaded = downloaded;
+        private FileSyncOutcome(long downloadedBytes) {
             this.downloadedBytes = downloadedBytes;
         }
 
-        static FileSyncOutcome reused() {
-            return new FileSyncOutcome(false, 0L);
-        }
-
         static FileSyncOutcome downloaded(long downloadedBytes) {
-            return new FileSyncOutcome(true, downloadedBytes);
-        }
-
-        boolean isDownloaded() {
-            return downloaded;
+            return new FileSyncOutcome(downloadedBytes);
         }
 
         long getDownloadedBytes() {
             return downloadedBytes;
+        }
+    }
+
+    private static final class PendingDownload {
+
+        private final ModpackFile file;
+        private final FileInspection inspection;
+
+        private PendingDownload(ModpackFile file, FileInspection inspection) {
+            this.file = file;
+            this.inspection = inspection;
+        }
+
+        ModpackFile getFile() {
+            return file;
+        }
+
+        FileInspection getInspection() {
+            return inspection;
         }
     }
 
@@ -583,6 +669,183 @@ public final class ModpackSyncService {
 
         String getReason() {
             return reason;
+        }
+    }
+
+    private static final class SyncProgressTracker {
+
+        private static final long EMIT_INTERVAL_MILLIS = 150L;
+        private static final double CHECK_PROGRESS_WEIGHT = 0.35d;
+        private static final double DOWNLOAD_PROGRESS_WEIGHT = 0.55d;
+
+        private final ProgressSink progressSink;
+        private final AtomicInteger totalFiles = new AtomicInteger();
+        private final AtomicInteger checkedFiles = new AtomicInteger();
+        private final AtomicInteger reusedFiles = new AtomicInteger();
+        private final AtomicInteger downloadFiles = new AtomicInteger();
+        private final AtomicInteger downloadedFiles = new AtomicInteger();
+        private final AtomicLong totalDownloadBytes = new AtomicLong();
+        private final AtomicLong downloadedBytes = new AtomicLong();
+        private final AtomicReference<String> currentFile = new AtomicReference<String>("");
+
+        private volatile ModpackSyncProgress.Phase phase = ModpackSyncProgress.Phase.PREPARING;
+        private volatile String message = "";
+        private volatile long downloadStartedAtMillis;
+        private volatile long lastEmitAtMillis;
+
+        private SyncProgressTracker(ProgressSink progressSink) {
+            this.progressSink = progressSink;
+        }
+
+        static SyncProgressTracker start(ProgressSink progressSink) {
+            return new SyncProgressTracker(progressSink);
+        }
+
+        void phase(ModpackSyncProgress.Phase phase, String message, boolean force) {
+            this.phase = phase;
+            this.message = valueOrFallback(message, "");
+            currentFile.set("");
+            emit(force);
+        }
+
+        void startChecking(int totalFiles, String message) {
+            this.phase = ModpackSyncProgress.Phase.CHECKING;
+            this.message = valueOrFallback(message, "Проверяем файлы");
+            this.totalFiles.set(Math.max(0, totalFiles));
+            checkedFiles.set(0);
+            reusedFiles.set(0);
+            downloadFiles.set(0);
+            downloadedFiles.set(0);
+            totalDownloadBytes.set(0L);
+            downloadedBytes.set(0L);
+            currentFile.set("");
+            emit(true);
+        }
+
+        void fileInspected(ModpackFile file, FileInspection inspection) {
+            currentFile.set(file == null ? "" : valueOrFallback(file.getPath(), ""));
+            checkedFiles.incrementAndGet();
+            if (inspection != null && inspection.isReused()) {
+                reusedFiles.incrementAndGet();
+            }
+            emit(false);
+        }
+
+        void startDownloading(int downloadFiles, long totalDownloadBytes) {
+            this.phase = ModpackSyncProgress.Phase.DOWNLOADING;
+            this.message = downloadFiles > 0 ? "Скачиваем файлы сборки" : "Файлы сборки актуальны";
+            this.downloadFiles.set(Math.max(0, downloadFiles));
+            this.totalDownloadBytes.set(Math.max(0L, totalDownloadBytes));
+            downloadedFiles.set(0);
+            downloadedBytes.set(0L);
+            currentFile.set("");
+            downloadStartedAtMillis = System.currentTimeMillis();
+            emit(true);
+        }
+
+        void downloadStarted(ModpackFile file) {
+            currentFile.set(file == null ? "" : valueOrFallback(file.getPath(), ""));
+            emit(true);
+        }
+
+        void bytesDownloaded(long bytes) {
+            if (bytes <= 0L) {
+                return;
+            }
+            downloadedBytes.addAndGet(bytes);
+            emit(false);
+        }
+
+        void downloadCompleted(ModpackFile file) {
+            currentFile.set(file == null ? "" : valueOrFallback(file.getPath(), ""));
+            downloadedFiles.incrementAndGet();
+            emit(true);
+        }
+
+        void complete(String message) {
+            this.phase = ModpackSyncProgress.Phase.COMPLETE;
+            this.message = valueOrFallback(message, "Готово");
+            currentFile.set("");
+            emit(true);
+        }
+
+        private void emit(boolean force) {
+            if (progressSink == null) {
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            if (!force && now - lastEmitAtMillis < EMIT_INTERVAL_MILLIS) {
+                return;
+            }
+            lastEmitAtMillis = now;
+            progressSink.progress(snapshot(now));
+        }
+
+        private ModpackSyncProgress snapshot(long now) {
+            long speed = bytesPerSecond(now);
+            long eta = estimatedRemainingMillis(speed);
+            return new ModpackSyncProgress(
+                phase,
+                message,
+                currentFile.get(),
+                totalFiles.get(),
+                checkedFiles.get(),
+                reusedFiles.get(),
+                downloadFiles.get(),
+                downloadedFiles.get(),
+                totalDownloadBytes.get(),
+                downloadedBytes.get(),
+                speed,
+                eta,
+                progress()
+            );
+        }
+
+        private double progress() {
+            if (phase == ModpackSyncProgress.Phase.PREPARING
+                || phase == ModpackSyncProgress.Phase.RUNTIME
+                || phase == ModpackSyncProgress.Phase.MINECRAFT
+                || phase == ModpackSyncProgress.Phase.CLEANUP) {
+                return -1.0d;
+            }
+            if (phase == ModpackSyncProgress.Phase.COMPLETE) {
+                return 1.0d;
+            }
+            int total = totalFiles.get();
+            if (phase == ModpackSyncProgress.Phase.CHECKING) {
+                return total <= 0
+                    ? CHECK_PROGRESS_WEIGHT
+                    : Math.min(CHECK_PROGRESS_WEIGHT, checkedFiles.get() / (double) total * CHECK_PROGRESS_WEIGHT);
+            }
+
+            int downloads = downloadFiles.get();
+            if (downloads <= 0) {
+                return CHECK_PROGRESS_WEIGHT + DOWNLOAD_PROGRESS_WEIGHT;
+            }
+
+            long totalBytes = totalDownloadBytes.get();
+            double downloadProgress = totalBytes > 0L
+                ? Math.min(1.0d, downloadedBytes.get() / (double) totalBytes)
+                : Math.min(1.0d, downloadedFiles.get() / (double) downloads);
+            return CHECK_PROGRESS_WEIGHT + downloadProgress * DOWNLOAD_PROGRESS_WEIGHT;
+        }
+
+        private long bytesPerSecond(long now) {
+            if (phase != ModpackSyncProgress.Phase.DOWNLOADING || downloadStartedAtMillis <= 0L) {
+                return 0L;
+            }
+            long elapsedMillis = Math.max(1L, now - downloadStartedAtMillis);
+            return downloadedBytes.get() * 1000L / elapsedMillis;
+        }
+
+        private long estimatedRemainingMillis(long bytesPerSecond) {
+            long totalBytes = totalDownloadBytes.get();
+            if (phase != ModpackSyncProgress.Phase.DOWNLOADING || totalBytes <= 0L || bytesPerSecond <= 0L) {
+                return -1L;
+            }
+            long remainingBytes = Math.max(0L, totalBytes - downloadedBytes.get());
+            return remainingBytes * 1000L / bytesPerSecond;
         }
     }
 
