@@ -636,19 +636,108 @@ public final class SpawnProtectionService {
         Object[] safeArgs = args == null ? new Object[0] : args;
         Class<?> type = target.getClass();
         while (type != null) {
-            for (Method method : type.getDeclaredMethods()) {
+            Method exactMethod = findDeclaredMethod(type, safeArgs, methodNames);
+            if (exactMethod != null) {
+                return invokeMethod(target, exactMethod, safeArgs);
+            }
+
+            Method[] methods;
+            try {
+                methods = type.getDeclaredMethods();
+            } catch (LinkageError ignored) {
+                type = type.getSuperclass();
+                continue;
+            }
+            for (Method method : methods) {
                 if (methodMatches(method, safeArgs, methodNames)) {
-                    try {
-                        method.setAccessible(true);
-                        return method.invoke(target, safeArgs);
-                    } catch (ReflectiveOperationException exception) {
-                        throw new IllegalStateException("Не удалось вызвать " + method.getName() + ".", exception);
-                    }
+                    return invokeMethod(target, method, safeArgs);
                 }
             }
             type = type.getSuperclass();
         }
         return null;
+    }
+
+    private static Method findDeclaredMethod(Class<?> type, Object[] args, String... methodNames) {
+        Class<?>[][] parameterTypes = parameterTypeCandidates(args);
+        for (String methodName : methodNames) {
+            for (Class<?>[] parameters : parameterTypes) {
+                try {
+                    Method method = type.getDeclaredMethod(methodName, parameters);
+                    if (methodMatches(method, args, methodNames)) {
+                        return method;
+                    }
+                } catch (NoSuchMethodException ignored) {
+                } catch (LinkageError ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Object invokeMethod(Object target, Method method, Object[] args) {
+        try {
+            method.setAccessible(true);
+            return method.invoke(target, args);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Could not invoke " + method.getName() + ".", exception);
+        }
+    }
+
+    private static Class<?>[][] parameterTypeCandidates(Object[] args) {
+        if (args.length == 0) {
+            return new Class<?>[][] { new Class<?>[0] };
+        }
+
+        int total = 1;
+        Class<?>[][] candidatesByArgument = new Class<?>[args.length][];
+        for (int i = 0; i < args.length; i++) {
+            candidatesByArgument[i] = parameterTypeCandidates(args[i]);
+            total *= candidatesByArgument[i].length;
+        }
+
+        Class<?>[][] combinations = new Class<?>[total][args.length];
+        for (int combination = 0; combination < total; combination++) {
+            int divisor = 1;
+            for (int argument = 0; argument < args.length; argument++) {
+                Class<?>[] candidates = candidatesByArgument[argument];
+                combinations[combination][argument] = candidates[(combination / divisor) % candidates.length];
+                divisor *= candidates.length;
+            }
+        }
+        return combinations;
+    }
+
+    private static Class<?>[] parameterTypeCandidates(Object value) {
+        if (value == null) {
+            return new Class<?>[] { Object.class };
+        }
+        if (value instanceof Integer) {
+            return new Class<?>[] { Integer.TYPE, Integer.class, Number.class, Object.class };
+        }
+        if (value instanceof Double) {
+            return new Class<?>[] { Double.TYPE, Double.class, Number.class, Object.class };
+        }
+        if (value instanceof Float) {
+            return new Class<?>[] { Float.TYPE, Float.class, Number.class, Object.class };
+        }
+        if (value instanceof Boolean) {
+            return new Class<?>[] { Boolean.TYPE, Boolean.class, Object.class };
+        }
+        if (value instanceof Long) {
+            return new Class<?>[] { Long.TYPE, Long.class, Number.class, Object.class };
+        }
+        if (value instanceof Short) {
+            return new Class<?>[] { Short.TYPE, Short.class, Number.class, Object.class };
+        }
+        if (value instanceof Byte) {
+            return new Class<?>[] { Byte.TYPE, Byte.class, Number.class, Object.class };
+        }
+        if (value instanceof Character) {
+            return new Class<?>[] { Character.TYPE, Character.class, Object.class };
+        }
+        return new Class<?>[] { value.getClass(), Object.class };
     }
 
     private static boolean methodMatches(Method method, Object[] args, String... methodNames) {

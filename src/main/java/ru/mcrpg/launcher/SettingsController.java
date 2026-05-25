@@ -12,9 +12,12 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -30,8 +33,14 @@ public final class SettingsController extends AbstractScreenController {
     private static final int MEMORY_PRESET_4_GB_MB = 4096;
     private static final int MEMORY_PRESET_6_GB_MB = 6144;
     private static final int MEMORY_PRESET_8_GB_MB = 8192;
+    private static final String SETTINGS_STATUS_IDLE = "settings-status-idle";
+    private static final String SETTINGS_STATUS_DIRTY = "settings-status-dirty";
+    private static final String SETTINGS_STATUS_SUCCESS = "settings-status-success";
+    private static final String SETTINGS_STATUS_ERROR = "settings-status-error";
 
     private final ToggleGroup memoryToggleGroup = new ToggleGroup();
+    private boolean applyingConfigToFields;
+    private boolean settingsDirty;
 
     @FXML
     private Label versionLabel;
@@ -41,6 +50,9 @@ public final class SettingsController extends AbstractScreenController {
 
     @FXML
     private Button settingsNavButton;
+
+    @FXML
+    private Button profileNavButton;
 
     @FXML
     private Button saveButton;
@@ -118,9 +130,6 @@ public final class SettingsController extends AbstractScreenController {
     private TextArea launchTemplateArea;
 
     @FXML
-    private CheckBox updateFilesBeforeLaunchCheck;
-
-    @FXML
     private CheckBox launcherUpdatesEnabledCheck;
 
     @FXML
@@ -136,6 +145,9 @@ public final class SettingsController extends AbstractScreenController {
     private Label sidebarProfileStatusLabel;
 
     @FXML
+    private Label sidebarProfileRoleLabel;
+
+    @FXML
     private Label clientIconLabel;
 
     @FXML
@@ -146,14 +158,20 @@ public final class SettingsController extends AbstractScreenController {
 
     @FXML
     private void initialize() {
+        configureCleanGlassSidebar(ScreenRouter.Screen.SETTINGS);
         configureChrome();
         configureMemoryPresets();
+        configureDirtyTracking();
+        setSettingsDirty(false);
+        setSettingsStatus("Готово", SETTINGS_STATUS_IDLE);
     }
 
     @Override
     protected void onContextBound(LauncherContext context) {
+        configureCleanGlassSidebar(ScreenRouter.Screen.SETTINGS);
         applyProfileState();
         applyConfigToFields(LauncherDefaults.applyMissingValues(state().getConfig().copy()));
+        setSettingsStatus("Готово", SETTINGS_STATUS_IDLE);
     }
 
     @FXML
@@ -167,14 +185,23 @@ public final class SettingsController extends AbstractScreenController {
     }
 
     @FXML
+    private void onOpenProfileFromKeyboard(KeyEvent event) {
+        if (event == null || (event.getCode() != KeyCode.ENTER && event.getCode() != KeyCode.SPACE)) {
+            return;
+        }
+        event.consume();
+        onOpenProfile();
+    }
+
+    @FXML
     private void onSaveSettings() {
         try {
             LauncherConfig config = readConfigFromFields();
             context().saveConfig(config);
             applyConfigToFields(state().getConfig());
-            statusLabel.setText("Настройки сохранены.");
+            setSettingsStatus("Настройки сохранены.", SETTINGS_STATUS_SUCCESS);
         } catch (Exception exception) {
-            statusLabel.setText(exception.getMessage());
+            setSettingsStatus(exception.getMessage(), SETTINGS_STATUS_ERROR);
             showError(exception.getMessage());
         }
     }
@@ -186,7 +213,7 @@ public final class SettingsController extends AbstractScreenController {
             defaults.setUsername(state().getSession().getAccount().getUsername());
         }
         applyConfigToFields(defaults);
-        statusLabel.setText("Загружены значения по умолчанию. Нажмите «Сохранить», чтобы применить их.");
+        markSettingsDirty();
     }
 
     @FXML
@@ -226,9 +253,12 @@ public final class SettingsController extends AbstractScreenController {
                 .normalize();
             Files.createDirectories(gameDirectory);
             openDesktopPath(gameDirectory);
-            statusLabel.setText("Открыта папка игры: " + gameDirectory);
+            setSettingsStatus(
+                settingsDirty ? "Есть несохранённые изменения" : "Открыта папка игры: " + gameDirectory,
+                settingsDirty ? SETTINGS_STATUS_DIRTY : SETTINGS_STATUS_SUCCESS
+            );
         } catch (Exception exception) {
-            statusLabel.setText(exception.getMessage());
+            setSettingsStatus(exception.getMessage(), SETTINGS_STATUS_ERROR);
             showError("Не удалось открыть папку игры: " + exception.getMessage());
         }
     }
@@ -236,8 +266,9 @@ public final class SettingsController extends AbstractScreenController {
     private void configureChrome() {
         configureWindowButtons();
         versionLabel.setText("Лаунчер " + LauncherBrand.displayVersion());
-        homeNavButton.setGraphic(LauncherIcons.icon("home", 18.0d, "#c9d1d9"));
-        settingsNavButton.setGraphic(LauncherIcons.icon("settings", 18.0d, "#c9d1d9"));
+        setButtonGraphic(homeNavButton, "home", 17.0d, "#f8fafc");
+        setButtonGraphic(settingsNavButton, "settings", 17.0d, "#ffffff");
+        setButtonGraphic(profileNavButton, "profile", 17.0d, "#f8fafc");
         saveButton.setGraphic(LauncherIcons.icon("check-circle", 17.0d, "#ffffff"));
         resetButton.setGraphic(LauncherIcons.icon("refresh", 16.0d, "#d8b4fe"));
         openConfigButton.setGraphic(LauncherIcons.icon("external", 16.0d, "#d8b4fe"));
@@ -273,7 +304,7 @@ public final class SettingsController extends AbstractScreenController {
         config.setAuthBaseUrl(requireText(authBaseUrlField.getText(), "Укажите URL Auth API."));
         config.setServerId(requireText(serverIdField.getText(), "Укажите server id."));
         config.setLaunchTemplate(requireText(launchTemplateArea.getText(), "Укажите шаблон запуска."));
-        config.setUpdateFilesBeforeLaunch(updateFilesBeforeLaunchCheck.isSelected());
+        config.setUpdateFilesBeforeLaunch(true);
         config.setLauncherUpdatesEnabled(launcherUpdatesEnabledCheck.isSelected());
 
         if (state().isAuthenticated() && state().getSession().getAccount() != null) {
@@ -283,22 +314,27 @@ public final class SettingsController extends AbstractScreenController {
     }
 
     private void applyConfigToFields(LauncherConfig config) {
-        LauncherConfig resolved = LauncherDefaults.applyMissingValues(config.copy());
-        gameDirectoryField.setText(resolved.getGameDirectory());
-        javaCommandField.setText(resolved.getJavaCommand());
-        workingDirectoryField.setText(resolved.getWorkingDirectory());
-        memoryMinField.setText(Integer.toString(resolved.getMemoryMinMb()));
-        memoryMaxField.setText(Integer.toString(resolved.getMemoryMaxMb()));
-        selectMemoryPreset(resolved.getMemoryMinMb(), resolved.getMemoryMaxMb());
-        updateMemoryPresetState();
-        serverHostField.setText(resolved.getServerHost());
-        serverPortField.setText(Integer.toString(resolved.getServerPort()));
-        manifestUrlField.setText(resolved.getManifestUrl());
-        authBaseUrlField.setText(resolved.getAuthBaseUrl());
-        serverIdField.setText(resolved.getServerId());
-        launchTemplateArea.setText(resolved.getLaunchTemplate());
-        updateFilesBeforeLaunchCheck.setSelected(resolved.isUpdateFilesBeforeLaunch());
-        launcherUpdatesEnabledCheck.setSelected(resolved.isLauncherUpdatesEnabled());
+        applyingConfigToFields = true;
+        try {
+            LauncherConfig resolved = LauncherDefaults.applyMissingValues(config.copy());
+            gameDirectoryField.setText(resolved.getGameDirectory());
+            javaCommandField.setText(resolved.getJavaCommand());
+            workingDirectoryField.setText(resolved.getWorkingDirectory());
+            memoryMinField.setText(Integer.toString(resolved.getMemoryMinMb()));
+            memoryMaxField.setText(Integer.toString(resolved.getMemoryMaxMb()));
+            selectMemoryPreset(resolved.getMemoryMinMb(), resolved.getMemoryMaxMb());
+            updateMemoryPresetState();
+            serverHostField.setText(resolved.getServerHost());
+            serverPortField.setText(Integer.toString(resolved.getServerPort()));
+            manifestUrlField.setText(resolved.getManifestUrl());
+            authBaseUrlField.setText(resolved.getAuthBaseUrl());
+            serverIdField.setText(resolved.getServerId());
+            launchTemplateArea.setText(resolved.getLaunchTemplate());
+            launcherUpdatesEnabledCheck.setSelected(resolved.isLauncherUpdatesEnabled());
+        } finally {
+            applyingConfigToFields = false;
+        }
+        setSettingsDirty(false);
     }
 
     private void configureMemoryPresets() {
@@ -319,6 +355,55 @@ public final class SettingsController extends AbstractScreenController {
         memoryMaxField.textProperty().addListener((observable, oldValue, newValue) -> updateMemorySummary());
         memoryToggleGroup.selectToggle(memory4Button);
         updateMemoryPresetState();
+    }
+
+    private void configureDirtyTracking() {
+        addDirtyListener(gameDirectoryField);
+        addDirtyListener(javaCommandField);
+        addDirtyListener(workingDirectoryField);
+        addDirtyListener(memoryMinField);
+        addDirtyListener(memoryMaxField);
+        addDirtyListener(serverHostField);
+        addDirtyListener(serverPortField);
+        addDirtyListener(manifestUrlField);
+        addDirtyListener(authBaseUrlField);
+        addDirtyListener(serverIdField);
+        addDirtyListener(launchTemplateArea);
+        launcherUpdatesEnabledCheck.selectedProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
+        memoryToggleGroup.selectedToggleProperty().addListener((observable, oldToggle, selectedToggle) -> markSettingsDirty());
+    }
+
+    private void addDirtyListener(TextInputControl control) {
+        control.textProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
+    }
+
+    private void markSettingsDirty() {
+        if (applyingConfigToFields) {
+            return;
+        }
+        setSettingsDirty(true);
+        setSettingsStatus("Есть несохранённые изменения", SETTINGS_STATUS_DIRTY);
+    }
+
+    private void setSettingsDirty(boolean dirty) {
+        settingsDirty = dirty;
+        if (saveButton != null) {
+            saveButton.setDisable(!dirty);
+        }
+    }
+
+    private void setSettingsStatus(String message, String statusStyleClass) {
+        if (statusLabel == null) {
+            return;
+        }
+        statusLabel.setText(message == null ? "" : message.trim());
+        statusLabel.getStyleClass().removeAll(
+            SETTINGS_STATUS_IDLE,
+            SETTINGS_STATUS_DIRTY,
+            SETTINGS_STATUS_SUCCESS,
+            SETTINGS_STATUS_ERROR
+        );
+        statusLabel.getStyleClass().add(statusStyleClass);
     }
 
     private void configureMemoryPresetButton(ToggleButton button, int maxMemoryMb) {
@@ -377,14 +462,20 @@ public final class SettingsController extends AbstractScreenController {
 
     private void applyProfileState() {
         AuthAccount account = state().isAuthenticated() ? state().getSession().getAccount() : null;
-        sidebarProfileAvatarView.setImage(AvatarImages.forAccount(account));
+        if (sidebarProfileAvatarView != null) {
+            sidebarProfileAvatarView.setImage(AvatarImages.forAccount(account));
+        }
         if (account == null) {
-            sidebarProfileNameLabel.setText("Не вошли");
-            sidebarProfileStatusLabel.setText("вход нужен");
+            setLabelText(sidebarProfileNameLabel, "Игрок");
+            setLabelText(sidebarProfileStatusLabel, "Не в сети");
+            setLabelText(sidebarProfileRoleLabel, "Player");
+            refreshCleanGlassSidebar();
             return;
         }
-        sidebarProfileNameLabel.setText(account.getUsername());
-        sidebarProfileStatusLabel.setText(resolveAccountStatusLabel(account.getStatus()));
+        setLabelText(sidebarProfileNameLabel, account.getUsername());
+        setLabelText(sidebarProfileStatusLabel, resolveAccountStatusLabel(account.getStatus()));
+        setLabelText(sidebarProfileRoleLabel, resolveAccountRoleLabel(account.getRole()));
+        refreshCleanGlassSidebar();
     }
 
     private void chooseDirectory(TextField field, String title) {
@@ -484,6 +575,18 @@ public final class SettingsController extends AbstractScreenController {
         desktop.open(target.toFile());
     }
 
+    private static void setButtonGraphic(Button button, String iconName, double size, String color) {
+        if (button != null) {
+            button.setGraphic(LauncherIcons.icon(iconName, size, color));
+        }
+    }
+
+    private static void setLabelText(Label label, String value) {
+        if (label != null) {
+            label.setText(value);
+        }
+    }
+
     private static String resolveAccountStatusLabel(String status) {
         if (status == null || status.trim().isEmpty()) {
             return "в сети";
@@ -496,5 +599,23 @@ public final class SettingsController extends AbstractScreenController {
             return "ограничен";
         }
         return status.trim();
+    }
+
+    private static String resolveAccountRoleLabel(String role) {
+        if (role == null || role.trim().isEmpty()) {
+            return "Player";
+        }
+        String normalized = role.trim();
+        String lower = normalized.toLowerCase(java.util.Locale.ROOT);
+        if ("admin".equals(lower) || "administrator".equals(lower)) {
+            return "Admin";
+        }
+        if ("moderator".equals(lower) || "mod".equals(lower)) {
+            return "Moderator";
+        }
+        if ("player".equals(lower) || "user".equals(lower)) {
+            return "Player";
+        }
+        return normalized;
     }
 }

@@ -6,8 +6,10 @@
 <?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -15,114 +17,113 @@
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="ru.mcrpg.launcher.AuthController"
-           prefHeight="900.0" prefWidth="1500.0" styleClass="account-root, auth-landing-root">
+           styleClass="launcher-shell, auth-shell">
     <children>
-        <BorderPane styleClass="auth-landing-shell">
-            <top>
-                <HBox alignment="CENTER_RIGHT" onMouseDragged="#dragWindow" onMousePressed="#captureWindowDrag"
-                      spacing="12.0" styleClass="top-bar, auth-top-bar">
-                    <padding>
-                        <Insets bottom="14.0" left="24.0" right="24.0" top="18.0"/>
-                    </padding>
-                    <children>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label fx:id="versionLabel" styleClass="top-meta" text="Версия"/>
-                        <Button fx:id="minimizeWindowButton" mnemonicParsing="false" onAction="#minimizeWindow"
-                                styleClass="window-button" text="_"/>
-                        <Button fx:id="maximizeWindowButton" mnemonicParsing="false" onAction="#toggleMaximizeWindow"
-                                styleClass="window-button" text="□"/>
-                        <Button fx:id="closeWindowButton" mnemonicParsing="false" onAction="#closeWindow"
-                                styleClass="window-button" text="X"/>
-                    </children>
-                </HBox>
-            </top>
+        <StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                   onMouseDragged="#dragWindow" onMousePressed="#captureWindowDrag"
+                   styleClass="auth-scene">
+            <children>
+                <Region styleClass="auth-scene-overlay"/>
 
-            <center>
-                <VBox alignment="CENTER" spacing="22.0" styleClass="auth-landing-content">
-                    <children>
-                        <VBox alignment="CENTER" spacing="10.0" styleClass="auth-brand-block">
+                <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" styleClass="auth-scroll">
+                    <content>
+                        <HBox alignment="CENTER" maxHeight="1.7976931348623157E308"
+                              maxWidth="1.7976931348623157E308" minHeight="568.0" spacing="54.0"
+                              styleClass="auth-layout">
                             <children>
-                                <HBox alignment="CENTER" spacing="18.0">
+                                <VBox alignment="CENTER_LEFT" maxWidth="500.0" spacing="16.0"
+                                      styleClass="auth-brand-panel">
                                     <children>
-                                        <StackPane fx:id="brandLogoPane" maxHeight="58.0" maxWidth="58.0"
-                                                   minHeight="58.0" minWidth="58.0" prefHeight="58.0"
-                                                   prefWidth="58.0" styleClass="brand-logo"/>
-                                        <Label styleClass="auth-brand-title" text="ObsidianGate"/>
-                                    </children>
-                                </HBox>
-                                <Label styleClass="auth-brand-subtitle" text="Игровой лаунчер нового поколения"/>
-                            </children>
-                        </VBox>
-
-                        <VBox maxWidth="640.0" prefWidth="640.0" spacing="24.0" styleClass="auth-card">
-                            <children>
-                                <VBox alignment="CENTER" spacing="10.0">
-                                    <children>
-                                        <HBox alignment="CENTER" spacing="8.0">
-                                            <children>
-                                                <Label styleClass="auth-card-title" text="Вход в аккаунт"/>
-                                                <Label styleClass="pixel-accent" text="■ ■"/>
-                                            </children>
-                                        </HBox>
-                                        <Label styleClass="muted" text="Добро пожаловать обратно!"/>
-                                    </children>
-                                </VBox>
-
-                                <VBox spacing="18.0" styleClass="auth-form">
-                                    <children>
-                                        <VBox spacing="8.0">
-                                            <children>
-                                                <Label styleClass="field-label" text="Email или логин"/>
-                                                <TextField fx:id="loginField" promptText="Введите email или логин"
-                                                           styleClass="auth-input"/>
-                                            </children>
-                                        </VBox>
-
-                                        <VBox spacing="8.0">
-                                            <children>
-                                                <Label styleClass="field-label" text="Пароль"/>
-                                                <PasswordField fx:id="passwordField" promptText="Введите пароль"
-                                                               styleClass="auth-input"/>
-                                            </children>
-                                        </VBox>
-
                                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                                             <children>
+                                                <ImageView fitHeight="46.0" fitWidth="46.0" preserveRatio="true"
+                                                           smooth="false" styleClass="brand-image">
+                                                    <image>
+                                                        <Image url="@assets/clean-glass/obsidiangate-sidebar-logo.png"/>
+                                                    </image>
+                                                </ImageView>
+                                                <Label styleClass="auth-brand-title" text="OBSIDIANGATE"/>
+                                            </children>
+                                        </HBox>
+                                        <Label styleClass="auth-hero-title" text="Вход"/>
+                                        <Label styleClass="auth-hero-copy"
+                                               text="Запустите лаунчер и вернитесь на сервер своим игровым профилем."
+                                               wrapText="true"/>
+                                        <Label fx:id="versionLabel" styleClass="version-badge" text="Лаунчер"/>
+                                    </children>
+                                </VBox>
+
+                                <VBox maxWidth="440.0" minWidth="440.0" prefWidth="440.0"
+                                      spacing="18.0" styleClass="auth-card">
+                                    <children>
+                                        <VBox spacing="5.0">
+                                            <children>
+                                                <Label styleClass="auth-card-title" text="Войти в аккаунт"/>
+                                                <Label styleClass="muted" text="Используйте email или никнейм"/>
+                                            </children>
+                                        </VBox>
+
+                                        <VBox spacing="14.0" styleClass="auth-form">
+                                            <children>
+                                                <VBox spacing="5.0">
+                                                    <children>
+                                                        <Label styleClass="field-label" text="Email или логин"/>
+                                                        <TextField fx:id="loginField" promptText="Введите email или логин"
+                                                                   styleClass="auth-input"/>
+                                                        <Label fx:id="loginErrorLabel" managed="false"
+                                                               styleClass="field-error" visible="false" wrapText="true"/>
+                                                    </children>
+                                                </VBox>
+
+                                                <VBox spacing="5.0">
+                                                    <children>
+                                                        <Label styleClass="field-label" text="Пароль"/>
+                                                        <PasswordField fx:id="passwordField" promptText="Введите пароль"
+                                                                       styleClass="auth-input"/>
+                                                        <Label fx:id="passwordErrorLabel" managed="false"
+                                                               styleClass="field-error" visible="false" wrapText="true"/>
+                                                    </children>
+                                                </VBox>
+
                                                 <CheckBox fx:id="rememberCheck" text="Запомнить меня"/>
+
+                                                <Label fx:id="statusLabel" styleClass="status-error" wrapText="true"/>
+
+                                                <Button fx:id="loginButton" maxWidth="1.7976931348623157E308"
+                                                        mnemonicParsing="false" onAction="#onLogin"
+                                                        styleClass="auth-primary-button" text="Войти"/>
+
+                                                <HBox alignment="CENTER" fillHeight="false" spacing="12.0"
+                                                      styleClass="auth-divider-row">
+                                                    <children>
+                                                        <Region HBox.hgrow="ALWAYS" styleClass="auth-divider-line"/>
+                                                        <Label styleClass="auth-divider-label" text="или"/>
+                                                        <Region HBox.hgrow="ALWAYS" styleClass="auth-divider-line"/>
+                                                    </children>
+                                                </HBox>
+
+                                                <HBox alignment="CENTER" spacing="8.0">
+                                                    <children>
+                                                        <Label styleClass="muted" text="Нет аккаунта?"/>
+                                                        <Hyperlink fx:id="openRegisterLink" onAction="#openRegister"
+                                                                   text="Зарегистрироваться"/>
+                                                    </children>
+                                                </HBox>
                                             </children>
-                                        </HBox>
-
-                                        <Label fx:id="statusLabel" styleClass="status-error" wrapText="true"/>
-
-                                        <Button fx:id="loginButton" maxWidth="1.7976931348623157E308"
-                                                mnemonicParsing="false" onAction="#onLogin"
-                                                styleClass="auth-primary-button" text="Войти"/>
-
-                                        <HBox alignment="CENTER" fillHeight="false" spacing="14.0"
-                                              styleClass="auth-divider-row">
-                                            <children>
-                                                <Region HBox.hgrow="ALWAYS" styleClass="auth-divider-line"/>
-                                                <Label styleClass="auth-divider-label" text="или"/>
-                                                <Region HBox.hgrow="ALWAYS" styleClass="auth-divider-line"/>
-                                            </children>
-                                        </HBox>
-
-                                        <HBox alignment="CENTER" spacing="8.0">
-                                            <children>
-                                                <Label styleClass="muted" text="Нет аккаунта?"/>
-                                                <Hyperlink fx:id="openRegisterLink" onAction="#openRegister"
-                                                           text="Зарегистрироваться"/>
-                                            </children>
-                                        </HBox>
+                                        </VBox>
                                     </children>
                                 </VBox>
                             </children>
-                        </VBox>
+                        </HBox>
+                    </content>
+                </ScrollPane>
 
-                        <Label styleClass="auth-footer-copy" text="© 2026 ObsidianGate. Все права защищены."/>
-                    </children>
-                </VBox>
-            </center>
-        </BorderPane>
+                <fx:include fx:id="windowControls" source="clean-glass-window-controls.fxml"
+                            StackPane.alignment="TOP_RIGHT"/>
+            </children>
+            <padding>
+                <Insets bottom="32.0" left="44.0" right="44.0" top="44.0"/>
+            </padding>
+        </StackPane>
     </children>
 </StackPane>

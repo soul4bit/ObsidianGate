@@ -1,5 +1,5 @@
 .root {
-    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-family: "Manrope", "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
     -fx-font-size: 13px;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
@@ -508,7 +508,7 @@
     -fx-highlight-fill: rgba(168, 85, 247, 0.42);
     -fx-highlight-text-fill: #ffffff;
     -fx-padding: 8px 10px;
-    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-family: "Manrope", "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
     -fx-font-size: 13px;
 }
 

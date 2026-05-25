@@ -31,9 +31,16 @@ public abstract class AbstractScreenController implements LauncherContextAware {
     @FXML
     private StackPane brandLogoPane;
 
+    @FXML
+    private CleanGlassSidebarController sidebarController;
+
+    @FXML
+    private CleanGlassWindowControlsController windowControlsController;
+
     @Override
     public final void bindContext(LauncherContext context) {
         this.context = context;
+        bindCleanGlassControllers();
         onContextBound(context);
     }
 
@@ -61,6 +68,31 @@ public abstract class AbstractScreenController implements LauncherContextAware {
         configureWindowButton(maximizeWindowButton, "window-maximize");
         configureWindowButton(closeWindowButton, "window-close");
         configureBrandLogo(brandLogoPane);
+    }
+
+    protected final void configureCleanGlassSidebar(ScreenRouter.Screen activeScreen) {
+        if (sidebarController == null) {
+            return;
+        }
+        sidebarController.setActiveScreen(activeScreen);
+        if (context != null) {
+            sidebarController.bindContext(context);
+        }
+    }
+
+    protected final void refreshCleanGlassSidebar() {
+        if (sidebarController != null) {
+            sidebarController.refreshProfile();
+        }
+    }
+
+    private void bindCleanGlassControllers() {
+        if (windowControlsController != null) {
+            windowControlsController.bindContext(context);
+        }
+        if (sidebarController != null) {
+            sidebarController.bindContext(context);
+        }
     }
 
     protected final void showError(String message) {

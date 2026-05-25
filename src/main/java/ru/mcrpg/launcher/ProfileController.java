@@ -31,6 +31,9 @@ public final class ProfileController extends AbstractScreenController {
     private Button settingsNavButton;
 
     @FXML
+    private Button profileNavButton;
+
+    @FXML
     private Button logoutButton;
 
     @FXML
@@ -53,6 +56,9 @@ public final class ProfileController extends AbstractScreenController {
 
     @FXML
     private Label sidebarProfileStatusLabel;
+
+    @FXML
+    private Label sidebarProfileRoleLabel;
 
     @FXML
     private Label profileNameLabel;
@@ -110,6 +116,7 @@ public final class ProfileController extends AbstractScreenController {
 
     @FXML
     private void initialize() {
+        configureCleanGlassSidebar(ScreenRouter.Screen.PROFILE);
         configureChrome();
     }
 
@@ -119,6 +126,7 @@ public final class ProfileController extends AbstractScreenController {
             router().open(ScreenRouter.Screen.AUTH);
             return;
         }
+        configureCleanGlassSidebar(ScreenRouter.Screen.PROFILE);
         renderAccount(state().getSession().getAccount());
         refreshProfileAsync();
     }
@@ -176,21 +184,22 @@ public final class ProfileController extends AbstractScreenController {
 
     private void configureChrome() {
         configureWindowButtons();
-        versionLabel.setText("Версия: " + LauncherBrand.displayVersion());
-        homeNavButton.setGraphic(LauncherIcons.icon("home", 18.0d, "#c9d1d9"));
-        settingsNavButton.setGraphic(LauncherIcons.icon("settings", 18.0d, "#c9d1d9"));
-        editProfileButton.setGraphic(LauncherIcons.icon("edit", 16.0d, "#f5f7fa"));
-        switchAccountButton.setGraphic(LauncherIcons.icon("users", 18.0d, "#c084fc"));
-        openGameFolderButton.setGraphic(LauncherIcons.icon("folder", 18.0d, "#c084fc"));
+        versionLabel.setText("Лаунчер " + LauncherBrand.displayVersion());
+        setButtonGraphic(homeNavButton, "home", 17.0d, "#f8fafc");
+        setButtonGraphic(settingsNavButton, "settings", 17.0d, "#f8fafc");
+        setButtonGraphic(profileNavButton, "profile", 17.0d, "#ffffff");
+        editProfileButton.setGraphic(LauncherIcons.icon("edit", 15.0d, "#ffffff"));
+        switchAccountButton.setGraphic(LauncherIcons.icon("users", 16.0d, "#dbe4ef"));
+        openGameFolderButton.setGraphic(LauncherIcons.icon("folder", 16.0d, "#dbe4ef"));
         logoutButton.setGraphic(LauncherIcons.icon("logout", 18.0d, "#fb7185"));
-        securityDetailsButton.setGraphic(LauncherIcons.icon("external", 15.0d, "#d8b4fe"));
+        securityDetailsButton.setGraphic(LauncherIcons.icon("external", 15.0d, "#dbe4ef"));
         accountInfoIconLabel.setGraphic(LauncherIcons.icon("info", 18.0d, "#c084fc"));
-        usernameIconLabel.setGraphic(LauncherIcons.icon("profile", 16.0d, "#c084fc"));
-        roleIconLabel.setGraphic(LauncherIcons.icon("crown", 16.0d, "#c084fc"));
-        emailIconLabel.setGraphic(LauncherIcons.icon("mail", 16.0d, "#c084fc"));
-        accountIdIconLabel.setGraphic(LauncherIcons.icon("id-card", 16.0d, "#c084fc"));
+        usernameIconLabel.setGraphic(LauncherIcons.icon("profile", 15.0d, "#b8c3d3"));
+        roleIconLabel.setGraphic(LauncherIcons.icon("crown", 15.0d, "#b8c3d3"));
+        emailIconLabel.setGraphic(LauncherIcons.icon("mail", 15.0d, "#b8c3d3"));
+        accountIdIconLabel.setGraphic(LauncherIcons.icon("id-card", 15.0d, "#b8c3d3"));
         quickActionsIconLabel.setGraphic(LauncherIcons.icon("bolt", 18.0d, "#c084fc"));
-        securityIconLabel.setGraphic(LauncherIcons.icon("shield", 28.0d, "#c084fc"));
+        securityIconLabel.setGraphic(LauncherIcons.icon("shield", 24.0d, "#86efac"));
     }
 
     private void refreshProfileAsync() {
@@ -233,9 +242,13 @@ public final class ProfileController extends AbstractScreenController {
         profileStatusLabel.setText(accountStatus);
         profileWelcomeLabel.setText("Добро пожаловать на ObsidianGate");
 
-        sidebarProfileNameLabel.setText(account.getUsername());
-        sidebarProfileAvatarView.setImage(AvatarImages.forAccount(account));
-        sidebarProfileStatusLabel.setText(accountStatus);
+        setLabelText(sidebarProfileNameLabel, account.getUsername());
+        if (sidebarProfileAvatarView != null) {
+            sidebarProfileAvatarView.setImage(AvatarImages.forAccount(account));
+        }
+        setLabelText(sidebarProfileStatusLabel, accountStatus);
+        setLabelText(sidebarProfileRoleLabel, roleCode);
+        refreshCleanGlassSidebar();
 
         accountUsernameLabel.setText(account.getUsername());
         accountRoleLabel.setText(roleLabel);
@@ -322,6 +335,18 @@ public final class ProfileController extends AbstractScreenController {
 
     private static String valueOrFallback(String value, String fallback) {
         return hasText(value) ? value.trim() : fallback;
+    }
+
+    private static void setButtonGraphic(Button button, String iconName, double size, String color) {
+        if (button != null) {
+            button.setGraphic(LauncherIcons.icon(iconName, size, color));
+        }
+    }
+
+    private static void setLabelText(Label label, String value) {
+        if (label != null) {
+            label.setText(value);
+        }
     }
 
     private static boolean hasText(String value) {

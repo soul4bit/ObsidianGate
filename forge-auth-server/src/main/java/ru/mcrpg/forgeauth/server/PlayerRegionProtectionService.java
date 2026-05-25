@@ -251,7 +251,14 @@ final class PlayerRegionProtectionService {
         Object[] safeArgs = args == null ? new Object[0] : args;
         Class<?> type = target.getClass();
         while (type != null) {
-            for (Method method : type.getDeclaredMethods()) {
+            Method[] methods;
+            try {
+                methods = type.getDeclaredMethods();
+            } catch (LinkageError ignored) {
+                type = type.getSuperclass();
+                continue;
+            }
+            for (Method method : methods) {
                 if (methodMatches(method, safeArgs, methodNames)) {
                     try {
                         method.setAccessible(true);

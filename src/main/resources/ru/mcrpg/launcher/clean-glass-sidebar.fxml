@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ru.mcrpg.launcher.CleanGlassSidebarController"
+      maxHeight="1.7976931348623157E308" maxWidth="184.0"
+      minWidth="184.0" prefWidth="184.0" styleClass="sidebar">
+    <children>
+        <HBox alignment="CENTER_LEFT" spacing="9.0" styleClass="brand">
+            <children>
+                <ImageView fitHeight="34.0" fitWidth="34.0" preserveRatio="true" smooth="false"
+                           styleClass="brand-image">
+                    <image>
+                        <Image url="@assets/clean-glass/obsidiangate-sidebar-logo.png"/>
+                    </image>
+                </ImageView>
+                <Label styleClass="brand-name" text="OBSIDIANGATE"/>
+            </children>
+        </HBox>
+
+        <VBox spacing="8.0" styleClass="nav">
+            <children>
+                <Button fx:id="homeNavButton" maxWidth="1.7976931348623157E308"
+                        mnemonicParsing="false" onAction="#openHome"
+                        styleClass="nav-item" text="Главная"/>
+                <Button fx:id="settingsNavButton" maxWidth="1.7976931348623157E308"
+                        mnemonicParsing="false" onAction="#openSettings"
+                        styleClass="nav-item" text="Настройки"/>
+                <Button fx:id="profileNavButton" maxWidth="1.7976931348623157E308"
+                        mnemonicParsing="false" onAction="#openProfile"
+                        styleClass="nav-item" text="Профиль"/>
+            </children>
+        </VBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <HBox accessibleText="Открыть профиль" alignment="CENTER_LEFT" focusTraversable="true"
+              onKeyPressed="#openProfileFromKeyboard"
+              onMouseClicked="#openProfile" pickOnBounds="true"
+              spacing="9.0" styleClass="user-card">
+            <children>
+                <ImageView fx:id="sidebarProfileAvatarView" fitHeight="40.0" fitWidth="40.0"
+                           preserveRatio="true" smooth="false" styleClass="user-avatar">
+                    <image>
+                        <Image url="@assets/player-avatar.png"/>
+                    </image>
+                </ImageView>
+                <VBox minWidth="0.0" spacing="4.0" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label fx:id="sidebarProfileNameLabel" maxWidth="1.7976931348623157E308"
+                               styleClass="user-name" text="Игрок"/>
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                            <children>
+                                <Region styleClass="status-dot"/>
+                                <Label fx:id="sidebarProfileStatusLabel"
+                                       maxWidth="1.7976931348623157E308"
+                                       styleClass="user-status" text="Не в сети"/>
+                            </children>
+                        </HBox>
+                        <Label fx:id="sidebarProfileRoleLabel" maxWidth="1.7976931348623157E308"
+                               styleClass="user-role" text="Player"/>
+                    </children>
+                </VBox>
+                <Label styleClass="user-arrow" text="›"/>
+            </children>
+        </HBox>
+    </children>
+</VBox>

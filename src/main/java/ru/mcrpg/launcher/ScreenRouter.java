@@ -8,16 +8,16 @@ import javafx.stage.Stage;
 
 public final class ScreenRouter {
 
-    private static final double DEFAULT_SCENE_WIDTH = 1500;
-    private static final double DEFAULT_SCENE_HEIGHT = 900;
+    private static final double DEFAULT_SCENE_WIDTH = 1280;
+    private static final double DEFAULT_SCENE_HEIGHT = 720;
     private static final String THEME_STYLESHEET = "/ru/mcrpg/launcher/theme.css";
 
     public enum Screen {
-        AUTH("/ru/mcrpg/launcher/AuthView.fxml", "/ru/mcrpg/launcher/account.css"),
-        REGISTER("/ru/mcrpg/launcher/RegisterView.fxml", "/ru/mcrpg/launcher/account.css"),
+        AUTH("/ru/mcrpg/launcher/AuthView.fxml", "/ru/mcrpg/launcher/launcher-shell.css"),
+        REGISTER("/ru/mcrpg/launcher/RegisterView.fxml", "/ru/mcrpg/launcher/launcher-shell.css"),
         HOME("/ru/mcrpg/launcher/launcher-shell.fxml", "/ru/mcrpg/launcher/launcher-shell.css"),
-        PROFILE("/ru/mcrpg/launcher/ProfileView.fxml", "/ru/mcrpg/launcher/account.css"),
-        SETTINGS("/ru/mcrpg/launcher/SettingsView.fxml", "/ru/mcrpg/launcher/account.css");
+        PROFILE("/ru/mcrpg/launcher/ProfileView.fxml", "/ru/mcrpg/launcher/launcher-shell.css"),
+        SETTINGS("/ru/mcrpg/launcher/SettingsView.fxml", "/ru/mcrpg/launcher/launcher-shell.css");
 
         private final String fxmlPath;
         private final String stylesheetPath;

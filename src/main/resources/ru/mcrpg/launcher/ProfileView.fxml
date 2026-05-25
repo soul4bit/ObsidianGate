@@ -6,256 +6,251 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<HBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="ru.mcrpg.launcher.ProfileController"
-      prefHeight="820.0" prefWidth="1320.0" styleClass="account-root">
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="ru.mcrpg.launcher.ProfileController"
+           styleClass="launcher-shell, profile-shell">
     <children>
-        <VBox maxWidth="248.0" minWidth="248.0" prefWidth="248.0" spacing="0.0" styleClass="sidebar">
+        <HBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+              minHeight="0.0" minWidth="0.0"
+              onMouseDragged="#dragWindow" onMousePressed="#captureWindowDrag"
+              spacing="12.0" styleClass="launcher-window">
             <children>
-                <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="brand-row">
-                    <padding>
-                        <Insets bottom="0.0" left="18.0" right="18.0" top="30.0"/>
-                    </padding>
-                    <children>
-                        <StackPane fx:id="brandLogoPane" maxHeight="44.0" maxWidth="44.0" minHeight="44.0"
-                                   minWidth="44.0" prefHeight="44.0" prefWidth="44.0" styleClass="brand-logo"/>
-                        <Label styleClass="app-title" text="ObsidianGate"/>
-                    </children>
-                </HBox>
+                <fx:include fx:id="sidebar" source="clean-glass-sidebar.fxml"/>
 
-                <VBox spacing="10.0" styleClass="sidebar-nav">
-                    <padding>
-                        <Insets bottom="18.0" left="18.0" right="18.0" top="54.0"/>
-                    </padding>
+                <StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                           HBox.hgrow="ALWAYS" styleClass="main-stack">
                     <children>
-                        <Button fx:id="homeNavButton" maxWidth="1.7976931348623157E308"
-                                mnemonicParsing="false" onAction="#onOpenHome"
-                                styleClass="nav-button, nav-button-active" text="Главная"/>
-                        <Button fx:id="settingsNavButton" maxWidth="1.7976931348623157E308"
-                                mnemonicParsing="false" onAction="#openSettings"
-                                styleClass="nav-button" text="Настройки"/>
-                    </children>
-                </VBox>
-
-                <Region VBox.vgrow="ALWAYS"/>
-
-                <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="sidebar-profile">
-                    <VBox.margin>
-                        <Insets bottom="24.0" left="18.0" right="18.0" top="18.0"/>
-                    </VBox.margin>
-                    <padding>
-                        <Insets bottom="14.0" left="14.0" right="14.0" top="14.0"/>
-                    </padding>
-                    <children>
-                        <ImageView fx:id="sidebarProfileAvatarView" fitHeight="48.0" fitWidth="48.0"
-                                   preserveRatio="true" smooth="false" styleClass="sidebar-avatar">
-                            <image>
-                                <Image url="@assets/player-avatar.png"/>
-                            </image>
-                        </ImageView>
-                        <VBox spacing="3.0">
+                        <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                              styleClass="main, profile-main">
                             <children>
-                                <Label fx:id="sidebarProfileNameLabel" styleClass="value-label" text="Игрок"/>
-                                <HBox alignment="CENTER_LEFT" spacing="6.0">
+                                <StackPane maxHeight="230.0" maxWidth="1.7976931348623157E308"
+                                           minHeight="230.0" prefHeight="230.0"
+                                           styleClass="profile-page-hero">
                                     <children>
-                                        <Label styleClass="status-dot" text="●"/>
-                                        <Label fx:id="sidebarProfileStatusLabel" styleClass="accent-success" text="В сети"/>
-                                    </children>
-                                </HBox>
-                            </children>
-                        </VBox>
-                    </children>
-                </HBox>
-            </children>
-        </VBox>
+                                        <Region styleClass="profile-page-hero-overlay"/>
+                                        <Label mouseTransparent="true" styleClass="hero-corner-mark" text="✦"
+                                               StackPane.alignment="TOP_LEFT">
+                                            <StackPane.margin>
+                                                <Insets left="18.0" top="14.0"/>
+                                            </StackPane.margin>
+                                        </Label>
+                                        <fx:include fx:id="windowControls" source="clean-glass-window-controls.fxml"
+                                                    StackPane.alignment="TOP_RIGHT"/>
 
-        <BorderPane HBox.hgrow="ALWAYS" styleClass="main-shell, profile-main-shell">
-            <top>
-                <HBox alignment="CENTER_RIGHT" onMouseDragged="#dragWindow" onMousePressed="#captureWindowDrag"
-                      spacing="12.0" styleClass="top-bar">
-                    <padding>
-                        <Insets bottom="12.0" left="20.0" right="14.0" top="12.0"/>
-                    </padding>
-                    <children>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label fx:id="versionLabel" styleClass="top-meta" text="Версия"/>
-                        <Button fx:id="minimizeWindowButton" mnemonicParsing="false" onAction="#minimizeWindow"
-                                styleClass="window-button" text="_"/>
-                        <Button fx:id="maximizeWindowButton" mnemonicParsing="false" onAction="#toggleMaximizeWindow"
-                                styleClass="window-button" text="□"/>
-                        <Button fx:id="closeWindowButton" mnemonicParsing="false" onAction="#closeWindow"
-                                styleClass="window-button" text="X"/>
-                    </children>
-                </HBox>
-            </top>
-
-            <center>
-                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
-                    <content>
-                        <VBox spacing="16.0" styleClass="account-content, profile-dashboard-content">
-                            <padding>
-                                <Insets bottom="32.0" left="34.0" right="34.0" top="28.0"/>
-                            </padding>
-                            <children>
-                                <VBox spacing="7.0" styleClass="profile-page-heading">
-                                    <children>
-                                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                        <HBox alignment="CENTER_LEFT" spacing="22.0"
+                                              StackPane.alignment="CENTER_LEFT" styleClass="profile-page-hero-content">
                                             <children>
-                                                <Label styleClass="page-title" text="Профиль"/>
-                                                <Label styleClass="pixel-accent" text="■ ■"/>
+                                                <StackPane maxHeight="108.0" maxWidth="108.0" minHeight="108.0"
+                                                           minWidth="108.0" prefHeight="108.0" prefWidth="108.0"
+                                                           styleClass="profile-hero-avatar-wrap">
+                                                    <children>
+                                                        <ImageView fx:id="profileAvatarView" fitHeight="88.0"
+                                                                   fitWidth="88.0" preserveRatio="true"
+                                                                   smooth="false" styleClass="profile-hero-avatar">
+                                                            <image>
+                                                                <Image url="@assets/player-avatar.png"/>
+                                                            </image>
+                                                        </ImageView>
+                                                    </children>
+                                                </StackPane>
+
+                                                <VBox minWidth="0.0" spacing="9.0" HBox.hgrow="ALWAYS">
+                                                    <children>
+                                                        <HBox alignment="CENTER_LEFT" spacing="14.0">
+                                                            <children>
+                                                                <Label styleClass="hero-kicker" text="Профиль игрока"/>
+                                                                <Label fx:id="versionLabel" styleClass="version-badge"
+                                                                       text="Лаунчер"/>
+                                                            </children>
+                                                        </HBox>
+                                                        <Label fx:id="profileNameLabel" styleClass="profile-hero-name"
+                                                               text="Игрок"/>
+                                                        <HBox alignment="CENTER_LEFT" spacing="14.0">
+                                                            <children>
+                                                                <Label fx:id="profileRoleBadgeLabel"
+                                                                       styleClass="profile-role-badge" text="Игрок"/>
+                                                                <HBox alignment="CENTER_LEFT" spacing="7.0">
+                                                                    <children>
+                                                                        <Region styleClass="profile-online-dot"/>
+                                                                        <Label fx:id="profileStatusLabel"
+                                                                               styleClass="profile-online-text"
+                                                                               text="В сети"/>
+                                                                    </children>
+                                                                </HBox>
+                                                            </children>
+                                                        </HBox>
+                                                        <Label fx:id="profileWelcomeLabel" styleClass="profile-hero-copy"
+                                                               text="Добро пожаловать на ObsidianGate"/>
+                                                    </children>
+                                                </VBox>
+
+                                                <Button fx:id="editProfileButton" mnemonicParsing="false"
+                                                        onAction="#onEditProfile" styleClass="profile-edit-button"
+                                                        text="Редактировать"/>
                                             </children>
                                         </HBox>
-                                        <Label styleClass="muted" text="Ваш аккаунт и управление профилем"/>
                                     </children>
-                                </VBox>
+                                    <VBox.margin>
+                                        <Insets bottom="14.0"/>
+                                    </VBox.margin>
+                                </StackPane>
 
-                                <HBox alignment="CENTER_LEFT" spacing="24.0" styleClass="profile-hero-card">
-                                    <children>
-                                        <StackPane maxHeight="116.0" maxWidth="116.0" minHeight="116.0"
-                                                   minWidth="116.0" prefHeight="116.0" prefWidth="116.0"
-                                                   styleClass="profile-hero-avatar-wrap">
+                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER"
+                                            styleClass="content-scroll, profile-scroll"
+                                            VBox.vgrow="ALWAYS">
+                                    <content>
+                                        <VBox spacing="16.0" styleClass="profile-content">
                                             <children>
-                                                <ImageView fx:id="profileAvatarView" fitHeight="96.0" fitWidth="96.0"
-                                                           preserveRatio="true" smooth="false"
-                                                           styleClass="profile-hero-avatar">
-                                                    <image>
-                                                        <Image url="@assets/player-avatar.png"/>
-                                                    </image>
-                                                </ImageView>
-                                            </children>
-                                        </StackPane>
-                                        <VBox spacing="9.0" HBox.hgrow="ALWAYS">
-                                            <children>
-                                                <Label fx:id="profileNameLabel" styleClass="profile-hero-name" text="Игрок"/>
-                                                <HBox alignment="CENTER_LEFT" spacing="14.0">
+                                                <HBox spacing="16.0" styleClass="profile-dashboard-grid">
                                                     <children>
-                                                <Label fx:id="profileRoleBadgeLabel" styleClass="profile-role-badge"
-                                                       text="Игрок"/>
-                                                        <HBox alignment="CENTER_LEFT" spacing="7.0">
+                                                        <VBox minWidth="0.0" prefWidth="520.0" spacing="14.0"
+                                                              styleClass="profile-card, account-info-card"
+                                                              HBox.hgrow="ALWAYS">
                                                             <children>
-                                                                <Region styleClass="profile-online-dot"/>
-                                                                <Label fx:id="profileStatusLabel"
-                                                                       styleClass="profile-online-text" text="В сети"/>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10.0"
+                                                                      styleClass="card-header">
+                                                                    <children>
+                                                                        <Label fx:id="accountInfoIconLabel"
+                                                                               styleClass="profile-card-icon"/>
+                                                                        <Label styleClass="section-title"
+                                                                               text="Информация об аккаунте"/>
+                                                                    </children>
+                                                                </HBox>
+                                                                <VBox spacing="0.0" styleClass="profile-info-list">
+                                                                    <children>
+                                                                        <HBox alignment="CENTER_LEFT" spacing="12.0"
+                                                                              styleClass="profile-info-row">
+                                                                            <children>
+                                                                                <Label fx:id="usernameIconLabel"
+                                                                                       styleClass="profile-info-icon"/>
+                                                                                <Label styleClass="muted" text="Ник"/>
+                                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                                <Label fx:id="accountUsernameLabel"
+                                                                                       styleClass="value-label"
+                                                                                       text="-"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                        <HBox alignment="CENTER_LEFT" spacing="12.0"
+                                                                              styleClass="profile-info-row">
+                                                                            <children>
+                                                                                <Label fx:id="roleIconLabel"
+                                                                                       styleClass="profile-info-icon"/>
+                                                                                <Label styleClass="muted" text="Роль"/>
+                                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                                <Label fx:id="accountRoleLabel"
+                                                                                       styleClass="accent-purple"
+                                                                                       text="-"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                        <HBox alignment="CENTER_LEFT" spacing="12.0"
+                                                                              styleClass="profile-info-row">
+                                                                            <children>
+                                                                                <Label fx:id="emailIconLabel"
+                                                                                       styleClass="profile-info-icon"/>
+                                                                                <Label styleClass="muted" text="Email"/>
+                                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                                <Label fx:id="profileEmailLabel"
+                                                                                       maxWidth="300.0"
+                                                                                       styleClass="value-label" text="-"
+                                                                                       wrapText="true"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                        <HBox alignment="CENTER_LEFT" spacing="12.0"
+                                                                              styleClass="profile-info-row">
+                                                                            <children>
+                                                                                <Label fx:id="accountIdIconLabel"
+                                                                                       styleClass="profile-info-icon"/>
+                                                                                <Label styleClass="muted"
+                                                                                       text="ID аккаунта"/>
+                                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                                <Label fx:id="accountIdLabel"
+                                                                                       maxWidth="300.0"
+                                                                                       styleClass="profile-id-value"
+                                                                                       text="-" wrapText="true"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                    </children>
+                                                                </VBox>
                                                             </children>
-                                                        </HBox>
+                                                        </VBox>
+
+                                                        <VBox maxWidth="340.0" minWidth="315.0" prefWidth="330.0"
+                                                              spacing="14.0" styleClass="profile-card, quick-actions-card">
+                                                            <children>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10.0"
+                                                                      styleClass="card-header">
+                                                                    <children>
+                                                                        <Label fx:id="quickActionsIconLabel"
+                                                                               styleClass="profile-card-icon"/>
+                                                                        <Label styleClass="section-title"
+                                                                               text="Быстрые действия"/>
+                                                                    </children>
+                                                                </HBox>
+                                                                <VBox spacing="10.0">
+                                                                    <children>
+                                                                        <Button fx:id="switchAccountButton"
+                                                                                maxWidth="1.7976931348623157E308"
+                                                                                mnemonicParsing="false"
+                                                                                onAction="#onSwitchAccount"
+                                                                                styleClass="profile-action-button"
+                                                                                text="Сменить аккаунт"/>
+                                                                        <Button fx:id="openGameFolderButton"
+                                                                                maxWidth="1.7976931348623157E308"
+                                                                                mnemonicParsing="false"
+                                                                                onAction="#onOpenGameFolder"
+                                                                                styleClass="profile-action-button"
+                                                                                text="Открыть папку игры"/>
+                                                                        <Button fx:id="logoutButton"
+                                                                                maxWidth="1.7976931348623157E308"
+                                                                                mnemonicParsing="false"
+                                                                                onAction="#onLogout"
+                                                                                styleClass="profile-action-button, profile-logout-button"
+                                                                                text="Выйти из аккаунта"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </VBox>
                                                     </children>
                                                 </HBox>
-                                                <Label fx:id="profileWelcomeLabel" styleClass="muted"
-                                                       text="Добро пожаловать на ObsidianGate"/>
-                                            </children>
-                                        </VBox>
-                                        <Button fx:id="editProfileButton" mnemonicParsing="false"
-                                                onAction="#onEditProfile" styleClass="profile-edit-button"
-                                                text="Редактировать профиль"/>
-                                    </children>
-                                </HBox>
 
-                                <HBox spacing="16.0" styleClass="profile-dashboard-grid">
-                                    <children>
-                                        <VBox prefWidth="450.0" spacing="14.0" styleClass="profile-card, account-info-card"
-                                              HBox.hgrow="ALWAYS">
-                                            <children>
-                                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                                <HBox alignment="CENTER_LEFT" spacing="14.0"
+                                                      styleClass="profile-card, profile-security-card">
                                                     <children>
-                                                        <Label fx:id="accountInfoIconLabel" styleClass="profile-card-icon"/>
-                                                        <Label styleClass="section-title" text="Информация об аккаунте"/>
+                                                        <Label fx:id="securityIconLabel" styleClass="profile-security-icon"/>
+                                                        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                                            <children>
+                                                                <Label styleClass="profile-security-title"
+                                                                       text="Профиль защищён"/>
+                                                                <Label fx:id="sessionExpiresLabel" styleClass="muted"
+                                                                       text="Сессия активна"/>
+                                                                <Label fx:id="statusLabel"
+                                                                       styleClass="profile-sync-status"
+                                                                       wrapText="true"/>
+                                                            </children>
+                                                        </VBox>
+                                                        <Button fx:id="securityDetailsButton" mnemonicParsing="false"
+                                                                onAction="#onShowSecurityDetails"
+                                                                styleClass="profile-details-button"
+                                                                text="Подробнее"/>
                                                     </children>
                                                 </HBox>
-                                                <VBox spacing="0.0" styleClass="profile-info-list">
-                                                    <children>
-                                                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="profile-info-row">
-                                                            <children>
-                                                                <Label fx:id="usernameIconLabel" styleClass="profile-info-icon"/>
-                                                                <Label styleClass="muted" text="Ник"/>
-                                                                <Region HBox.hgrow="ALWAYS"/>
-                                                                <Label fx:id="accountUsernameLabel" styleClass="value-label" text="-"/>
-                                                            </children>
-                                                        </HBox>
-                                                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="profile-info-row">
-                                                            <children>
-                                                                <Label fx:id="roleIconLabel" styleClass="profile-info-icon"/>
-                                                                <Label styleClass="muted" text="Роль"/>
-                                                                <Region HBox.hgrow="ALWAYS"/>
-                                                                <Label fx:id="accountRoleLabel" styleClass="accent-purple" text="-"/>
-                                                            </children>
-                                                        </HBox>
-                                                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="profile-info-row">
-                                                            <children>
-                                                                <Label fx:id="emailIconLabel" styleClass="profile-info-icon"/>
-                                                                <Label styleClass="muted" text="Email"/>
-                                                                <Region HBox.hgrow="ALWAYS"/>
-                                                                <Label fx:id="profileEmailLabel" maxWidth="260.0"
-                                                                       styleClass="value-label" text="-" wrapText="true"/>
-                                                            </children>
-                                                        </HBox>
-                                                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="profile-info-row">
-                                                            <children>
-                                                                <Label fx:id="accountIdIconLabel" styleClass="profile-info-icon"/>
-                                                                <Label styleClass="muted" text="ID аккаунта"/>
-                                                                <Region HBox.hgrow="ALWAYS"/>
-                                                                <Label fx:id="accountIdLabel" maxWidth="260.0"
-                                                                       styleClass="profile-id-value" text="-" wrapText="true"/>
-                                                            </children>
-                                                        </HBox>
-                                                    </children>
-                                                </VBox>
                                             </children>
+                                            <padding>
+                                                <Insets bottom="8.0"/>
+                                            </padding>
                                         </VBox>
-
-                                        <VBox prefWidth="330.0" spacing="14.0" styleClass="profile-card, quick-actions-card">
-                                            <children>
-                                                <HBox alignment="CENTER_LEFT" spacing="10.0">
-                                                    <children>
-                                                        <Label fx:id="quickActionsIconLabel" styleClass="profile-card-icon"/>
-                                                        <Label styleClass="section-title" text="Быстрые действия"/>
-                                                    </children>
-                                                </HBox>
-                                                <VBox spacing="12.0">
-                                                    <children>
-                                                        <Button fx:id="switchAccountButton" maxWidth="1.7976931348623157E308"
-                                                                mnemonicParsing="false" onAction="#onSwitchAccount"
-                                                                styleClass="profile-action-button" text="Сменить аккаунт"/>
-                                                        <Button fx:id="openGameFolderButton" maxWidth="1.7976931348623157E308"
-                                                                mnemonicParsing="false" onAction="#onOpenGameFolder"
-                                                                styleClass="profile-action-button" text="Открыть папку игры"/>
-                                                        <Button fx:id="logoutButton" maxWidth="1.7976931348623157E308"
-                                                                mnemonicParsing="false" onAction="#onLogout"
-                                                                styleClass="profile-action-button, profile-logout-button"
-                                                                text="Выйти из аккаунта"/>
-                                                    </children>
-                                                </VBox>
-                                            </children>
-                                        </VBox>
-                                    </children>
-                                </HBox>
-
-                                <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="profile-security-card">
-                                    <children>
-                                        <Label fx:id="securityIconLabel" styleClass="profile-security-icon"/>
-                                        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                                            <children>
-                                                <Label styleClass="profile-security-title" text="Ваш профиль защищён"/>
-                                                <Label fx:id="sessionExpiresLabel" styleClass="muted"
-                                                       text="Мы не передаём ваши данные третьим лицам."/>
-                                                <Label fx:id="statusLabel" styleClass="profile-sync-status" wrapText="true"/>
-                                            </children>
-                                        </VBox>
-                                        <Button fx:id="securityDetailsButton" mnemonicParsing="false"
-                                                onAction="#onShowSecurityDetails"
-                                                styleClass="profile-details-button" text="Подробнее"/>
-                                    </children>
-                                </HBox>
+                                    </content>
+                                </ScrollPane>
                             </children>
                         </VBox>
-                    </content>
-                </ScrollPane>
-            </center>
-        </BorderPane>
+                    </children>
+                </StackPane>
+            </children>
+        </HBox>
     </children>
-</HBox>
+</StackPane>
