@@ -206,7 +206,7 @@ public final class LauncherShellController extends AbstractScreenController {
 
     @FXML
     private void play() {
-        if (hasRequiredLauncherUpdate()) {
+        if (hasLauncherUpdate()) {
             updateLauncher();
             return;
         }
@@ -393,7 +393,7 @@ public final class LauncherShellController extends AbstractScreenController {
             return;
         }
 
-        if (hasRequiredLauncherUpdate()) {
+        if (hasLauncherUpdate()) {
             playButton.setDisable(false);
             setGraphic(playButton, "download", 16.0d, "#ffffff");
             playButton.setText("Обновить лаунчер");
@@ -406,9 +406,8 @@ public final class LauncherShellController extends AbstractScreenController {
         playButton.setText("Играть");
     }
 
-    private boolean hasRequiredLauncherUpdate() {
-        LauncherUpdateCandidate update = availableLauncherUpdate;
-        return update != null && update.isRequired();
+    private boolean hasLauncherUpdate() {
+        return availableLauncherUpdate != null;
     }
 
     private static Process startGameProcess(LauncherConfig config, List<String> command) throws IOException {
@@ -613,20 +612,12 @@ public final class LauncherShellController extends AbstractScreenController {
             return null;
         }
 
-        LauncherConfig config = context() == null ? null : state().getConfig();
-        LauncherUpdateSettings settings = loadedManifest.getManifest().getLauncherUpdate();
-        boolean shouldCheck = config == null
-            || config.isLauncherUpdatesEnabled()
-            || (settings != null && settings.isRequired());
-        if (!shouldCheck) {
-            return null;
-        }
         return launcherUpdateService.findUpdate(loadedManifest, LauncherBrand.displayVersion());
     }
 
     private void applyLauncherUpdateState(LauncherUpdateCandidate update, boolean checkSucceeded) {
         if (!checkSucceeded) {
-            if (!hasRequiredLauncherUpdate()) {
+            if (!hasLauncherUpdate()) {
                 applyPlayButtonState();
             }
             return;
@@ -634,7 +625,7 @@ public final class LauncherShellController extends AbstractScreenController {
 
         availableLauncherUpdate = update;
         applyPlayButtonState();
-        if (!syncInProgress && !launchInProgress && !launcherUpdateInProgress && hasRequiredLauncherUpdate()) {
+        if (!syncInProgress && !launchInProgress && !launcherUpdateInProgress && hasLauncherUpdate()) {
             setSyncStatus("Обновите лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
         }
     }

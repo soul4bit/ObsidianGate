@@ -288,7 +288,7 @@
                                                                         <VBox spacing="10.0" styleClass="settings-check-list">
                                                                             <children>
                                                                                 <CheckBox fx:id="launcherUpdatesEnabledCheck"
-                                                                                          text="Проверять обновления лаунчера"/>
+                                                                                          text="Обновления лаунчера проверяются всегда"/>
                                                                             </children>
                                                                         </VBox>
                                                                     </children>

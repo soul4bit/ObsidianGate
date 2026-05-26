@@ -280,6 +280,8 @@ public final class SettingsController extends AbstractScreenController {
         clientIconLabel.setGraphic(LauncherIcons.icon("download", 16.0d, "#c084fc"));
         serverIconLabel.setGraphic(LauncherIcons.icon("server", 16.0d, "#c084fc"));
         launchIconLabel.setGraphic(LauncherIcons.icon("play", 16.0d, "#c084fc"));
+        launcherUpdatesEnabledCheck.setSelected(true);
+        launcherUpdatesEnabledCheck.setDisable(true);
         setButtonTooltip(browseGameDirectoryButton, "Выбрать папку игры");
         setButtonTooltip(browseJavaButton, "Выбрать Java");
         setButtonTooltip(browseWorkingDirectoryButton, "Выбрать рабочую папку");
@@ -309,7 +311,7 @@ public final class SettingsController extends AbstractScreenController {
         config.setServerId(requireText(serverIdField.getText(), "Укажите server id."));
         config.setLaunchTemplate(requireText(launchTemplateArea.getText(), "Укажите шаблон запуска."));
         config.setUpdateFilesBeforeLaunch(true);
-        config.setLauncherUpdatesEnabled(launcherUpdatesEnabledCheck.isSelected());
+        config.setLauncherUpdatesEnabled(true);
 
         if (state().isAuthenticated() && state().getSession().getAccount() != null) {
             config.setUsername(state().getSession().getAccount().getUsername());
@@ -334,7 +336,7 @@ public final class SettingsController extends AbstractScreenController {
             authBaseUrlField.setText(resolved.getAuthBaseUrl());
             serverIdField.setText(resolved.getServerId());
             launchTemplateArea.setText(resolved.getLaunchTemplate());
-            launcherUpdatesEnabledCheck.setSelected(resolved.isLauncherUpdatesEnabled());
+            launcherUpdatesEnabledCheck.setSelected(true);
         } finally {
             applyingConfigToFields = false;
         }
