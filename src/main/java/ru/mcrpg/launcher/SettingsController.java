@@ -15,6 +15,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -266,19 +267,22 @@ public final class SettingsController extends AbstractScreenController {
     private void configureChrome() {
         configureWindowButtons();
         versionLabel.setText("Лаунчер " + LauncherBrand.displayVersion());
-        setButtonGraphic(homeNavButton, "home", 17.0d, "#f8fafc");
-        setButtonGraphic(settingsNavButton, "settings", 17.0d, "#ffffff");
-        setButtonGraphic(profileNavButton, "profile", 17.0d, "#f8fafc");
-        saveButton.setGraphic(LauncherIcons.icon("check-circle", 17.0d, "#ffffff"));
-        resetButton.setGraphic(LauncherIcons.icon("refresh", 16.0d, "#d8b4fe"));
-        openConfigButton.setGraphic(LauncherIcons.icon("external", 16.0d, "#d8b4fe"));
-        browseGameDirectoryButton.setGraphic(LauncherIcons.icon("folder", 16.0d, "#f5f7fa"));
-        browseJavaButton.setGraphic(LauncherIcons.icon("folder", 16.0d, "#f5f7fa"));
-        browseWorkingDirectoryButton.setGraphic(LauncherIcons.icon("folder", 16.0d, "#f5f7fa"));
-        openGameDirectoryButton.setGraphic(LauncherIcons.icon("external", 16.0d, "#f5f7fa"));
-        clientIconLabel.setGraphic(LauncherIcons.icon("download", 18.0d, "#c084fc"));
-        serverIconLabel.setGraphic(LauncherIcons.icon("server", 18.0d, "#c084fc"));
-        launchIconLabel.setGraphic(LauncherIcons.icon("play", 18.0d, "#c084fc"));
+        setButtonGraphic(homeNavButton, "home", 16.0d, "#f8fafc");
+        setButtonGraphic(settingsNavButton, "settings", 16.0d, "#ffffff");
+        setButtonGraphic(profileNavButton, "profile", 16.0d, "#f8fafc");
+        setButtonGraphic(saveButton, "check-circle", 16.0d, "#ffffff");
+        setButtonGraphic(resetButton, "refresh", 16.0d, "#d8b4fe");
+        setButtonGraphic(openConfigButton, "external", 16.0d, "#d8b4fe");
+        setButtonGraphic(browseGameDirectoryButton, "folder", 16.0d, "#f5f7fa");
+        setButtonGraphic(browseJavaButton, "folder", 16.0d, "#f5f7fa");
+        setButtonGraphic(browseWorkingDirectoryButton, "folder", 16.0d, "#f5f7fa");
+        setButtonGraphic(openGameDirectoryButton, "external", 16.0d, "#f5f7fa");
+        clientIconLabel.setGraphic(LauncherIcons.icon("download", 16.0d, "#c084fc"));
+        serverIconLabel.setGraphic(LauncherIcons.icon("server", 16.0d, "#c084fc"));
+        launchIconLabel.setGraphic(LauncherIcons.icon("play", 16.0d, "#c084fc"));
+        setButtonTooltip(browseGameDirectoryButton, "Выбрать папку игры");
+        setButtonTooltip(browseJavaButton, "Выбрать Java");
+        setButtonTooltip(browseWorkingDirectoryButton, "Выбрать рабочую папку");
     }
 
     private LauncherConfig readConfigFromFields() {
@@ -578,6 +582,13 @@ public final class SettingsController extends AbstractScreenController {
     private static void setButtonGraphic(Button button, String iconName, double size, String color) {
         if (button != null) {
             button.setGraphic(LauncherIcons.icon(iconName, size, color));
+            button.setGraphicTextGap(8.0d);
+        }
+    }
+
+    private static void setButtonTooltip(Button button, String text) {
+        if (button != null) {
+            button.setTooltip(new Tooltip(text));
         }
     }
 

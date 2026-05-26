@@ -24,7 +24,9 @@ import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -325,7 +327,7 @@ public final class LauncherShellController extends AbstractScreenController {
         playButton.setDisable(busy);
         if (busy) {
             playButton.getStyleClass().remove(PLAY_BUTTON_UPDATE_STYLE);
-            setGraphic(playButton, "play", 26.0d, "#ffffff");
+            setGraphic(playButton, "play", 16.0d, "#ffffff");
             playButton.setText("Запуск...");
             return;
         }
@@ -385,7 +387,7 @@ public final class LauncherShellController extends AbstractScreenController {
         playButton.getStyleClass().remove(PLAY_BUTTON_UPDATE_STYLE);
         if (launcherUpdateInProgress) {
             playButton.setDisable(true);
-            setGraphic(playButton, "download", 23.0d, "#ffffff");
+            setGraphic(playButton, "download", 16.0d, "#ffffff");
             playButton.setText("Обновление...");
             playButton.getStyleClass().add(PLAY_BUTTON_UPDATE_STYLE);
             return;
@@ -393,14 +395,14 @@ public final class LauncherShellController extends AbstractScreenController {
 
         if (hasRequiredLauncherUpdate()) {
             playButton.setDisable(false);
-            setGraphic(playButton, "download", 23.0d, "#ffffff");
+            setGraphic(playButton, "download", 16.0d, "#ffffff");
             playButton.setText("Обновить лаунчер");
             playButton.getStyleClass().add(PLAY_BUTTON_UPDATE_STYLE);
             return;
         }
 
         playButton.setDisable(false);
-        setGraphic(playButton, "play", 26.0d, "#ffffff");
+        setGraphic(playButton, "play", 16.0d, "#ffffff");
         playButton.setText("Играть");
     }
 
@@ -481,16 +483,17 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private void configureIcons() {
-        setGraphic(homeNavButton, "home", 17.0d, "#ffffff");
-        setGraphic(settingsNavButton, "settings", 17.0d, "#f8fafc");
-        setGraphic(profileNavButton, "profile", 17.0d, "#f8fafc");
-        setGraphic(playButton, "play", 26.0d, "#ffffff");
-        setGraphic(copyIpIconButton, "copy", 13.0d, "#a8b3c3");
-        setGraphic(copyIpButton, "copy", 14.0d, "#dbe4ef");
-        setGraphic(meetingButton, "video", 15.0d, "#ffffff");
-        setLabelGraphic(playersIconLabel, "players", 15.0d, "#b8c3d3");
-        setLabelGraphic(pingIconLabel, "signal", 15.0d, "#b8c3d3");
-        setLabelGraphic(versionIconLabel, "cube-small", 15.0d, "#b8c3d3");
+        setGraphic(homeNavButton, "home", 16.0d, "#ffffff");
+        setGraphic(settingsNavButton, "settings", 16.0d, "#f8fafc");
+        setGraphic(profileNavButton, "profile", 16.0d, "#f8fafc");
+        setGraphic(playButton, "play", 16.0d, "#ffffff");
+        setGraphic(copyIpIconButton, "copy", 16.0d, "#a8b3c3");
+        setGraphic(copyIpButton, "copy", 16.0d, "#dbe4ef");
+        setGraphic(meetingButton, "video", 16.0d, "#ffffff");
+        setLabelGraphic(playersIconLabel, "players", 16.0d, "#b8c3d3");
+        setLabelGraphic(pingIconLabel, "signal", 16.0d, "#b8c3d3");
+        setLabelGraphic(versionIconLabel, "cube-small", 16.0d, "#b8c3d3");
+        setTooltip(copyIpIconButton, "Скопировать IP");
     }
 
     private void applyProfileState() {
@@ -731,14 +734,15 @@ public final class LauncherShellController extends AbstractScreenController {
         VBox copy = new VBox(2.0d, titleLabel, detailLabel);
         HBox.setHgrow(copy, Priority.ALWAYS);
 
-        HBox row = new HBox(10.0d, LauncherIcons.icon(iconName, 15.0d, iconColor), copy);
+        HBox row = new HBox(10.0d, LauncherIcons.icon(iconName, 16.0d, iconColor), copy);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("empty-state");
         row.getStyleClass().add(stateStyleClass);
         if (retryVisible) {
             Button retryButton = new Button("Повторить");
             retryButton.setMnemonicParsing(false);
-            retryButton.setGraphic(LauncherIcons.icon("refresh", 12.0d, "#bbf7d0"));
+            retryButton.setGraphic(LauncherIcons.icon("refresh", 16.0d, "#bbf7d0"));
+            retryButton.setGraphicTextGap(8.0d);
             retryButton.getStyleClass().add("news-retry-button");
             retryButton.setOnAction(event -> requestNewsRefresh());
             row.getChildren().add(retryButton);
@@ -938,7 +942,7 @@ public final class LauncherShellController extends AbstractScreenController {
 
     private void setSyncStatus(String text, String statusStyleClass, String iconName, String iconColor) {
         setText(syncStatusLabel, text);
-        setLabelGraphic(syncStatusLabel, iconName, 13.0d, iconColor);
+        setLabelGraphic(syncStatusLabel, iconName, 16.0d, iconColor);
         setSyncStatusStyle(syncStatusLabel, statusStyleClass);
         applySyncVisualState(statusStyleClass);
     }
@@ -1274,7 +1278,7 @@ public final class LauncherShellController extends AbstractScreenController {
 
     private void setServerStatus(String text, String statusStyleClass, String iconName, String iconColor) {
         setText(serverStatusLabel, text);
-        setLabelGraphic(serverStatusLabel, iconName, 12.0d, iconColor);
+        setLabelGraphic(serverStatusLabel, iconName, 16.0d, iconColor);
         applyServerStatusStyle(statusStyleClass);
     }
 
@@ -1323,12 +1327,21 @@ public final class LauncherShellController extends AbstractScreenController {
     private static void setGraphic(Button button, String iconName, double size, String color) {
         if (button != null) {
             button.setGraphic(LauncherIcons.icon(iconName, size, color));
+            button.setGraphicTextGap(8.0d);
         }
     }
 
     private static void setLabelGraphic(Label label, String iconName, double size, String color) {
         if (label != null) {
             label.setGraphic(LauncherIcons.icon(iconName, size, color));
+            label.setContentDisplay(ContentDisplay.LEFT);
+            label.setGraphicTextGap(8.0d);
+        }
+    }
+
+    private static void setTooltip(Button button, String text) {
+        if (button != null) {
+            button.setTooltip(new Tooltip(text));
         }
     }
 

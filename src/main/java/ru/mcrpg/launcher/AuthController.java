@@ -53,7 +53,8 @@ public final class AuthController extends AbstractScreenController {
     private void configureChrome() {
         configureWindowButtons();
         versionLabel.setText("Лаунчер " + LauncherBrand.displayVersion());
-        loginButton.setGraphic(LauncherIcons.icon("arrow-right", 20.0d, "#ffffff"));
+        loginButton.setGraphic(LauncherIcons.icon("arrow-right", 16.0d, "#ffffff"));
+        loginButton.setGraphicTextGap(8.0d);
         loginButton.setContentDisplay(ContentDisplay.RIGHT);
     }
 

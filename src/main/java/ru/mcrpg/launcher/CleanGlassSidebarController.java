@@ -37,9 +37,9 @@ public final class CleanGlassSidebarController {
 
     @FXML
     private void initialize() {
-        setGraphic(homeNavButton, "home", 17.0d, "#f8fafc");
-        setGraphic(settingsNavButton, "settings", 17.0d, "#f8fafc");
-        setGraphic(profileNavButton, "profile", 17.0d, "#f8fafc");
+        setGraphic(homeNavButton, "home", 16.0d, "#f8fafc");
+        setGraphic(settingsNavButton, "settings", 16.0d, "#f8fafc");
+        setGraphic(profileNavButton, "profile", 16.0d, "#f8fafc");
         applyActiveScreen();
         applyProfileState();
     }
@@ -128,6 +128,7 @@ public final class CleanGlassSidebarController {
     private static void setGraphic(Button button, String iconName, double size, String color) {
         if (button != null) {
             button.setGraphic(LauncherIcons.icon(iconName, size, color));
+            button.setGraphicTextGap(8.0d);
         }
     }
 

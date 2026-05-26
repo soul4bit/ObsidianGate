@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -21,9 +22,6 @@ public abstract class AbstractScreenController implements LauncherContextAware {
 
     @FXML
     private Button minimizeWindowButton;
-
-    @FXML
-    private Button maximizeWindowButton;
 
     @FXML
     private Button closeWindowButton;
@@ -64,9 +62,8 @@ public abstract class AbstractScreenController implements LauncherContextAware {
     }
 
     protected final void configureWindowButtons() {
-        configureWindowButton(minimizeWindowButton, "window-minimize");
-        configureWindowButton(maximizeWindowButton, "window-maximize");
-        configureWindowButton(closeWindowButton, "window-close");
+        configureWindowButton(minimizeWindowButton, "window-minimize", "Свернуть");
+        configureWindowButton(closeWindowButton, "window-close", "Закрыть");
         configureBrandLogo(brandLogoPane);
     }
 
@@ -134,11 +131,6 @@ public abstract class AbstractScreenController implements LauncherContextAware {
     }
 
     @FXML
-    protected final void toggleMaximizeWindow() {
-        stage().setMaximized(!stage().isMaximized());
-    }
-
-    @FXML
     protected final void closeWindow() {
         stage().close();
     }
@@ -158,12 +150,13 @@ public abstract class AbstractScreenController implements LauncherContextAware {
         desktop.open(target.toFile());
     }
 
-    private static void configureWindowButton(Button button, String iconName) {
+    private static void configureWindowButton(Button button, String iconName, String tooltip) {
         if (button == null) {
             return;
         }
         button.setText("");
         button.setGraphic(LauncherIcons.icon(iconName, 16.0d, "#c9d1d9"));
+        button.setTooltip(new Tooltip(tooltip));
     }
 
     private static void configureBrandLogo(StackPane pane) {

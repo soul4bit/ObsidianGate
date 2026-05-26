@@ -70,7 +70,8 @@ public final class RegisterController extends AbstractScreenController {
     private void configureChrome() {
         configureWindowButtons();
         versionLabel.setText("Лаунчер " + LauncherBrand.displayVersion());
-        registerButton.setGraphic(LauncherIcons.icon("arrow-right", 20.0d, "#ffffff"));
+        registerButton.setGraphic(LauncherIcons.icon("arrow-right", 16.0d, "#ffffff"));
+        registerButton.setGraphicTextGap(8.0d);
         registerButton.setContentDisplay(ContentDisplay.RIGHT);
     }
 

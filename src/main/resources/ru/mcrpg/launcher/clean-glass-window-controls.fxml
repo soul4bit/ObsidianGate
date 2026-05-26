@@ -5,14 +5,12 @@
 
 <HBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="ru.mcrpg.launcher.CleanGlassWindowControlsController"
-      alignment="CENTER_RIGHT" maxHeight="44.0" maxWidth="137.0"
-      minHeight="44.0" minWidth="137.0" prefHeight="44.0"
-      prefWidth="137.0" styleClass="hero-controls">
+      alignment="CENTER_RIGHT" maxHeight="44.0" maxWidth="94.0"
+      minHeight="44.0" minWidth="94.0" prefHeight="44.0"
+      prefWidth="94.0" styleClass="hero-controls">
     <children>
         <Button fx:id="minimizeWindowButton" mnemonicParsing="false"
                 onAction="#minimizeWindow" styleClass="window-button"/>
-        <Button fx:id="maximizeWindowButton" mnemonicParsing="false"
-                onAction="#toggleMaximizeWindow" styleClass="window-button"/>
         <Button fx:id="closeWindowButton" mnemonicParsing="false"
                 onAction="#closeWindow" styleClass="window-button"/>
     </children>

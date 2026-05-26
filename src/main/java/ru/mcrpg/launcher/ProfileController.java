@@ -185,21 +185,21 @@ public final class ProfileController extends AbstractScreenController {
     private void configureChrome() {
         configureWindowButtons();
         versionLabel.setText("Лаунчер " + LauncherBrand.displayVersion());
-        setButtonGraphic(homeNavButton, "home", 17.0d, "#f8fafc");
-        setButtonGraphic(settingsNavButton, "settings", 17.0d, "#f8fafc");
-        setButtonGraphic(profileNavButton, "profile", 17.0d, "#ffffff");
-        editProfileButton.setGraphic(LauncherIcons.icon("edit", 15.0d, "#ffffff"));
-        switchAccountButton.setGraphic(LauncherIcons.icon("users", 16.0d, "#dbe4ef"));
-        openGameFolderButton.setGraphic(LauncherIcons.icon("folder", 16.0d, "#dbe4ef"));
-        logoutButton.setGraphic(LauncherIcons.icon("logout", 18.0d, "#fb7185"));
-        securityDetailsButton.setGraphic(LauncherIcons.icon("external", 15.0d, "#dbe4ef"));
-        accountInfoIconLabel.setGraphic(LauncherIcons.icon("info", 18.0d, "#c084fc"));
-        usernameIconLabel.setGraphic(LauncherIcons.icon("profile", 15.0d, "#b8c3d3"));
-        roleIconLabel.setGraphic(LauncherIcons.icon("crown", 15.0d, "#b8c3d3"));
-        emailIconLabel.setGraphic(LauncherIcons.icon("mail", 15.0d, "#b8c3d3"));
-        accountIdIconLabel.setGraphic(LauncherIcons.icon("id-card", 15.0d, "#b8c3d3"));
-        quickActionsIconLabel.setGraphic(LauncherIcons.icon("bolt", 18.0d, "#c084fc"));
-        securityIconLabel.setGraphic(LauncherIcons.icon("shield", 24.0d, "#86efac"));
+        setButtonGraphic(homeNavButton, "home", 16.0d, "#f8fafc");
+        setButtonGraphic(settingsNavButton, "settings", 16.0d, "#f8fafc");
+        setButtonGraphic(profileNavButton, "profile", 16.0d, "#ffffff");
+        setButtonGraphic(editProfileButton, "edit", 16.0d, "#ffffff");
+        setButtonGraphic(switchAccountButton, "users", 16.0d, "#dbe4ef");
+        setButtonGraphic(openGameFolderButton, "folder", 16.0d, "#dbe4ef");
+        setButtonGraphic(logoutButton, "logout", 16.0d, "#fb7185");
+        setButtonGraphic(securityDetailsButton, "external", 16.0d, "#dbe4ef");
+        accountInfoIconLabel.setGraphic(LauncherIcons.icon("info", 16.0d, "#c084fc"));
+        usernameIconLabel.setGraphic(LauncherIcons.icon("profile", 16.0d, "#b8c3d3"));
+        roleIconLabel.setGraphic(LauncherIcons.icon("crown", 16.0d, "#b8c3d3"));
+        emailIconLabel.setGraphic(LauncherIcons.icon("mail", 16.0d, "#b8c3d3"));
+        accountIdIconLabel.setGraphic(LauncherIcons.icon("id-card", 16.0d, "#b8c3d3"));
+        quickActionsIconLabel.setGraphic(LauncherIcons.icon("bolt", 16.0d, "#c084fc"));
+        securityIconLabel.setGraphic(LauncherIcons.icon("shield", 16.0d, "#86efac"));
     }
 
     private void refreshProfileAsync() {
@@ -340,6 +340,7 @@ public final class ProfileController extends AbstractScreenController {
     private static void setButtonGraphic(Button button, String iconName, double size, String color) {
         if (button != null) {
             button.setGraphic(LauncherIcons.icon(iconName, size, color));
+            button.setGraphicTextGap(8.0d);
         }
     }
 

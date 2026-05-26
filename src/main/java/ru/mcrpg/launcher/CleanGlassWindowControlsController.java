@@ -2,6 +2,7 @@ package ru.mcrpg.launcher;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import ru.mcrpg.launcher.ui.LauncherIcons;
 
 public final class CleanGlassWindowControlsController {
@@ -10,18 +11,14 @@ public final class CleanGlassWindowControlsController {
     private Button minimizeWindowButton;
 
     @FXML
-    private Button maximizeWindowButton;
-
-    @FXML
     private Button closeWindowButton;
 
     private LauncherContext context;
 
     @FXML
     private void initialize() {
-        configureButton(minimizeWindowButton, "window-minimize");
-        configureButton(maximizeWindowButton, "window-maximize");
-        configureButton(closeWindowButton, "window-close");
+        configureButton(minimizeWindowButton, "window-minimize", "Свернуть");
+        configureButton(closeWindowButton, "window-close", "Закрыть");
     }
 
     public void bindContext(LauncherContext context) {
@@ -36,24 +33,18 @@ public final class CleanGlassWindowControlsController {
     }
 
     @FXML
-    private void toggleMaximizeWindow() {
-        if (context != null) {
-            context.getStage().setMaximized(!context.getStage().isMaximized());
-        }
-    }
-
-    @FXML
     private void closeWindow() {
         if (context != null) {
             context.getStage().close();
         }
     }
 
-    private static void configureButton(Button button, String iconName) {
+    private static void configureButton(Button button, String iconName, String tooltip) {
         if (button == null) {
             return;
         }
         button.setText("");
         button.setGraphic(LauncherIcons.icon(iconName, 16.0d, "#c9d1d9"));
+        button.setTooltip(new Tooltip(tooltip));
     }
 }
