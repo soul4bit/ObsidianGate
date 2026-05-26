@@ -31,7 +31,8 @@
                               maxWidth="1.7976931348623157E308" minHeight="568.0" spacing="54.0"
                               styleClass="auth-layout">
                             <children>
-                                <VBox alignment="CENTER_LEFT" maxWidth="500.0" spacing="16.0"
+                                <VBox fx:id="authBrandPanel"
+                                      alignment="CENTER_LEFT" maxWidth="500.0" spacing="16.0"
                                       styleClass="auth-brand-panel">
                                     <children>
                                         <HBox alignment="CENTER_LEFT" spacing="12.0">
@@ -53,7 +54,8 @@
                                     </children>
                                 </VBox>
 
-                                <VBox maxWidth="440.0" minWidth="440.0" prefWidth="440.0"
+                                <VBox fx:id="authCard"
+                                      maxWidth="440.0" minWidth="440.0" prefWidth="440.0"
                                       spacing="18.0" styleClass="auth-card">
                                     <children>
                                         <VBox spacing="5.0">

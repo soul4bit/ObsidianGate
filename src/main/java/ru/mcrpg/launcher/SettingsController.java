@@ -19,11 +19,13 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.Node;
 import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import ru.mcrpg.launcher.ui.AvatarImages;
 import ru.mcrpg.launcher.ui.LauncherIcons;
+import ru.mcrpg.launcher.ui.MicroInteractions;
 
 public final class SettingsController extends AbstractScreenController {
 
@@ -158,6 +160,24 @@ public final class SettingsController extends AbstractScreenController {
     private Label launchIconLabel;
 
     @FXML
+    private Node settingsHeroCard;
+
+    @FXML
+    private Node settingsPrimaryCard;
+
+    @FXML
+    private Node settingsConnectionCard;
+
+    @FXML
+    private Node settingsActionsCard;
+
+    @FXML
+    private Node settingsQuickActionsCard;
+
+    @FXML
+    private Node settingsAdvancedCard;
+
+    @FXML
     private void initialize() {
         configureCleanGlassSidebar(ScreenRouter.Screen.SETTINGS);
         configureChrome();
@@ -165,6 +185,7 @@ public final class SettingsController extends AbstractScreenController {
         configureDirtyTracking();
         setSettingsDirty(false);
         setSettingsStatus("Готово", SETTINGS_STATUS_IDLE);
+        configureMicroInteractions();
     }
 
     @Override
@@ -173,6 +194,25 @@ public final class SettingsController extends AbstractScreenController {
         applyProfileState();
         applyConfigToFields(LauncherDefaults.applyMissingValues(state().getConfig().copy()));
         setSettingsStatus("Готово", SETTINGS_STATUS_IDLE);
+    }
+
+    private void configureMicroInteractions() {
+        MicroInteractions.installHoverLift(settingsPrimaryCard);
+        MicroInteractions.installHoverLift(settingsConnectionCard);
+        MicroInteractions.installHoverLift(settingsActionsCard);
+        MicroInteractions.installHoverLift(settingsQuickActionsCard);
+        MicroInteractions.installHoverLift(settingsAdvancedCard);
+        MicroInteractions.installHoverLift(saveButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(resetButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(openConfigButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(openGameDirectoryButton, -1.0d, 1.005d);
+        MicroInteractions.playEntrance(
+            settingsHeroCard,
+            settingsPrimaryCard,
+            settingsConnectionCard,
+            settingsActionsCard,
+            settingsQuickActionsCard
+        );
     }
 
     @FXML
@@ -402,6 +442,7 @@ public final class SettingsController extends AbstractScreenController {
         if (statusLabel == null) {
             return;
         }
+        boolean stateChanged = !statusLabel.getStyleClass().contains(statusStyleClass);
         statusLabel.setText(message == null ? "" : message.trim());
         statusLabel.getStyleClass().removeAll(
             SETTINGS_STATUS_IDLE,
@@ -410,6 +451,9 @@ public final class SettingsController extends AbstractScreenController {
             SETTINGS_STATUS_ERROR
         );
         statusLabel.getStyleClass().add(statusStyleClass);
+        if (stateChanged) {
+            MicroInteractions.playStatusSwap(statusLabel);
+        }
     }
 
     private void configureMemoryPresetButton(ToggleButton button, int maxMemoryMb) {

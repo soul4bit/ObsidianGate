@@ -41,7 +41,8 @@
 
         <Region VBox.vgrow="ALWAYS"/>
 
-        <HBox accessibleText="Открыть профиль" alignment="CENTER_LEFT" focusTraversable="true"
+        <HBox fx:id="sidebarProfileCard"
+              accessibleText="Открыть профиль" alignment="CENTER_LEFT" focusTraversable="true"
               onKeyPressed="#openProfileFromKeyboard"
               onMouseClicked="#openProfile" pickOnBounds="true"
               spacing="9.0" styleClass="user-card">

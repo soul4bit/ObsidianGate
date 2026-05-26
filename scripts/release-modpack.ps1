@@ -433,6 +433,13 @@ $manifest.version = $ManifestVersion
 $launcherRecord = $null
 $launcherClientRelativePath = $null
 if (-not $SkipLauncherRelease) {
+    $launcherUpdateRequired = $false
+    if ($manifest.PSObject.Properties.Name.Contains("launcherUpdate") `
+        -and $null -ne $manifest.launcherUpdate `
+        -and $manifest.launcherUpdate.PSObject.Properties.Name.Contains("required")) {
+        $launcherUpdateRequired = [bool]$manifest.launcherUpdate.required
+    }
+
     $launcherJar = Build-LauncherArtifact
     $normalizedLauncherPath = Normalize-ManifestPath $LauncherUpdatePath
     if (-not (Test-RelativeContentPath $normalizedLauncherPath)) {
@@ -457,7 +464,7 @@ if (-not $SkipLauncherRelease) {
         url = $normalizedLauncherPath
         sha256 = (Get-FileHash -LiteralPath $distLauncherFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         size = [int64]$distLauncherFile.Length
-        required = $false
+        required = $launcherUpdateRequired
         artifactVersion = Get-ProjectVersion
         fileName = $distLauncherFile.Name
     }

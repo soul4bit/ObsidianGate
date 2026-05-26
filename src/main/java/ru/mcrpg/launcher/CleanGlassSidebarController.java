@@ -6,8 +6,10 @@ import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.HBox;
 import ru.mcrpg.launcher.ui.AvatarImages;
 import ru.mcrpg.launcher.ui.LauncherIcons;
+import ru.mcrpg.launcher.ui.MicroInteractions;
 
 public final class CleanGlassSidebarController {
 
@@ -32,6 +34,9 @@ public final class CleanGlassSidebarController {
     @FXML
     private Label sidebarProfileRoleLabel;
 
+    @FXML
+    private HBox sidebarProfileCard;
+
     private LauncherContext context;
     private ScreenRouter.Screen activeScreen = ScreenRouter.Screen.HOME;
 
@@ -42,6 +47,7 @@ public final class CleanGlassSidebarController {
         setGraphic(profileNavButton, "profile", 16.0d, "#f8fafc");
         applyActiveScreen();
         applyProfileState();
+        configureMicroInteractions();
     }
 
     public void bindContext(LauncherContext context) {
@@ -96,6 +102,13 @@ public final class CleanGlassSidebarController {
         setActive(homeNavButton, activeScreen == ScreenRouter.Screen.HOME);
         setActive(settingsNavButton, activeScreen == ScreenRouter.Screen.SETTINGS);
         setActive(profileNavButton, activeScreen == ScreenRouter.Screen.PROFILE);
+    }
+
+    private void configureMicroInteractions() {
+        MicroInteractions.installHoverLift(homeNavButton, -1.0d, 1.01d);
+        MicroInteractions.installHoverLift(settingsNavButton, -1.0d, 1.01d);
+        MicroInteractions.installHoverLift(profileNavButton, -1.0d, 1.01d);
+        MicroInteractions.installHoverLift(sidebarProfileCard, -2.0d, 1.01d);
     }
 
     private void applyProfileState() {

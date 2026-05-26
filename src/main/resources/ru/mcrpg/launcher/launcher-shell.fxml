@@ -31,7 +31,8 @@
                         <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                               styleClass="main">
                             <children>
-                                <StackPane maxHeight="390.0" maxWidth="1.7976931348623157E308"
+                                <StackPane fx:id="heroCard"
+                                           maxHeight="390.0" maxWidth="1.7976931348623157E308"
                                            minHeight="390.0" prefHeight="390.0"
                                            styleClass="hero-card">
                                     <children>
@@ -83,7 +84,8 @@
                                         <ColumnConstraints hgrow="ALWAYS" minWidth="0.0" percentWidth="39.25"/>
                                     </columnConstraints>
                                     <children>
-                                        <VBox maxHeight="260.0"
+                                        <VBox fx:id="serverCard"
+                                              maxHeight="260.0"
                                               maxWidth="1.7976931348623157E308"
                                               minHeight="260.0" prefHeight="260.0" spacing="14.0"
                                               styleClass="card, server-card"
@@ -170,7 +172,8 @@
                                             </children>
                                         </VBox>
 
-                                        <VBox alignment="TOP_CENTER" maxHeight="260.0"
+                                        <VBox fx:id="syncCard"
+                                              alignment="TOP_CENTER" maxHeight="260.0"
                                               maxWidth="1.7976931348623157E308" minHeight="260.0"
                                               prefHeight="260.0" spacing="0.0"
                                               styleClass="card, sync-card" GridPane.columnIndex="1"
@@ -178,7 +181,8 @@
                                             <children>
                                                 <Label maxWidth="1.7976931348623157E308" styleClass="card-title"
                                                        text="Синхронизация файлов"/>
-                                                <StackPane maxHeight="122.0" maxWidth="122.0" minHeight="122.0"
+                                                <StackPane fx:id="syncProgressWrap"
+                                                           maxHeight="122.0" maxWidth="122.0" minHeight="122.0"
                                                            minWidth="122.0" prefHeight="122.0" prefWidth="122.0"
                                                            styleClass="progress-wrap">
                                                     <children>
@@ -203,7 +207,8 @@
                                             </children>
                                         </VBox>
 
-                                        <VBox maxHeight="260.0"
+                                        <VBox fx:id="newsCard"
+                                              maxHeight="260.0"
                                               maxWidth="1.7976931348623157E308"
                                               minHeight="260.0" prefHeight="260.0" spacing="0.0"
                                               styleClass="card, news-card"

@@ -4,6 +4,7 @@ import java.io.IOException;
 import javafx.concurrent.Task;
 import javafx.scene.control.ContentDisplay;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
@@ -11,6 +12,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import ru.mcrpg.launcher.ui.LauncherIcons;
+import ru.mcrpg.launcher.ui.MicroInteractions;
 
 public final class AuthController extends AbstractScreenController {
 
@@ -42,12 +44,25 @@ public final class AuthController extends AbstractScreenController {
     private Label statusLabel;
 
     @FXML
+    private Node authBrandPanel;
+
+    @FXML
+    private Node authCard;
+
+    @FXML
     private void initialize() {
         configureChrome();
         configureEnterSubmit();
         rememberCheck.setSelected(true);
         clearFieldErrors();
         setStatus("", false);
+        configureMicroInteractions();
+    }
+
+    private void configureMicroInteractions() {
+        MicroInteractions.installHoverLift(authCard, -2.0d, 1.005d);
+        MicroInteractions.installHoverLift(loginButton, -1.0d, 1.005d);
+        MicroInteractions.playEntrance(authBrandPanel, authCard);
     }
 
     private void configureChrome() {
@@ -149,6 +164,7 @@ public final class AuthController extends AbstractScreenController {
         statusLabel.setText(message == null ? "" : message.trim());
         statusLabel.getStyleClass().removeAll("status-error", "status-success");
         statusLabel.getStyleClass().add(success ? "status-success" : "status-error");
+        MicroInteractions.playStatusSwap(statusLabel);
     }
 
     private String resolveStatusNotice() {

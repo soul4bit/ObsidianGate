@@ -18,6 +18,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.RotateTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -40,6 +45,7 @@ import javafx.scene.shape.Arc;
 import javafx.util.Duration;
 import ru.mcrpg.launcher.ui.AvatarImages;
 import ru.mcrpg.launcher.ui.LauncherIcons;
+import ru.mcrpg.launcher.ui.MicroInteractions;
 
 public final class LauncherShellController extends AbstractScreenController {
 
@@ -76,6 +82,8 @@ public final class LauncherShellController extends AbstractScreenController {
     private volatile boolean launcherUpdateInProgress;
     private double lastSyncProgress;
     private FadeTransition syncPulseTransition;
+    private RotateTransition syncRingRotation;
+    private Timeline syncProgressTimeline;
 
     @FXML
     private Label brandLogoLabel;
@@ -171,6 +179,21 @@ public final class LauncherShellController extends AbstractScreenController {
     private Label versionIconLabel;
 
     @FXML
+    private Node heroCard;
+
+    @FXML
+    private Node serverCard;
+
+    @FXML
+    private Node syncCard;
+
+    @FXML
+    private Node newsCard;
+
+    @FXML
+    private Node syncProgressWrap;
+
+    @FXML
     private void initialize() {
         configureWindowButtons();
         configureCleanGlassSidebar(ScreenRouter.Screen.HOME);
@@ -189,6 +212,7 @@ public final class LauncherShellController extends AbstractScreenController {
         applyCheckingServerStatus();
         applySyncIdleState();
         applyNewsLoadingState();
+        configureMicroInteractions();
     }
 
     @Override
@@ -202,6 +226,16 @@ public final class LauncherShellController extends AbstractScreenController {
         applyProfileState();
         Platform.runLater(this::startServerStatusPolling);
         Platform.runLater(this::startNewsPolling);
+    }
+
+    private void configureMicroInteractions() {
+        MicroInteractions.installHoverLift(serverCard);
+        MicroInteractions.installHoverLift(syncCard);
+        MicroInteractions.installHoverLift(newsCard);
+        MicroInteractions.installHoverLift(playButton, -1.0d, 1.01d);
+        MicroInteractions.installHoverLift(copyIpButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(meetingButton, -1.0d, 1.005d);
+        MicroInteractions.playEntrance(heroCard, serverCard, syncCard, newsCard, updatedAtLabel);
     }
 
     @FXML
@@ -932,10 +966,14 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private void setSyncStatus(String text, String statusStyleClass, String iconName, String iconColor) {
+        boolean stateChanged = !hasStyle(syncStatusLabel, statusStyleClass);
         setText(syncStatusLabel, text);
         setLabelGraphic(syncStatusLabel, iconName, 16.0d, iconColor);
         setSyncStatusStyle(syncStatusLabel, statusStyleClass);
         applySyncVisualState(statusStyleClass);
+        if (stateChanged) {
+            MicroInteractions.playStatusSwap(syncStatusLabel, syncProgressLabel, syncProgressWrap);
+        }
     }
 
     private void setSyncDetail(String text) {
@@ -951,11 +989,20 @@ public final class LauncherShellController extends AbstractScreenController {
 
     private void setSyncProgress(double progress) {
         if (syncProgressArc != null) {
-            syncProgressArc.setLength(-360.0d * clamp(progress));
+            double targetLength = -360.0d * clamp(progress);
+            if (syncProgressTimeline != null) {
+                syncProgressTimeline.stop();
+            }
+            syncProgressTimeline = new Timeline(new KeyFrame(
+                Duration.millis(260.0d),
+                new KeyValue(syncProgressArc.lengthProperty(), targetLength, Interpolator.EASE_BOTH)
+            ));
+            syncProgressTimeline.play();
         }
     }
 
     private void applySyncVisualState(String statusStyleClass) {
+        setSyncStatusStyle(syncProgressWrap, statusStyleClass);
         setSyncStatusStyle(syncProgressArc, statusStyleClass);
         setSyncStatusStyle(syncProgressLabel, statusStyleClass);
         if (SYNC_STATUS_WORKING.equals(statusStyleClass)) {
@@ -979,14 +1026,27 @@ public final class LauncherShellController extends AbstractScreenController {
         if (syncPulseTransition.getStatus() != Animation.Status.RUNNING) {
             syncPulseTransition.play();
         }
+        if (syncRingRotation == null) {
+            syncRingRotation = new RotateTransition(Duration.millis(2600.0d), syncProgressArc);
+            syncRingRotation.setByAngle(360.0d);
+            syncRingRotation.setCycleCount(Animation.INDEFINITE);
+            syncRingRotation.setInterpolator(Interpolator.LINEAR);
+        }
+        if (syncRingRotation.getStatus() != Animation.Status.RUNNING) {
+            syncRingRotation.play();
+        }
     }
 
     private void stopSyncPulse() {
         if (syncPulseTransition != null) {
             syncPulseTransition.stop();
         }
+        if (syncRingRotation != null) {
+            syncRingRotation.stop();
+        }
         if (syncProgressArc != null) {
             syncProgressArc.setOpacity(1.0d);
+            syncProgressArc.setRotate(0.0d);
         }
     }
 
@@ -1268,9 +1328,13 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private void setServerStatus(String text, String statusStyleClass, String iconName, String iconColor) {
+        boolean stateChanged = !hasStyle(serverStatusLabel, statusStyleClass);
         setText(serverStatusLabel, text);
         setLabelGraphic(serverStatusLabel, iconName, 16.0d, iconColor);
         applyServerStatusStyle(statusStyleClass);
+        if (stateChanged) {
+            MicroInteractions.playStatusSwap(serverStatusLabel, serverStatusDot);
+        }
     }
 
     private void applyServerStatusStyle(String statusStyleClass) {
@@ -1292,6 +1356,10 @@ public final class LauncherShellController extends AbstractScreenController {
         }
         node.getStyleClass().removeAll(SYNC_STATUS_OK, SYNC_STATUS_WORKING, SYNC_STATUS_ERROR);
         node.getStyleClass().add(statusStyleClass);
+    }
+
+    private static boolean hasStyle(Node node, String styleClass) {
+        return node != null && node.getStyleClass().contains(styleClass);
     }
 
     private static void setText(Label label, String value) {

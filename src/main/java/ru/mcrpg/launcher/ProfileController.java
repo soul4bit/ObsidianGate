@@ -10,11 +10,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import ru.mcrpg.launcher.ui.AvatarImages;
 import ru.mcrpg.launcher.ui.LauncherIcons;
+import ru.mcrpg.launcher.ui.MicroInteractions;
 
 public final class ProfileController extends AbstractScreenController {
 
@@ -115,9 +117,22 @@ public final class ProfileController extends AbstractScreenController {
     private Label securityIconLabel;
 
     @FXML
+    private Node profileHeroCard;
+
+    @FXML
+    private Node accountInfoCard;
+
+    @FXML
+    private Node quickActionsCard;
+
+    @FXML
+    private Node securityCard;
+
+    @FXML
     private void initialize() {
         configureCleanGlassSidebar(ScreenRouter.Screen.PROFILE);
         configureChrome();
+        configureMicroInteractions();
     }
 
     @Override
@@ -129,6 +144,17 @@ public final class ProfileController extends AbstractScreenController {
         configureCleanGlassSidebar(ScreenRouter.Screen.PROFILE);
         renderAccount(state().getSession().getAccount());
         refreshProfileAsync();
+    }
+
+    private void configureMicroInteractions() {
+        MicroInteractions.installHoverLift(accountInfoCard);
+        MicroInteractions.installHoverLift(quickActionsCard);
+        MicroInteractions.installHoverLift(securityCard);
+        MicroInteractions.installHoverLift(editProfileButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(switchAccountButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(openGameFolderButton, -1.0d, 1.005d);
+        MicroInteractions.installHoverLift(logoutButton, -1.0d, 1.005d);
+        MicroInteractions.playEntrance(profileHeroCard, accountInfoCard, quickActionsCard, securityCard);
     }
 
     @FXML
@@ -155,7 +181,7 @@ public final class ProfileController extends AbstractScreenController {
                 .normalize();
             Files.createDirectories(gameDirectory);
             openDesktopPath(gameDirectory);
-            statusLabel.setText("Открыта папка игры: " + gameDirectory);
+            setProfileStatus("Открыта папка игры: " + gameDirectory);
         } catch (Exception exception) {
             showError("Не удалось открыть папку игры: " + exception.getMessage());
         }
@@ -163,12 +189,12 @@ public final class ProfileController extends AbstractScreenController {
 
     @FXML
     private void onEditProfile() {
-        statusLabel.setText("Редактирование профиля пока не подключено.");
+        setProfileStatus("Редактирование профиля пока не подключено.");
     }
 
     @FXML
     private void onShowSecurityDetails() {
-        statusLabel.setText("Сессия защищена access/refresh token. Пароль в лаунчере не хранится.");
+        setProfileStatus("Сессия защищена access/refresh token. Пароль в лаунчере не хранится.");
     }
 
     @FXML
@@ -203,7 +229,7 @@ public final class ProfileController extends AbstractScreenController {
     }
 
     private void refreshProfileAsync() {
-        statusLabel.setText("Обновляем профиль...");
+        setProfileStatus("Обновляем профиль...");
         Task<AuthAccount> task = new Task<AuthAccount>() {
             @Override
             protected AuthAccount call() throws Exception {
@@ -215,7 +241,7 @@ public final class ProfileController extends AbstractScreenController {
             AuthAccount account = task.getValue();
             state().setSession(state().getSession().withAccount(account));
             renderAccount(account);
-            statusLabel.setText("Профиль синхронизирован.");
+            setProfileStatus("Профиль синхронизирован.");
         });
 
         task.setOnFailed(event -> {
@@ -223,12 +249,20 @@ public final class ProfileController extends AbstractScreenController {
             if (handleExpiredSession(error)) {
                 return;
             }
-            statusLabel.setText(error == null ? "Не удалось обновить профиль." : error.getMessage());
+            setProfileStatus(error == null ? "Не удалось обновить профиль." : error.getMessage());
         });
 
         Thread thread = new Thread(task, "profile-refresh");
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void setProfileStatus(String message) {
+        if (statusLabel == null) {
+            return;
+        }
+        statusLabel.setText(message == null ? "" : message.trim());
+        MicroInteractions.playStatusSwap(statusLabel);
     }
 
     private void renderAccount(AuthAccount account) {

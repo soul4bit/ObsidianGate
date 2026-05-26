@@ -33,7 +33,8 @@
                         <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                               styleClass="main, settings-main">
                             <children>
-                                <StackPane maxHeight="170.0" maxWidth="1.7976931348623157E308"
+                                <StackPane fx:id="settingsHeroCard"
+                                           maxHeight="170.0" maxWidth="1.7976931348623157E308"
                                            minHeight="170.0" prefHeight="170.0"
                                            styleClass="settings-page-hero">
                                     <children>
@@ -80,7 +81,8 @@
                                                         <VBox maxWidth="380.0" minWidth="300.0" prefWidth="360.0"
                                                               spacing="16.0" HBox.hgrow="ALWAYS">
                                                             <children>
-                                                                <VBox spacing="16.0" styleClass="settings-card, settings-primary-card">
+                                                                <VBox fx:id="settingsPrimaryCard"
+                                                                      spacing="16.0" styleClass="settings-card, settings-primary-card">
                                                                     <children>
                                                                         <HBox alignment="CENTER_LEFT" spacing="10.0"
                                                                               styleClass="card-header">
@@ -199,7 +201,8 @@
                                                             </children>
                                                         </VBox>
 
-                                                        <VBox maxWidth="380.0" minWidth="300.0" prefWidth="360.0"
+                                                        <VBox fx:id="settingsConnectionCard"
+                                                              maxWidth="380.0" minWidth="300.0" prefWidth="360.0"
                                                               spacing="16.0" styleClass="settings-card, settings-connection-card"
                                                               HBox.hgrow="ALWAYS">
                                                                     <children>
@@ -276,7 +279,8 @@
                                                         <VBox maxWidth="360.0" minWidth="330.0" prefWidth="350.0"
                                                               spacing="16.0">
                                                             <children>
-                                                                <VBox spacing="12.0"
+                                                                <VBox fx:id="settingsActionsCard"
+                                                                      spacing="12.0"
                                                                       styleClass="settings-card, settings-actions-card">
                                                                     <children>
                                                                         <Button fx:id="saveButton"
@@ -294,7 +298,8 @@
                                                                     </children>
                                                                 </VBox>
 
-                                                                <VBox spacing="12.0" styleClass="settings-card">
+                                                                <VBox fx:id="settingsQuickActionsCard"
+                                                                      spacing="12.0" styleClass="settings-card">
                                                                     <children>
                                                                         <Label styleClass="section-title"
                                                                                text="Быстрые действия"/>
@@ -323,7 +328,8 @@
                                                                             styleClass="settings-advanced-pane"
                                                                             text="Расширенные">
                                                                     <content>
-                                                                        <VBox spacing="14.0"
+                                                                        <VBox fx:id="settingsAdvancedCard"
+                                                                              spacing="14.0"
                                                                               styleClass="settings-card, settings-advanced-content">
                                                                             <children>
                                                                                 <HBox alignment="CENTER_LEFT" spacing="10.0"

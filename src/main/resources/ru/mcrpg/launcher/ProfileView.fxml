@@ -28,7 +28,8 @@
                         <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                               styleClass="main, profile-main">
                             <children>
-                                <StackPane maxHeight="230.0" maxWidth="1.7976931348623157E308"
+                                <StackPane fx:id="profileHeroCard"
+                                           maxHeight="230.0" maxWidth="1.7976931348623157E308"
                                            minHeight="230.0" prefHeight="230.0"
                                            styleClass="profile-page-hero">
                                     <children>
@@ -108,7 +109,8 @@
                                             <children>
                                                 <HBox spacing="16.0" styleClass="profile-dashboard-grid">
                                                     <children>
-                                                        <VBox minWidth="0.0" prefWidth="520.0" spacing="14.0"
+                                                        <VBox fx:id="accountInfoCard"
+                                                              minWidth="0.0" prefWidth="520.0" spacing="14.0"
                                                               styleClass="profile-card, account-info-card"
                                                               HBox.hgrow="ALWAYS">
                                                             <children>
@@ -179,7 +181,8 @@
                                                             </children>
                                                         </VBox>
 
-                                                        <VBox maxWidth="340.0" minWidth="315.0" prefWidth="330.0"
+                                                        <VBox fx:id="quickActionsCard"
+                                                              maxWidth="340.0" minWidth="315.0" prefWidth="330.0"
                                                               spacing="14.0" styleClass="profile-card, quick-actions-card">
                                                             <children>
                                                                 <HBox alignment="CENTER_LEFT" spacing="10.0"
@@ -218,7 +221,8 @@
                                                     </children>
                                                 </HBox>
 
-                                                <HBox alignment="CENTER_LEFT" spacing="14.0"
+                                                <HBox fx:id="securityCard"
+                                                      alignment="CENTER_LEFT" spacing="14.0"
                                                       styleClass="profile-card, profile-security-card">
                                                     <children>
                                                         <Label fx:id="securityIconLabel" styleClass="profile-security-icon"/>
