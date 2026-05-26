@@ -93,7 +93,7 @@
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
                            "sha256":  "bbab4e3a9a4122c30d48dcd8296f45ccc55cd9086bb0d900e8ea171cab6d953b",
                            "size":  19666717,
-                           "required":  false,
+                           "required":  true,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
                        },
