@@ -37,6 +37,54 @@
                                            styleClass="hero-card">
                                     <children>
                                         <Region styleClass="hero-overlay"/>
+                                        <Region fx:id="heroParallaxLayer" maxHeight="1.7976931348623157E308"
+                                                maxWidth="1.7976931348623157E308" mouseTransparent="true"
+                                                styleClass="hero-parallax-layer"/>
+                                        <Region fx:id="heroPortalGlow" maxHeight="284.0" maxWidth="300.0"
+                                                minHeight="284.0" minWidth="300.0" mouseTransparent="true"
+                                                prefHeight="284.0" prefWidth="300.0"
+                                                styleClass="hero-portal-glow" StackPane.alignment="CENTER_RIGHT">
+                                            <StackPane.margin>
+                                                <Insets right="150.0" top="34.0"/>
+                                            </StackPane.margin>
+                                        </Region>
+                                        <Region fx:id="heroPortalCore" maxHeight="206.0" maxWidth="124.0"
+                                                minHeight="206.0" minWidth="124.0" mouseTransparent="true"
+                                                prefHeight="206.0" prefWidth="124.0"
+                                                styleClass="hero-portal-core" StackPane.alignment="CENTER_RIGHT">
+                                            <StackPane.margin>
+                                                <Insets right="238.0" top="46.0"/>
+                                            </StackPane.margin>
+                                        </Region>
+                                        <Region fx:id="heroPortalSweep" maxHeight="206.0" maxWidth="58.0"
+                                                minHeight="206.0" minWidth="58.0" mouseTransparent="true"
+                                                prefHeight="206.0" prefWidth="58.0"
+                                                styleClass="hero-portal-sweep" StackPane.alignment="CENTER_RIGHT">
+                                            <StackPane.margin>
+                                                <Insets right="270.0" top="46.0"/>
+                                            </StackPane.margin>
+                                        </Region>
+                                        <Region fx:id="heroPortalShardOne" mouseTransparent="true"
+                                                styleClass="hero-portal-shard, shard-one"
+                                                StackPane.alignment="CENTER_RIGHT">
+                                            <StackPane.margin>
+                                                <Insets right="342.0" top="-124.0"/>
+                                            </StackPane.margin>
+                                        </Region>
+                                        <Region fx:id="heroPortalShardTwo" mouseTransparent="true"
+                                                styleClass="hero-portal-shard, shard-two"
+                                                StackPane.alignment="CENTER_RIGHT">
+                                            <StackPane.margin>
+                                                <Insets right="206.0" top="104.0"/>
+                                            </StackPane.margin>
+                                        </Region>
+                                        <Region fx:id="heroPortalShardThree" mouseTransparent="true"
+                                                styleClass="hero-portal-shard, shard-three"
+                                                StackPane.alignment="CENTER_RIGHT">
+                                            <StackPane.margin>
+                                                <Insets right="356.0" top="148.0"/>
+                                            </StackPane.margin>
+                                        </Region>
                                         <Label mouseTransparent="true" styleClass="hero-corner-mark" text="✦"
                                                StackPane.alignment="TOP_LEFT">
                                             <StackPane.margin>

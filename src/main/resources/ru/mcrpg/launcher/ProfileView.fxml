@@ -46,12 +46,12 @@
                                         <HBox alignment="CENTER_LEFT" spacing="22.0"
                                               StackPane.alignment="CENTER_LEFT" styleClass="profile-page-hero-content">
                                             <children>
-                                                <StackPane maxHeight="108.0" maxWidth="108.0" minHeight="108.0"
-                                                           minWidth="108.0" prefHeight="108.0" prefWidth="108.0"
+                                                <StackPane maxHeight="124.0" maxWidth="124.0" minHeight="124.0"
+                                                           minWidth="124.0" prefHeight="124.0" prefWidth="124.0"
                                                            styleClass="profile-hero-avatar-wrap">
                                                     <children>
-                                                        <ImageView fx:id="profileAvatarView" fitHeight="88.0"
-                                                                   fitWidth="88.0" preserveRatio="true"
+                                                        <ImageView fx:id="profileAvatarView" fitHeight="102.0"
+                                                                   fitWidth="102.0" preserveRatio="true"
                                                                    smooth="false" styleClass="profile-hero-avatar">
                                                             <image>
                                                                 <Image url="@assets/player-avatar.png"/>
@@ -87,6 +87,17 @@
                                                         </HBox>
                                                         <Label fx:id="profileWelcomeLabel" styleClass="profile-hero-copy"
                                                                text="Добро пожаловать на ObsidianGate"/>
+                                                        <HBox alignment="CENTER_LEFT" spacing="8.0"
+                                                              styleClass="profile-minecraft-tags">
+                                                            <children>
+                                                                <Label styleClass="profile-minecraft-tag"
+                                                                       text="Сессия активна"/>
+                                                                <Label styleClass="profile-minecraft-tag"
+                                                                       text="Forge ready"/>
+                                                                <Label styleClass="profile-minecraft-tag"
+                                                                       text="ObsidianGate"/>
+                                                            </children>
+                                                        </HBox>
                                                     </children>
                                                 </VBox>
 

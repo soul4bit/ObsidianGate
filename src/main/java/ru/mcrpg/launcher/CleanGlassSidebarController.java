@@ -7,6 +7,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import ru.mcrpg.launcher.ui.AvatarImages;
 import ru.mcrpg.launcher.ui.LauncherIcons;
 import ru.mcrpg.launcher.ui.MicroInteractions;
@@ -30,6 +31,9 @@ public final class CleanGlassSidebarController {
 
     @FXML
     private Label sidebarProfileStatusLabel;
+
+    @FXML
+    private Region sidebarProfileStatusDot;
 
     @FXML
     private Label sidebarProfileRoleLabel;
@@ -124,8 +128,39 @@ public final class CleanGlassSidebarController {
             sidebarProfileAvatarView.setImage(AvatarImages.forAccount(account));
         }
         setText(sidebarProfileNameLabel, username);
-        setText(sidebarProfileStatusLabel, account == null ? "Не в сети" : resolveAccountStatusLabel(account.getStatus()));
+        String statusLabel = account == null ? "Не в сети" : resolveAccountStatusLabel(account.getStatus());
+        setText(sidebarProfileStatusLabel, statusLabel);
         setText(sidebarProfileRoleLabel, account == null ? "Player" : resolveAccountRoleLabel(account.getRole()));
+        applyUserStateStyle(resolveUserStateStyle(account));
+    }
+
+    private void applyUserStateStyle(String stateStyleClass) {
+        setStateStyle(sidebarProfileCard, stateStyleClass);
+        setStateStyle(sidebarProfileStatusDot, stateStyleClass);
+        setStateStyle(sidebarProfileStatusLabel, stateStyleClass);
+    }
+
+    private static void setStateStyle(javafx.scene.Node node, String stateStyleClass) {
+        if (node == null) {
+            return;
+        }
+        node.getStyleClass().removeAll("user-state-online", "user-state-offline", "user-state-limited");
+        node.getStyleClass().add(stateStyleClass);
+    }
+
+    private static String resolveUserStateStyle(AuthAccount account) {
+        if (account == null) {
+            return "user-state-offline";
+        }
+        String status = account.getStatus();
+        if (status == null || status.trim().isEmpty() || "active".equalsIgnoreCase(status.trim())) {
+            return "user-state-online";
+        }
+        if ("disabled".equalsIgnoreCase(status.trim()) || "blocked".equalsIgnoreCase(status.trim())
+            || "banned".equalsIgnoreCase(status.trim())) {
+            return "user-state-limited";
+        }
+        return "user-state-online";
     }
 
     private static void setActive(Button button, boolean active) {

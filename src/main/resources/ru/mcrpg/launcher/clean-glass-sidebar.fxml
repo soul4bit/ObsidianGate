@@ -6,6 +6,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
@@ -47,19 +48,24 @@
               onMouseClicked="#openProfile" pickOnBounds="true"
               spacing="9.0" styleClass="user-card">
             <children>
-                <ImageView fx:id="sidebarProfileAvatarView" fitHeight="40.0" fitWidth="40.0"
-                           preserveRatio="true" smooth="false" styleClass="user-avatar">
-                    <image>
-                        <Image url="@assets/player-avatar.png"/>
-                    </image>
-                </ImageView>
-                <VBox minWidth="0.0" spacing="4.0" HBox.hgrow="ALWAYS">
+                <StackPane minHeight="42.0" minWidth="42.0" prefHeight="42.0" prefWidth="42.0"
+                           styleClass="user-avatar-wrap">
+                    <children>
+                        <ImageView fx:id="sidebarProfileAvatarView" fitHeight="34.0" fitWidth="34.0"
+                                   preserveRatio="true" smooth="false" styleClass="user-avatar">
+                            <image>
+                                <Image url="@assets/player-avatar.png"/>
+                            </image>
+                        </ImageView>
+                    </children>
+                </StackPane>
+                <VBox minWidth="0.0" spacing="3.0" HBox.hgrow="ALWAYS">
                     <children>
                         <Label fx:id="sidebarProfileNameLabel" maxWidth="1.7976931348623157E308"
                                styleClass="user-name" text="Игрок"/>
-                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                        <HBox alignment="CENTER_LEFT" spacing="5.0" styleClass="user-status-row">
                             <children>
-                                <Region styleClass="status-dot"/>
+                                <Region fx:id="sidebarProfileStatusDot" styleClass="status-dot, user-status-dot"/>
                                 <Label fx:id="sidebarProfileStatusLabel"
                                        maxWidth="1.7976931348623157E308"
                                        styleClass="user-status" text="Не в сети"/>

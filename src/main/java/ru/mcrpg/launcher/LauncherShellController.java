@@ -63,6 +63,9 @@ public final class LauncherShellController extends AbstractScreenController {
     private static final String SYNC_STATUS_WORKING = "sync-state-working";
     private static final String SYNC_STATUS_ERROR = "sync-state-error";
     private static final String PLAY_BUTTON_UPDATE_STYLE = "launcher-update-button";
+    private static final String PLAY_BUTTON_READY_STYLE = "play-ready";
+    private static final String PLAY_BUTTON_BUSY_STYLE = "play-busy";
+    private static final String PLAY_BUTTON_RIPPLE_STYLE = "play-ripple";
     private static final DateTimeFormatter UPDATED_AT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm");
 
     private final ModpackManifestClient manifestClient = new ModpackManifestClient();
@@ -84,6 +87,11 @@ public final class LauncherShellController extends AbstractScreenController {
     private FadeTransition syncPulseTransition;
     private RotateTransition syncRingRotation;
     private Timeline syncProgressTimeline;
+    private Timeline heroBreathingTimeline;
+    private Timeline heroSweepTimeline;
+    private Timeline heroPortalEnergyTimeline;
+    private Timeline playButtonFeedbackTimeline;
+    private Timeline playButtonPulseTimeline;
 
     @FXML
     private Label brandLogoLabel;
@@ -194,6 +202,27 @@ public final class LauncherShellController extends AbstractScreenController {
     private Node syncProgressWrap;
 
     @FXML
+    private Node heroPortalGlow;
+
+    @FXML
+    private Node heroPortalCore;
+
+    @FXML
+    private Node heroPortalSweep;
+
+    @FXML
+    private Node heroParallaxLayer;
+
+    @FXML
+    private Node heroPortalShardOne;
+
+    @FXML
+    private Node heroPortalShardTwo;
+
+    @FXML
+    private Node heroPortalShardThree;
+
+    @FXML
     private void initialize() {
         configureWindowButtons();
         configureCleanGlassSidebar(ScreenRouter.Screen.HOME);
@@ -213,6 +242,7 @@ public final class LauncherShellController extends AbstractScreenController {
         applySyncIdleState();
         applyNewsLoadingState();
         configureMicroInteractions();
+        configureHeroPortalMotion();
     }
 
     @Override
@@ -238,8 +268,155 @@ public final class LauncherShellController extends AbstractScreenController {
         MicroInteractions.playEntrance(heroCard, serverCard, syncCard, newsCard, updatedAtLabel);
     }
 
+    private void configureHeroPortalMotion() {
+        if (heroPortalGlow != null) {
+            heroBreathingTimeline = new Timeline(
+                new KeyFrame(
+                    Duration.ZERO,
+                    new KeyValue(heroPortalGlow.opacityProperty(), 0.72d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalGlow.scaleXProperty(), 0.96d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalGlow.scaleYProperty(), 0.96d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(
+                    Duration.millis(2600.0d),
+                    new KeyValue(heroPortalGlow.opacityProperty(), 1.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalGlow.scaleXProperty(), 1.08d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalGlow.scaleYProperty(), 1.08d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(
+                    Duration.millis(5200.0d),
+                    new KeyValue(heroPortalGlow.opacityProperty(), 0.72d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalGlow.scaleXProperty(), 0.96d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalGlow.scaleYProperty(), 0.96d, Interpolator.EASE_BOTH)
+                )
+            );
+            heroBreathingTimeline.setCycleCount(Animation.INDEFINITE);
+            heroBreathingTimeline.play();
+        }
+
+        if (heroPortalCore != null && heroPortalShardOne != null
+            && heroPortalShardTwo != null && heroPortalShardThree != null) {
+            heroPortalEnergyTimeline = new Timeline(
+                new KeyFrame(
+                    Duration.ZERO,
+                    new KeyValue(heroPortalCore.scaleXProperty(), 0.98d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalCore.scaleYProperty(), 0.98d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalCore.opacityProperty(), 0.78d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardOne.translateYProperty(), 0.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardTwo.translateYProperty(), 0.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardThree.translateYProperty(), 0.0d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(
+                    Duration.millis(1800.0d),
+                    new KeyValue(heroPortalCore.scaleXProperty(), 1.04d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalCore.scaleYProperty(), 1.04d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalCore.opacityProperty(), 1.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardOne.translateYProperty(), -8.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardTwo.translateYProperty(), 7.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardThree.translateYProperty(), -5.0d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(
+                    Duration.millis(3600.0d),
+                    new KeyValue(heroPortalCore.scaleXProperty(), 0.98d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalCore.scaleYProperty(), 0.98d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalCore.opacityProperty(), 0.78d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardOne.translateYProperty(), 0.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardTwo.translateYProperty(), 0.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalShardThree.translateYProperty(), 0.0d, Interpolator.EASE_BOTH)
+                )
+            );
+            heroPortalEnergyTimeline.setCycleCount(Animation.INDEFINITE);
+            heroPortalEnergyTimeline.play();
+        }
+
+        if (heroPortalSweep != null) {
+            heroPortalSweep.setTranslateX(-64.0d);
+            heroSweepTimeline = new Timeline(
+                new KeyFrame(
+                    Duration.ZERO,
+                    new KeyValue(heroPortalSweep.translateXProperty(), -64.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalSweep.opacityProperty(), 0.0d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(
+                    Duration.millis(1300.0d),
+                    new KeyValue(heroPortalSweep.opacityProperty(), 0.58d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(
+                    Duration.millis(3400.0d),
+                    new KeyValue(heroPortalSweep.translateXProperty(), 64.0d, Interpolator.EASE_BOTH),
+                    new KeyValue(heroPortalSweep.opacityProperty(), 0.0d, Interpolator.EASE_BOTH)
+                ),
+                new KeyFrame(Duration.millis(6400.0d))
+            );
+            heroSweepTimeline.setCycleCount(Animation.INDEFINITE);
+            heroSweepTimeline.play();
+        }
+
+        if (heroCard != null) {
+            heroCard.setOnMouseMoved(event -> applyHeroParallax(event.getX(), event.getY()));
+            heroCard.setOnMouseExited(event -> resetHeroParallax());
+        }
+    }
+
+    private void applyHeroParallax(double mouseX, double mouseY) {
+        if (heroCard == null) {
+            return;
+        }
+        double width = Math.max(1.0d, heroCard.getBoundsInLocal().getWidth());
+        double height = Math.max(1.0d, heroCard.getBoundsInLocal().getHeight());
+        double offsetX = ((mouseX / width) - 0.5d) * 12.0d;
+        double offsetY = ((mouseY / height) - 0.5d) * 8.0d;
+        if (heroPortalGlow != null) {
+            heroPortalGlow.setTranslateX(offsetX);
+            heroPortalGlow.setTranslateY(offsetY * 0.7d);
+        }
+        if (heroPortalCore != null) {
+            heroPortalCore.setTranslateX(offsetX * 0.40d);
+            heroPortalCore.setTranslateY(offsetY * 0.34d);
+        }
+        if (heroPortalSweep != null) {
+            heroPortalSweep.setTranslateY(offsetY * 0.34d);
+        }
+        if (heroParallaxLayer != null) {
+            heroParallaxLayer.setTranslateX(offsetX * 0.35d);
+            heroParallaxLayer.setTranslateY(offsetY * 0.35d);
+        }
+        applyShardParallax(heroPortalShardOne, offsetX * 0.25d);
+        applyShardParallax(heroPortalShardTwo, offsetX * 0.42d);
+        applyShardParallax(heroPortalShardThree, offsetX * 0.32d);
+    }
+
+    private void resetHeroParallax() {
+        if (heroPortalGlow != null) {
+            heroPortalGlow.setTranslateX(0.0d);
+            heroPortalGlow.setTranslateY(0.0d);
+        }
+        if (heroParallaxLayer != null) {
+            heroParallaxLayer.setTranslateX(0.0d);
+            heroParallaxLayer.setTranslateY(0.0d);
+        }
+        if (heroPortalCore != null) {
+            heroPortalCore.setTranslateX(0.0d);
+            heroPortalCore.setTranslateY(0.0d);
+        }
+        if (heroPortalSweep != null) {
+            heroPortalSweep.setTranslateY(0.0d);
+        }
+        applyShardParallax(heroPortalShardOne, 0.0d);
+        applyShardParallax(heroPortalShardTwo, 0.0d);
+        applyShardParallax(heroPortalShardThree, 0.0d);
+    }
+
+    private static void applyShardParallax(Node shard, double offsetX) {
+        if (shard == null) {
+            return;
+        }
+        shard.setTranslateX(offsetX);
+    }
+
     @FXML
     private void play() {
+        playButtonClickFeedback();
         if (hasLauncherUpdate()) {
             updateLauncher();
             return;
@@ -286,6 +463,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private LaunchStartResult startGame(LauncherConfig baseConfig, AuthSession session, long syncRequestId) throws Exception {
         LauncherConfig launchConfig = baseConfig.copy();
         launchConfig.setUpdateFilesBeforeLaunch(true);
+
         ModpackSyncResult syncResult = modpackSyncService.sync(
             launchConfig,
             message -> {
@@ -310,6 +488,7 @@ public final class LauncherShellController extends AbstractScreenController {
             throw new AuthSessionExpiredException("Сессия истекла. Войдите в аккаунт снова.", null);
         }
         state().setSession(refreshedSession);
+        launchConfig.setUsername(refreshedSession.getAccount().getUsername());
 
         GameTicket ticket = context().getAuthService().createGameTicket(launchConfig, refreshedSession);
         Path sessionFile = context().getSessionFileWriter().write(launchConfig, ticket);
@@ -360,7 +539,7 @@ public final class LauncherShellController extends AbstractScreenController {
         }
         playButton.setDisable(busy);
         if (busy) {
-            playButton.getStyleClass().remove(PLAY_BUTTON_UPDATE_STYLE);
+            setPlayButtonVisualState(PLAY_BUTTON_BUSY_STYLE);
             setGraphic(playButton, "play", 16.0d, "#ffffff");
             playButton.setText("Запуск...");
             return;
@@ -418,12 +597,12 @@ public final class LauncherShellController extends AbstractScreenController {
             return;
         }
 
-        playButton.getStyleClass().remove(PLAY_BUTTON_UPDATE_STYLE);
+        setPlayButtonVisualState(PLAY_BUTTON_READY_STYLE);
         if (launcherUpdateInProgress) {
             playButton.setDisable(true);
             setGraphic(playButton, "download", 16.0d, "#ffffff");
             playButton.setText("Обновление...");
-            playButton.getStyleClass().add(PLAY_BUTTON_UPDATE_STYLE);
+            setPlayButtonVisualState(PLAY_BUTTON_BUSY_STYLE);
             return;
         }
 
@@ -431,13 +610,92 @@ public final class LauncherShellController extends AbstractScreenController {
             playButton.setDisable(false);
             setGraphic(playButton, "download", 16.0d, "#ffffff");
             playButton.setText("Обновить лаунчер");
-            playButton.getStyleClass().add(PLAY_BUTTON_UPDATE_STYLE);
+            setPlayButtonVisualState(PLAY_BUTTON_UPDATE_STYLE);
             return;
         }
 
         playButton.setDisable(false);
         setGraphic(playButton, "play", 16.0d, "#ffffff");
         playButton.setText("Играть");
+    }
+
+    private void setPlayButtonVisualState(String styleClass) {
+        if (playButton == null) {
+            return;
+        }
+        playButton.getStyleClass().removeAll(
+            PLAY_BUTTON_UPDATE_STYLE,
+            PLAY_BUTTON_READY_STYLE,
+            PLAY_BUTTON_BUSY_STYLE
+        );
+        playButton.getStyleClass().add(styleClass);
+        configurePlayButtonPulse(styleClass);
+    }
+
+    private void configurePlayButtonPulse(String styleClass) {
+        if (playButtonPulseTimeline != null) {
+            playButtonPulseTimeline.stop();
+            playButtonPulseTimeline = null;
+        }
+        playButton.setOpacity(1.0d);
+
+        if (PLAY_BUTTON_READY_STYLE.equals(styleClass)) {
+            return;
+        }
+
+        double lowOpacity = PLAY_BUTTON_UPDATE_STYLE.equals(styleClass) ? 0.86d : 0.78d;
+        double pulseDuration = PLAY_BUTTON_UPDATE_STYLE.equals(styleClass) ? 1500.0d : 920.0d;
+        playButtonPulseTimeline = new Timeline(
+            new KeyFrame(
+                Duration.ZERO,
+                new KeyValue(playButton.opacityProperty(), lowOpacity, Interpolator.EASE_BOTH)
+            ),
+            new KeyFrame(
+                Duration.millis(pulseDuration / 2.0d),
+                new KeyValue(playButton.opacityProperty(), 1.0d, Interpolator.EASE_BOTH)
+            ),
+            new KeyFrame(
+                Duration.millis(pulseDuration),
+                new KeyValue(playButton.opacityProperty(), lowOpacity, Interpolator.EASE_BOTH)
+            )
+        );
+        playButtonPulseTimeline.setCycleCount(Animation.INDEFINITE);
+        playButtonPulseTimeline.play();
+    }
+
+    private void playButtonClickFeedback() {
+        if (playButton == null || playButton.isDisabled()) {
+            return;
+        }
+        if (playButtonFeedbackTimeline != null) {
+            playButtonFeedbackTimeline.stop();
+        }
+        playButton.getStyleClass().remove(PLAY_BUTTON_RIPPLE_STYLE);
+        playButton.getStyleClass().add(PLAY_BUTTON_RIPPLE_STYLE);
+        playButtonFeedbackTimeline = new Timeline(
+            new KeyFrame(
+                Duration.ZERO,
+                new KeyValue(playButton.scaleXProperty(), 1.0d, Interpolator.EASE_BOTH),
+                new KeyValue(playButton.scaleYProperty(), 1.0d, Interpolator.EASE_BOTH)
+            ),
+            new KeyFrame(
+                Duration.millis(80.0d),
+                new KeyValue(playButton.scaleXProperty(), 0.97d, Interpolator.EASE_BOTH),
+                new KeyValue(playButton.scaleYProperty(), 0.97d, Interpolator.EASE_BOTH)
+            ),
+            new KeyFrame(
+                Duration.millis(220.0d),
+                new KeyValue(playButton.scaleXProperty(), 1.015d, Interpolator.EASE_BOTH),
+                new KeyValue(playButton.scaleYProperty(), 1.015d, Interpolator.EASE_BOTH)
+            ),
+            new KeyFrame(
+                Duration.millis(360.0d),
+                new KeyValue(playButton.scaleXProperty(), 1.0d, Interpolator.EASE_BOTH),
+                new KeyValue(playButton.scaleYProperty(), 1.0d, Interpolator.EASE_BOTH)
+            )
+        );
+        playButtonFeedbackTimeline.setOnFinished(event -> playButton.getStyleClass().remove(PLAY_BUTTON_RIPPLE_STYLE));
+        playButtonFeedbackTimeline.play();
     }
 
     private boolean hasLauncherUpdate() {

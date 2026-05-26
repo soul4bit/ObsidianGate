@@ -103,30 +103,57 @@
 }
 
 .user-card {
-    -fx-min-height: 68px;
-    -fx-pref-height: 68px;
-    -fx-padding: 9px 11px 9px 10px;
+    -fx-min-height: 70px;
+    -fx-pref-height: 70px;
+    -fx-padding: 9px 10px 9px 10px;
     -fx-background-color:
-        linear-gradient(to right, rgba(34, 197, 94, 0.10), transparent 4px),
-        linear-gradient(to bottom, rgba(23, 37, 53, 0.86), rgba(9, 20, 33, 0.92));
+        linear-gradient(to right, rgba(34, 197, 94, 0.13), transparent 5px),
+        radial-gradient(center 0% 0%, radius 90%, rgba(148, 163, 184, 0.10), transparent),
+        linear-gradient(to bottom, rgba(25, 39, 56, 0.92), rgba(9, 20, 33, 0.96));
     -fx-background-radius: 7px;
-    -fx-border-color: rgba(148, 163, 184, 0.20);
+    -fx-border-color: rgba(148, 163, 184, 0.22);
     -fx-border-radius: 7px;
     -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.18), 18, 0.20, 0, 8);
+}
+
+.user-card.user-state-offline {
+    -fx-background-color:
+        linear-gradient(to right, rgba(148, 163, 184, 0.12), transparent 5px),
+        radial-gradient(center 0% 0%, radius 90%, rgba(148, 163, 184, 0.08), transparent),
+        linear-gradient(to bottom, rgba(25, 39, 56, 0.88), rgba(9, 20, 33, 0.94));
+}
+
+.user-card.user-state-limited {
+    -fx-background-color:
+        linear-gradient(to right, rgba(251, 113, 133, 0.18), transparent 5px),
+        radial-gradient(center 0% 0%, radius 90%, rgba(251, 191, 36, 0.08), transparent),
+        linear-gradient(to bottom, rgba(25, 39, 56, 0.90), rgba(9, 20, 33, 0.96));
 }
 
 .user-card:hover,
 .user-card:focused {
     -fx-background-color:
-        linear-gradient(to right, rgba(34, 197, 94, 0.22), transparent 4px),
-        linear-gradient(to bottom, rgba(27, 44, 61, 0.94), rgba(11, 25, 39, 0.96));
-    -fx-border-color: rgba(34, 197, 94, 0.32);
-    -fx-effect: dropshadow(gaussian, rgba(34, 197, 94, 0.10), 16, 0.24, 0, 7);
+        linear-gradient(to right, rgba(34, 197, 94, 0.24), transparent 5px),
+        radial-gradient(center 8% 0%, radius 96%, rgba(134, 239, 172, 0.12), transparent),
+        linear-gradient(to bottom, rgba(30, 48, 66, 0.98), rgba(11, 25, 39, 0.98));
+    -fx-border-color: rgba(134, 239, 172, 0.34);
+    -fx-effect: dropshadow(gaussian, rgba(34, 197, 94, 0.14), 18, 0.26, 0, 8);
+}
+
+.user-avatar-wrap {
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(35, 48, 64, 0.92), rgba(7, 16, 31, 0.96));
+    -fx-background-radius: 5px;
+    -fx-border-color: rgba(134, 239, 172, 0.28), rgba(216, 180, 254, 0.20);
+    -fx-border-width: 1px, 1px;
+    -fx-border-insets: 0, 3px;
+    -fx-border-radius: 5px, 3px;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.34), 10, 0.28, 0, 3);
 }
 
 .user-avatar {
-    -fx-background-radius: 4px;
-    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.34), 8, 0.24, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.24), 6, 0.18, 0, 1);
 }
 
 .user-name {
@@ -136,6 +163,34 @@
     -fx-text-overrun: ellipsis;
 }
 
+.user-status-row {
+    -fx-min-height: 13px;
+}
+
+.user-status-dot {
+    -fx-min-width: 6px;
+    -fx-pref-width: 6px;
+    -fx-max-width: 6px;
+    -fx-min-height: 6px;
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
+}
+
+.user-status-dot.user-state-online {
+    -fx-background-color: #22c55e;
+    -fx-effect: dropshadow(gaussian, rgba(34, 197, 94, 0.58), 9, 0.48, 0, 0);
+}
+
+.user-status-dot.user-state-offline {
+    -fx-background-color: #64748b;
+    -fx-effect: dropshadow(gaussian, rgba(100, 116, 139, 0.36), 7, 0.36, 0, 0);
+}
+
+.user-status-dot.user-state-limited {
+    -fx-background-color: #fb7185;
+    -fx-effect: dropshadow(gaussian, rgba(251, 113, 133, 0.48), 8, 0.42, 0, 0);
+}
+
 .user-status {
     -fx-text-fill: #4ade80;
     -fx-font-size: 10px;
@@ -143,9 +198,18 @@
     -fx-text-overrun: ellipsis;
 }
 
+.user-status.user-state-offline {
+    -fx-text-fill: #94a3b8;
+}
+
+.user-status.user-state-limited {
+    -fx-text-fill: #fda4af;
+}
+
 .user-role {
     -fx-text-fill: #aeb8c8;
     -fx-font-size: 9px;
+    -fx-font-weight: 700;
     -fx-text-overrun: ellipsis;
 }
 
@@ -239,6 +303,81 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.26), 42, 0.24, 0, 18);
 }
 
+.hero-portal-glow {
+    -fx-background-color:
+        radial-gradient(center 50% 48%, radius 34%, rgba(216, 180, 254, 0.30), transparent 58%),
+        radial-gradient(center 50% 50%, radius 56%, rgba(139, 92, 246, 0.26), transparent 70%),
+        radial-gradient(center 50% 52%, radius 78%, rgba(34, 197, 94, 0.12), transparent 76%);
+    -fx-background-radius: 999px;
+    -fx-effect: dropshadow(gaussian, rgba(139, 92, 246, 0.34), 76, 0.34, 0, 0);
+    -fx-opacity: 0.84;
+}
+
+.hero-parallax-layer {
+    -fx-background-color:
+        radial-gradient(center 76% 42%, radius 30%, rgba(255, 255, 255, 0.08), transparent 42%),
+        radial-gradient(center 84% 62%, radius 18%, rgba(34, 197, 94, 0.12), transparent 58%),
+        radial-gradient(center 62% 22%, radius 24%, rgba(139, 92, 246, 0.13), transparent 60%);
+    -fx-background-radius: 7px;
+    -fx-opacity: 0.74;
+}
+
+.hero-portal-core {
+    -fx-background-color:
+        radial-gradient(center 50% 52%, radius 32%, rgba(255, 255, 255, 0.22), transparent 50%),
+        radial-gradient(center 44% 36%, radius 36%, rgba(216, 180, 254, 0.40), transparent 62%),
+        radial-gradient(center 58% 68%, radius 42%, rgba(34, 197, 94, 0.15), transparent 62%);
+    -fx-background-radius: 72px 72px 8px 8px;
+    -fx-effect: dropshadow(gaussian, rgba(216, 180, 254, 0.28), 22, 0.32, 0, 0);
+    -fx-opacity: 0.74;
+}
+
+.hero-portal-sweep {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%,
+        transparent,
+        rgba(255, 255, 255, 0.10) 42%,
+        rgba(187, 247, 208, 0.26) 50%,
+        rgba(216, 180, 254, 0.22) 58%,
+        transparent);
+    -fx-background-radius: 72px 72px 8px 8px;
+    -fx-opacity: 0.0;
+}
+
+.hero-portal-shard {
+    -fx-min-width: 12px;
+    -fx-pref-width: 12px;
+    -fx-max-width: 12px;
+    -fx-min-height: 12px;
+    -fx-pref-height: 12px;
+    -fx-max-height: 12px;
+    -fx-background-color: #a78bfa;
+    -fx-background-radius: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.24);
+    -fx-border-radius: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(167, 139, 250, 0.54), 14, 0.42, 0, 0);
+    -fx-opacity: 0.92;
+}
+
+.hero-portal-shard.shard-two {
+    -fx-min-width: 10px;
+    -fx-pref-width: 10px;
+    -fx-max-width: 10px;
+    -fx-min-height: 10px;
+    -fx-pref-height: 10px;
+    -fx-max-height: 10px;
+    -fx-background-color: #86efac;
+}
+
+.hero-portal-shard.shard-three {
+    -fx-min-width: 8px;
+    -fx-pref-width: 8px;
+    -fx-max-width: 8px;
+    -fx-min-height: 8px;
+    -fx-pref-height: 8px;
+    -fx-max-height: 8px;
+    -fx-background-color: #38bdf8;
+}
+
 .hero-overlay {
     -fx-background-color:
         linear-gradient(from 0% 0% to 100% 0%,
@@ -328,16 +467,43 @@
     -fx-effect: dropshadow(gaussian, rgba(139, 92, 246, 0.28), 40, 0.34, 0, 14);
 }
 
+.button.play-button.play-ready {
+    -fx-background-color:
+        radial-gradient(center 18% 18%, radius 78%, rgba(255, 255, 255, 0.15), transparent 44%),
+        linear-gradient(from 0% 0% to 100% 100%, #22c55e, #7c3aed);
+    -fx-effect: dropshadow(gaussian, rgba(34, 197, 94, 0.24), 36, 0.34, 0, 12);
+}
+
 .button.play-button.launcher-update-button {
     -fx-font-size: 17px;
-    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #8b5cf6, #16a34a);
-    -fx-border-color: rgba(216, 180, 254, 0.50);
-    -fx-effect: dropshadow(gaussian, rgba(139, 92, 246, 0.28), 34, 0.32, 0, 12);
+    -fx-background-color:
+        radial-gradient(center 82% 20%, radius 82%, rgba(251, 191, 36, 0.20), transparent 42%),
+        linear-gradient(from 0% 0% to 100% 100%, #8b5cf6, #16a34a);
+    -fx-border-color: rgba(251, 191, 36, 0.42);
+    -fx-effect: dropshadow(gaussian, rgba(251, 191, 36, 0.22), 34, 0.32, 0, 12);
 }
 
 .button.play-button.launcher-update-button:hover {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #a78bfa, #22c55e);
     -fx-border-color: rgba(220, 252, 231, 0.48);
+}
+
+.button.play-button.play-busy {
+    -fx-background-color:
+        radial-gradient(center 50% 50%, radius 90%, rgba(255, 255, 255, 0.13), transparent 44%),
+        linear-gradient(from 0% 0% to 100% 100%, #16a34a, #5b21b6);
+    -fx-border-color: rgba(134, 239, 172, 0.42);
+    -fx-effect: dropshadow(gaussian, rgba(34, 197, 94, 0.28), 34, 0.32, 0, 12);
+}
+
+.button.play-button.play-ripple {
+    -fx-background-color:
+        radial-gradient(center 50% 50%, radius 86%, rgba(255, 255, 255, 0.28), transparent 46%),
+        linear-gradient(from 0% 0% to 100% 100%, #34d399, #8b5cf6);
+}
+
+.button.play-button:disabled {
+    -fx-opacity: 1.0;
 }
 
 .version-label {
@@ -1291,15 +1457,18 @@
 }
 
 .profile-page-hero-content {
-    -fx-padding: 42px 44px 34px 42px;
+    -fx-padding: 38px 44px 30px 42px;
 }
 
 .profile-hero-avatar-wrap {
-    -fx-background-color: rgba(8, 17, 30, 0.62);
-    -fx-background-radius: 7px;
-    -fx-border-color: rgba(216, 180, 254, 0.42);
-    -fx-border-radius: 7px;
-    -fx-effect: dropshadow(gaussian, rgba(139, 92, 246, 0.22), 22, 0.28, 0, 0);
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(35, 48, 64, 0.90), rgba(9, 18, 31, 0.96));
+    -fx-background-radius: 5px;
+    -fx-border-color: rgba(134, 239, 172, 0.22), rgba(216, 180, 254, 0.42);
+    -fx-border-width: 2px, 1px;
+    -fx-border-insets: 0, 5px;
+    -fx-border-radius: 5px, 3px;
+    -fx-effect: dropshadow(gaussian, rgba(139, 92, 246, 0.26), 24, 0.30, 0, 0);
 }
 
 .profile-hero-avatar {
@@ -1320,14 +1489,31 @@
 
 .profile-role-badge {
     -fx-min-height: 28px;
-    -fx-padding: 0 11px;
-    -fx-background-color: rgba(7, 16, 31, 0.56);
-    -fx-background-radius: 6px;
-    -fx-border-color: rgba(168, 85, 247, 0.36);
-    -fx-border-radius: 6px;
-    -fx-text-fill: #e9d5ff;
+    -fx-padding: 0 12px;
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(23, 51, 39, 0.78), rgba(7, 16, 31, 0.72));
+    -fx-background-radius: 4px;
+    -fx-border-color: rgba(134, 239, 172, 0.28);
+    -fx-border-radius: 4px;
+    -fx-text-fill: #dcfce7;
     -fx-font-size: 12px;
-    -fx-font-weight: 800;
+    -fx-font-weight: 900;
+}
+
+.profile-minecraft-tags {
+    -fx-padding: 2px 0 0 0;
+}
+
+.profile-minecraft-tag {
+    -fx-min-height: 23px;
+    -fx-padding: 0 9px;
+    -fx-background-color: rgba(8, 17, 30, 0.58);
+    -fx-background-radius: 4px;
+    -fx-border-color: rgba(148, 163, 184, 0.20);
+    -fx-border-radius: 4px;
+    -fx-text-fill: #cbd5e1;
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
 }
 
 .profile-online-dot {
@@ -1467,8 +1653,9 @@
 }
 
 .profile-shell .button.profile-action-button:hover {
-    -fx-background-color: rgba(148, 163, 184, 0.14);
-    -fx-border-color: rgba(203, 213, 225, 0.38);
+    -fx-background-color:
+        linear-gradient(to right, rgba(34, 197, 94, 0.14), rgba(148, 163, 184, 0.09));
+    -fx-border-color: rgba(134, 239, 172, 0.32);
     -fx-text-fill: #ffffff;
 }
 
@@ -1479,6 +1666,7 @@
 .profile-shell .profile-security-card {
     -fx-min-height: 94px;
     -fx-background-color:
+        linear-gradient(to right, rgba(34, 197, 94, 0.16), transparent 5px),
         linear-gradient(to bottom, rgba(22, 38, 54, 0.86), rgba(8, 18, 32, 0.92)),
         radial-gradient(center 100% 0%, radius 64%, rgba(34, 197, 94, 0.08), transparent);
     -fx-border-color: rgba(34, 197, 94, 0.18);
@@ -1491,9 +1679,9 @@
     -fx-pref-height: 48px;
     -fx-alignment: center;
     -fx-background-color: rgba(8, 17, 30, 0.62);
-    -fx-background-radius: 999px;
+    -fx-background-radius: 6px;
     -fx-border-color: rgba(34, 197, 94, 0.28);
-    -fx-border-radius: 999px;
+    -fx-border-radius: 6px;
 }
 
 .profile-security-title {
