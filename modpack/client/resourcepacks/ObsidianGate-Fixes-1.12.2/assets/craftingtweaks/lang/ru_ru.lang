@@ -1,0 +1,23 @@
+key.categories.craftingtweaks=Crafting Tweaks
+key.craftingtweaks.rotate=Повернуть сетку
+key.craftingtweaks.rotat_counter_clockwise=Повернуть сетку против часовой
+key.craftingtweaks.clear=Очистить сетку
+key.craftingtweaks.force_clear=Принудительно очистить сетку
+key.craftingtweaks.balance=Выровнять сетку
+key.craftingtweaks.spread=Разложить по сетке
+key.craftingtweaks.toggleButtons=Переключить кнопки
+key.craftingtweaks.compressOne=Сжать предмет
+key.craftingtweaks.compressStack=Сжать стак
+key.craftingtweaks.compressAll=Сжать все
+key.craftingtweaks.decompressOne=Разжать предмет
+key.craftingtweaks.decompressStack=Разжать стак
+key.craftingtweaks.decompressAll=Разжать все
+key.craftingtweaks.refill_last=Повторить последний рецепт
+key.craftingtweaks.refill_last_stack=Повторить последний рецепт стаком
+
+tooltip.craftingtweaks.rotate=Повернуть сетку
+tooltip.craftingtweaks.balance=Выровнять сетку
+tooltip.craftingtweaks.spread=Разложить по сетке
+tooltip.craftingtweaks.clear=Очистить сетку
+tooltip.craftingtweaks.forceClear=Принудительно очистить сетку
+tooltip.craftingtweaks.forceClearInfo=При необходимости выбрасывает предметы

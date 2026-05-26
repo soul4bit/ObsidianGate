@@ -3,6 +3,9 @@ Third-party mod credits
 AI Improvements
 Official page: https://modrinth.com/mod/ai-improvements
 
+Applied Energistics 2
+Official page: https://www.curseforge.com/minecraft/mc-mods/applied-energistics-2
+
 AppleSkin
 Official page: https://modrinth.com/mod/appleskin
 
@@ -137,6 +140,9 @@ Official page: https://modrinth.com/mod/tinkers-construct
 
 Thaumcraft
 Official page: https://www.curseforge.com/minecraft/mc-mods/thaumcraft
+
+Thaumic Energistics
+Official page: https://www.curseforge.com/minecraft/mc-mods/thaumic-energistics
 
 Thaumic Augmentation
 Official page: https://www.curseforge.com/minecraft/mc-mods/thaumic-augmentation

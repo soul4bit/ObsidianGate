@@ -42,6 +42,7 @@ $distLauncherRoot = Join-Path $distFullPath "launcher"
 
 $serverModPaths = @(
     "mods/[___MixinCompat-1.1-1.12.2___].jar",
+    "mods/appliedenergistics2-rv6-stable-7.jar",
     "mods/AutoRegLib-1.3-32.jar",
     "mods/Baubles-1.12-1.5.2.jar",
     "mods/bettercaves-1.12.2-1.6.0.jar",
@@ -76,6 +77,7 @@ $serverModPaths = @(
     "mods/TConstruct-1.12.2-2.13.0.183.jar",
     "mods/Thaumcraft-1.12.2-6.1.BETA26.jar",
     "mods/ThaumicAugmentation-1.12.2-2.1.14.jar",
+    "mods/thaumicenergistics-2.2.4.jar",
     "mods/ThaumicInventoryScanning_1.12.2-2.0.10.jar",
     "mods/twilightforest-1.12.2-3.11.1021-universal.jar"
 )

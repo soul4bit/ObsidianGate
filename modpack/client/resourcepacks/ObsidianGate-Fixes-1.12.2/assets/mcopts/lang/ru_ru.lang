@@ -1,0 +1,22 @@
+commands.parameters.missing=Отсутствует обязательный параметр: %s
+commands.parameters.missing.argument=У параметра нет аргумента: %s
+commands.parameters.invalid.generic=Недопустимый аргумент параметра: %s
+commands.parameters.unknown=Неизвестный параметр: %s
+commands.parameters.toomany.ordered=Слишком много параметров
+commands.parameters.toomany.named=Слишком много параметров: %s
+
+commands.parameters.block=блок
+commands.parameters.item=предмет
+commands.parameters.dimension=измерение
+commands.parameters.dimension.invalid=Такого измерения нет
+commands.parameters.biome=биом
+commands.parameters.biome.invalid=Такого биома нет
+commands.parameters.biometype=тип биома
+commands.parameters.biometype.invalid=Такого типа биома нет
+commands.parameters.command=команда
+commands.parameters.entity=сущность
+commands.parameters.player=игрок
+commands.parameters.rotation=поворот
+commands.parameters.x=x
+commands.parameters.y=y
+commands.parameters.z=z
