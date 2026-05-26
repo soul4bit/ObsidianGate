@@ -63,6 +63,15 @@ forge-auth-server/target/obsidiangate-forge-auth-server-0.1.0-SNAPSHOT.jar
 
 Значения `obsidiangate.authGraceSeconds` ниже 60 секунд принудительно поднимаются до 60.
 
+## Диагностика киков
+
+Сервер пишет короткие маркеры в лог и добавляет их в причину отключения:
+
+- `AUTH_TIMEOUT_NO_TICKET` — клиент не прислал launcher ticket вовремя.
+- `AUTH_TICKET_EXPIRED` — ticket истёк до проверки.
+- `AUTH_TICKET_SERVER_MISMATCH` — ticket выпущен для другого `serverId`.
+- `AUTH_API_UNREACHABLE` — сервер не смог проверить ticket через Auth API.
+
 Переменные окружения, если свойства JVM не заданы:
 
 - `OBSIDIANGATE_AUTH_BASE_URL`

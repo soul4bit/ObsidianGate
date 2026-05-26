@@ -67,6 +67,27 @@ class ForgeAuthServerLifecycleTest {
         }
     }
 
+    @Test
+    void timeoutDisconnectIncludesNoTicketMarker() throws Exception {
+        Map authStates = new ConcurrentHashMap();
+        Queue<Runnable> mainThreadActions = new ConcurrentLinkedQueue<Runnable>();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            FakePlayer player = new FakePlayer("Knight");
+            authStates.put("knight", newState(player, "Knight", Instant.now().minusSeconds(90)));
+            ForgeAuthServerLifecycle lifecycle = newLifecycle(authStates, mainThreadActions, executor);
+
+            for (int tick = 0; tick < 20; tick++) {
+                lifecycle.runServerEndTick();
+            }
+
+            assertTrue(player.connection.lastMessage != null && player.connection.lastMessage.contains("AUTH_TIMEOUT_NO_TICKET"));
+            assertTrue(authStates.isEmpty());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static ForgeAuthServerLifecycle newLifecycle(
         Map authStates,

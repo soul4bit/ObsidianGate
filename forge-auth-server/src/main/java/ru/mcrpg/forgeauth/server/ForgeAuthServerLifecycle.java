@@ -25,6 +25,15 @@ import ru.mcrpg.gameauth.TicketVerificationResult;
 final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
 
     private static final String DISCONNECT_MESSAGE = "Для входа нужен лаунчер ObsidianGate.";
+    private static final String MARKER_TIMEOUT_NO_TICKET = "AUTH_TIMEOUT_NO_TICKET";
+    private static final String MARKER_TICKET_EXPIRED = "AUTH_TICKET_EXPIRED";
+    private static final String MARKER_TICKET_SERVER_MISMATCH = "AUTH_TICKET_SERVER_MISMATCH";
+    private static final String MARKER_API_UNREACHABLE = "AUTH_API_UNREACHABLE";
+    private static final String MARKER_TICKET_REJECTED = "AUTH_TICKET_REJECTED";
+    private static final String MARKER_AUTH_UNAVAILABLE = "AUTH_UNAVAILABLE";
+    private static final String MARKER_INVALID_TICKET_PACKET = "AUTH_INVALID_TICKET_PACKET";
+    private static final String MARKER_TICKET_USERNAME_MISMATCH = "AUTH_TICKET_USERNAME_MISMATCH";
+    private static final String MARKER_VERIFY_ERROR = "AUTH_VERIFY_ERROR";
 
     private final Logger logger;
     private final AuthServerConfig config;
@@ -147,7 +156,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
             }
             long elapsedSeconds = Duration.between(state.connectedAt, now).getSeconds();
             if (elapsedSeconds >= config.getGraceSeconds()) {
-                failAndDisconnect(state.username, "Лаунчер не прислал ticket вовремя.");
+                failAndDisconnect(state.username, MARKER_TIMEOUT_NO_TICKET, "Лаунчер не прислал ticket вовремя.");
             }
         }
     }
@@ -172,17 +181,17 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         state.player = player;
 
         if (!config.isReady()) {
-            failAndDisconnect(username, "Серверная авторизация не настроена.");
+            failAndDisconnect(username, MARKER_AUTH_UNAVAILABLE, "Серверная авторизация не настроена.");
             return;
         }
 
         if (!message.isComplete()) {
-            failAndDisconnect(username, "Пакет launcher ticket неполный.");
+            failAndDisconnect(username, MARKER_INVALID_TICKET_PACKET, "Пакет launcher ticket неполный.");
             return;
         }
 
         if (!config.acceptsServerId(message.getServerId())) {
-            failAndDisconnect(username, "Launcher ticket выдан для другого serverId.");
+            failAndDisconnect(username, MARKER_TICKET_SERVER_MISMATCH, "Launcher ticket выдан для другого serverId.");
             return;
         }
 
@@ -226,10 +235,10 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
             mainThreadActions.add(() -> applyVerificationResult(key, expectedUsername, result));
         } catch (IOException exception) {
             logger.log(Level.WARNING, "Запрос проверки launcher ticket не удался для " + expectedUsername + ".", exception);
-            mainThreadActions.add(() -> failAndDisconnect(expectedUsername, "Auth API не проверил launcher ticket."));
+            mainThreadActions.add(() -> failAndDisconnect(expectedUsername, MARKER_API_UNREACHABLE, "Auth API не проверил launcher ticket."));
         } catch (RuntimeException exception) {
             logger.log(Level.WARNING, "Неожиданная ошибка проверки авторизации лаунчера для " + expectedUsername + ".", exception);
-            mainThreadActions.add(() -> failAndDisconnect(expectedUsername, "Неожиданная ошибка проверки авторизации лаунчера."));
+            mainThreadActions.add(() -> failAndDisconnect(expectedUsername, MARKER_VERIFY_ERROR, "Неожиданная ошибка проверки авторизации лаунчера."));
         }
     }
 
@@ -241,12 +250,16 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
 
         state.verificationInFlight = false;
         if (!result.isValid()) {
-            failAndDisconnect(expectedUsername, "Ticket отклонен: " + normalizeReason(result.getReason()));
+            failAndDisconnect(
+                expectedUsername,
+                markerForVerificationReason(result.getReason()),
+                "Ticket отклонен: " + normalizeReason(result.getReason())
+            );
             return;
         }
 
         if (!expectedUsername.equalsIgnoreCase(result.getUsername())) {
-            failAndDisconnect(expectedUsername, "Ticket принадлежит другому нику.");
+            failAndDisconnect(expectedUsername, MARKER_TICKET_USERNAME_MISMATCH, "Ticket принадлежит другому нику.");
             return;
         }
 
@@ -261,7 +274,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         ));
     }
 
-    private void failAndDisconnect(String username, String reason) {
+    private void failAndDisconnect(String username, String marker, String reason) {
         String key = normalizeKey(username);
         PlayerAuthState state = authStates.remove(key);
         if (state == null) {
@@ -269,9 +282,10 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         }
 
         state.verificationInFlight = false;
-        logger.warning(String.format("Отключаем %s: %s", state.username, reason));
+        String markedReason = formatMarkedReason(marker, reason);
+        logger.warning(String.format("%s Disconnecting %s: %s", normalizeMarker(marker), state.username, reason));
         try {
-            playerBridge.disconnectPlayer(state.player, DISCONNECT_MESSAGE + " Причина: " + reason);
+            playerBridge.disconnectPlayer(state.player, DISCONNECT_MESSAGE + " Причина: " + markedReason);
         } catch (RuntimeException exception) {
             logger.log(Level.WARNING, "Не удалось отключить неавторизованного игрока " + state.username + ".", exception);
         }
@@ -302,6 +316,26 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
             return "аккаунт отключен";
         }
         return normalized;
+    }
+
+    private static String markerForVerificationReason(String reason) {
+        String normalized = reason == null ? "" : reason.trim();
+        if ("expired".equalsIgnoreCase(normalized)) {
+            return MARKER_TICKET_EXPIRED;
+        }
+        if ("server_mismatch".equalsIgnoreCase(normalized)) {
+            return MARKER_TICKET_SERVER_MISMATCH;
+        }
+        return MARKER_TICKET_REJECTED;
+    }
+
+    private static String formatMarkedReason(String marker, String reason) {
+        return "[" + normalizeMarker(marker) + "] " + (reason == null ? "" : reason.trim());
+    }
+
+    private static String normalizeMarker(String marker) {
+        String normalized = marker == null ? "" : marker.trim();
+        return normalized.isEmpty() ? "AUTH_UNKNOWN" : normalized;
     }
 
     private static ExecutorService newSingleThreadExecutor() {

@@ -1,8 +1,10 @@
 #!/bin/sh
 set -eu
 
+WRAPPER_VERSION="2026.05.26-systemd.2"
+
 if [ "${1:-}" = "--self-test" ]; then
-    echo "obsidiangate-remote-deploy: ok"
+    echo "obsidiangate-remote-deploy: ok $WRAPPER_VERSION"
     exit 0
 fi
 
@@ -14,35 +16,45 @@ SERVICE_NAME="${5:?service name is required}"
 SKIP_RESTART="${6:-0}"
 SERVER_ROOT="${7:-$(dirname "$SERVER_MODS_DIR")}"
 
-case "$STAGE_DIR" in
-    /home/*) ;;
-    *)
-        echo "Stage directory must be under /home: $STAGE_DIR" >&2
-        exit 2
-        ;;
-esac
+canonicalize_path() {
+    if command -v realpath >/dev/null 2>&1; then
+        realpath -m -- "$1"
+        return
+    fi
+    if command -v readlink >/dev/null 2>&1; then
+        readlink -m -- "$1"
+        return
+    fi
+    echo "Neither realpath nor readlink is available for path validation." >&2
+    exit 2
+}
 
-case "$SERVER_MODS_DIR" in
-    /home/*) ;;
-    *)
-        echo "Server mods dir must be under /home: $SERVER_MODS_DIR" >&2
-        exit 2
-        ;;
-esac
+require_under() {
+    path="$(canonicalize_path "$1")"
+    base="$(canonicalize_path "$2")"
+    label="$3"
 
-case "$SERVER_ROOT" in
-    /home/*) ;;
-    *)
-        echo "Server root must be under /home: $SERVER_ROOT" >&2
-        exit 2
-        ;;
-esac
+    case "$path" in
+        "$base"/*)
+            printf '%s\n' "$path"
+            ;;
+        *)
+            echo "$label must be under $base: $path" >&2
+            exit 2
+            ;;
+    esac
+}
 
-case "$WEB_ROOT" in
-    /var/www/*) ;;
+STAGE_DIR="$(require_under "$STAGE_DIR" /home "Stage directory")"
+SERVER_MODS_DIR="$(require_under "$SERVER_MODS_DIR" /home "Server mods dir")"
+SERVER_ROOT="$(require_under "$SERVER_ROOT" /home "Server root")"
+WEB_ROOT="$(require_under "$WEB_ROOT" /var/www "Web root")"
+
+case "$SERVICE_NAME" in
+    mc-rpg.service|mc-rpg-*.service|obsidiangate-*.service) ;;
     *)
-        echo "Web root must be under /var/www: $WEB_ROOT" >&2
-        exit 2
+        echo "Refusing to restart unexpected service: $SERVICE_NAME" >&2
+        exit 4
         ;;
 esac
 
@@ -98,7 +110,7 @@ if [ -d "$STAGE_DIR/server/systemd" ]; then
         [ -e "$unit" ] || continue
         unit_name="$(basename "$unit")"
         case "$unit_name" in
-            mc-rpg-*.service|mc-rpg-*.timer|obsidiangate-*.service|obsidiangate-*.timer) ;;
+            mc-rpg.service|mc-rpg.timer|mc-rpg-*.service|mc-rpg-*.timer|obsidiangate-*.service|obsidiangate-*.timer) ;;
             *)
                 echo "Refusing to install unexpected systemd unit: $unit_name" >&2
                 exit 4
