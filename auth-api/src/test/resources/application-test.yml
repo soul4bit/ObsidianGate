@@ -19,7 +19,7 @@ auth:
   jwt-secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   access-token-ttl-seconds: 900
   refresh-token-ttl-days: 30
-  game-ticket-ttl-seconds: 180
+  game-ticket-ttl-seconds: 900
   server-id: obsidiangate-main
 
 logging:

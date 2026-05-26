@@ -9,7 +9,7 @@ final class AuthServerConfig {
     private static final String AUTH_BASE_URL_ENV = "OBSIDIANGATE_AUTH_BASE_URL";
     private static final String SERVER_ID_ENV = "OBSIDIANGATE_SERVER_ID";
     private static final String AUTH_GRACE_SECONDS_ENV = "OBSIDIANGATE_AUTH_GRACE_SECONDS";
-    private static final int DEFAULT_GRACE_SECONDS = 15;
+    private static final int MIN_GRACE_SECONDS = 60;
 
     private final String authBaseUrl;
     private final String serverId;
@@ -18,7 +18,7 @@ final class AuthServerConfig {
     AuthServerConfig(String authBaseUrl, String serverId, int graceSeconds) {
         this.authBaseUrl = normalize(authBaseUrl);
         this.serverId = normalize(serverId);
-        this.graceSeconds = Math.max(1, graceSeconds);
+        this.graceSeconds = Math.max(MIN_GRACE_SECONDS, graceSeconds);
     }
 
     static AuthServerConfig fromSystem() {
@@ -35,7 +35,7 @@ final class AuthServerConfig {
                 System.getProperty(AUTH_GRACE_SECONDS_PROPERTY),
                 System.getenv(AUTH_GRACE_SECONDS_ENV)
             ),
-            DEFAULT_GRACE_SECONDS
+            MIN_GRACE_SECONDS
         );
         return new AuthServerConfig(authBaseUrl, serverId, graceSeconds);
     }

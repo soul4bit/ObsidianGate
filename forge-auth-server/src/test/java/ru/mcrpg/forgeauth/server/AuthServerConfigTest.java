@@ -13,7 +13,7 @@ class AuthServerConfigTest {
         AuthServerConfig config = new AuthServerConfig("", "", 0);
 
         assertFalse(config.isReady());
-        assertEquals(1, config.getGraceSeconds());
+        assertEquals(60, config.getGraceSeconds());
     }
 
     @Test

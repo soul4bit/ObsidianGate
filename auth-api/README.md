@@ -40,7 +40,7 @@ cp auth-api/.env.example auth-api/.env
 - `JWT_SECRET`
 - `ACCESS_TOKEN_TTL_SECONDS`
 - `REFRESH_TOKEN_TTL_DAYS`
-- `GAME_TICKET_TTL_SECONDS`
+- `GAME_TICKET_TTL_SECONDS` (по умолчанию `900`, чтобы тяжёлый клиент успевал загрузиться до входа)
 - `SERVER_ID`
 
 `SERVER_ID` должен совпадать с:

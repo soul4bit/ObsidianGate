@@ -59,7 +59,9 @@ forge-auth-server/target/obsidiangate-forge-auth-server-0.1.0-SNAPSHOT.jar
 
 - `-Dobsidiangate.authBaseUrl=http://127.0.0.1:8081`
 - `-Dobsidiangate.serverId=obsidiangate-main`
-- `-Dobsidiangate.authGraceSeconds=15`
+- `-Dobsidiangate.authGraceSeconds=60`
+
+Значения `obsidiangate.authGraceSeconds` ниже 60 секунд принудительно поднимаются до 60.
 
 Переменные окружения, если свойства JVM не заданы:
 
