@@ -13,6 +13,7 @@
     <properties>
         <maven.compiler.release>8</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
         <junit.version>5.10.2</junit.version>
         <forge.version>1.12.2-14.23.5.2847</forge.version>
         <game.auth.version>0.1.0-SNAPSHOT</game.auth.version>

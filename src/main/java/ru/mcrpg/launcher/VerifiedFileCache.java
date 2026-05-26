@@ -6,15 +6,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 final class VerifiedFileCache {
 
     private static final String CACHE_DIRECTORY = ".launcher-cache";
     private static final String CACHE_FILE = "verified-files.json";
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
 
     private final ObjectMapper objectMapper;
     private final Path rootDirectory;
@@ -46,6 +48,14 @@ final class VerifiedFileCache {
         if (!hasText(expectedHash) || !Files.isRegularFile(path)) {
             return false;
         }
+        return matches(path, readMetadata(path), algorithm, expectedHash, expectedSize);
+    }
+
+    boolean matches(Path path, FileMetadata metadata, String algorithm, String expectedHash, Long expectedSize)
+        throws IOException {
+        if (!hasText(expectedHash) || metadata == null || !metadata.isRegularFile()) {
+            return false;
+        }
 
         String expectedAlgorithm = normalizeAlgorithm(algorithm);
         String normalizedExpectedHash = normalizeHash(expectedHash);
@@ -64,17 +74,29 @@ final class VerifiedFileCache {
             entry = CacheEntrySnapshot.from(cachedEntry);
         }
 
-        long actualSize = Files.size(path);
-        if ((expectedSize != null && expectedSize.longValue() >= 0L && actualSize != expectedSize.longValue())
-            || actualSize != entry.size) {
+        if ((expectedSize != null && expectedSize.longValue() >= 0L && metadata.size() != expectedSize.longValue())
+            || metadata.size() != entry.size) {
             remove(key);
             return false;
         }
 
-        long actualLastModifiedMillis = Files.getLastModifiedTime(path).toMillis();
-        if (actualLastModifiedMillis != entry.lastModifiedMillis) {
+        if (!entry.hasTrustedTimestamp()) {
             remove(key);
             return false;
+        }
+
+        if (metadata.lastModifiedNanos() != entry.lastModifiedNanos.longValue()) {
+            remove(key);
+            return false;
+        }
+
+        if (hasText(entry.fileKey) && !entry.fileKey.equals(metadata.fileKey())) {
+            remove(key);
+            return false;
+        }
+
+        if (!hasText(entry.fileKey) && hasText(metadata.fileKey())) {
+            updateMetadata(key, metadata);
         }
 
         return true;
@@ -84,12 +106,17 @@ final class VerifiedFileCache {
         if (!hasText(expectedHash) || !Files.isRegularFile(path)) {
             return;
         }
+        recordVerified(path, algorithm, expectedHash, readMetadata(path));
+    }
 
+    void recordVerified(Path path, String algorithm, String expectedHash, FileMetadata metadata) {
+        if (!hasText(expectedHash) || metadata == null || !metadata.isRegularFile()) {
+            return;
+        }
         CacheEntry entry = new CacheEntry();
         entry.algorithm = normalizeAlgorithm(algorithm);
         entry.hash = normalizeHash(expectedHash);
-        entry.size = Files.size(path);
-        entry.lastModifiedMillis = Files.getLastModifiedTime(path).toMillis();
+        applyMetadata(entry, metadata);
         synchronized (this) {
             document.entries.put(key(path), entry);
             dirty = true;
@@ -135,9 +162,11 @@ final class VerifiedFileCache {
         }
         try {
             CacheDocument document = objectMapper.readValue(cacheFile.toFile(), CacheDocument.class);
-            if (document == null || document.schemaVersion != SCHEMA_VERSION || document.entries == null) {
+            if (document == null || document.schemaVersion < 1 || document.schemaVersion > SCHEMA_VERSION
+                || document.entries == null) {
                 return new CacheDocument();
             }
+            document.schemaVersion = SCHEMA_VERSION;
             return document;
         } catch (IOException ignored) {
             return new CacheDocument();
@@ -156,6 +185,27 @@ final class VerifiedFileCache {
         if (document.entries.remove(key) != null) {
             dirty = true;
         }
+    }
+
+    private synchronized void updateMetadata(String key, FileMetadata metadata) {
+        CacheEntry entry = document.entries.get(key);
+        if (entry == null) {
+            return;
+        }
+        applyMetadata(entry, metadata);
+        dirty = true;
+    }
+
+    static FileMetadata readMetadata(Path path) throws IOException {
+        BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+        return FileMetadata.from(attributes);
+    }
+
+    private static void applyMetadata(CacheEntry entry, FileMetadata metadata) {
+        entry.size = metadata.size();
+        entry.lastModifiedMillis = metadata.lastModifiedMillis();
+        entry.lastModifiedNanos = Long.valueOf(metadata.lastModifiedNanos());
+        entry.fileKey = metadata.fileKey();
     }
 
     private static String normalizeAlgorithm(String algorithm) {
@@ -180,19 +230,90 @@ final class VerifiedFileCache {
         public String hash;
         public long size;
         public long lastModifiedMillis;
+        public Long lastModifiedNanos;
+        public String fileKey;
+    }
+
+    static final class FileMetadata {
+        private final boolean regularFile;
+        private final long size;
+        private final long lastModifiedMillis;
+        private final long lastModifiedNanos;
+        private final String fileKey;
+
+        private FileMetadata(
+            boolean regularFile,
+            long size,
+            long lastModifiedMillis,
+            long lastModifiedNanos,
+            String fileKey
+        ) {
+            this.regularFile = regularFile;
+            this.size = size;
+            this.lastModifiedMillis = lastModifiedMillis;
+            this.lastModifiedNanos = lastModifiedNanos;
+            this.fileKey = fileKey;
+        }
+
+        private static FileMetadata from(BasicFileAttributes attributes) {
+            Object rawFileKey = attributes.fileKey();
+            return new FileMetadata(
+                attributes.isRegularFile(),
+                attributes.size(),
+                attributes.lastModifiedTime().toMillis(),
+                attributes.lastModifiedTime().to(TimeUnit.NANOSECONDS),
+                rawFileKey == null ? "" : rawFileKey.toString()
+            );
+        }
+
+        boolean isRegularFile() {
+            return regularFile;
+        }
+
+        long size() {
+            return size;
+        }
+
+        long lastModifiedMillis() {
+            return lastModifiedMillis;
+        }
+
+        long lastModifiedNanos() {
+            return lastModifiedNanos;
+        }
+
+        String fileKey() {
+            return fileKey;
+        }
+
+        boolean sameFileState(FileMetadata other) {
+            if (other == null) {
+                return false;
+            }
+            return regularFile == other.regularFile
+                && size == other.size
+                && lastModifiedNanos == other.lastModifiedNanos
+                && fileKey.equals(other.fileKey);
+        }
     }
 
     private static final class CacheEntrySnapshot {
         private final long size;
-        private final long lastModifiedMillis;
+        private final Long lastModifiedNanos;
+        private final String fileKey;
 
-        private CacheEntrySnapshot(long size, long lastModifiedMillis) {
+        private CacheEntrySnapshot(long size, Long lastModifiedNanos, String fileKey) {
             this.size = size;
-            this.lastModifiedMillis = lastModifiedMillis;
+            this.lastModifiedNanos = lastModifiedNanos;
+            this.fileKey = fileKey == null ? "" : fileKey;
         }
 
         private static CacheEntrySnapshot from(CacheEntry entry) {
-            return new CacheEntrySnapshot(entry.size, entry.lastModifiedMillis);
+            return new CacheEntrySnapshot(entry.size, entry.lastModifiedNanos, entry.fileKey);
+        }
+
+        private boolean hasTrustedTimestamp() {
+            return lastModifiedNanos != null;
         }
     }
 }

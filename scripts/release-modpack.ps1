@@ -214,6 +214,7 @@ function Patch-BiblioCraftRecipes {
 "@
 
     $encoding = New-Object System.Text.UTF8Encoding($false)
+    $fixedZipTimestamp = [System.DateTimeOffset]::new(2000, 1, 1, 0, 0, 0, [System.TimeSpan]::Zero)
     $zip = [System.IO.Compression.ZipFile]::Open($JarPath, [System.IO.Compression.ZipArchiveMode]::Update)
     try {
         foreach ($entryName in @(
@@ -226,6 +227,7 @@ function Patch-BiblioCraftRecipes {
             }
 
             $entry = $zip.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+            $entry.LastWriteTime = $fixedZipTimestamp
             $stream = $entry.Open()
             try {
                 $writer = New-Object System.IO.StreamWriter($stream, $encoding)

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -318,30 +319,37 @@ public final class ModpackSyncService {
         Path target = resolveTargetPath(gameDirectory, file.getPath());
         String expectedSha256 = requireText(file.getSha256(), "Для файла " + file.getPath() + " не указан sha256.");
 
-        if (Files.exists(target) && !Files.isRegularFile(target)) {
-            throw new IllegalArgumentException("Ожидался файл, но найден не файл: " + target);
-        }
-
-        if (!Files.isRegularFile(target)) {
+        VerifiedFileCache.FileMetadata metadata;
+        try {
+            metadata = VerifiedFileCache.readMetadata(target);
+        } catch (NoSuchFileException exception) {
             verifiedFileCache.remove(target);
             return FileInspection.download(target, expectedSha256, "missing");
         }
 
+        if (!metadata.isRegularFile()) {
+            throw new IllegalArgumentException("Ожидался файл, но найден не файл: " + target);
+        }
+
         if (file.getSize() != null && file.getSize().longValue() >= 0L) {
-            long existingSize = Files.size(target);
-            if (existingSize != file.getSize().longValue()) {
+            if (metadata.size() != file.getSize().longValue()) {
                 verifiedFileCache.remove(target);
                 return FileInspection.download(target, expectedSha256, "size-mismatch");
             }
         }
 
-        if (verifiedFileCache.matches(target, "SHA-256", expectedSha256, file.getSize())) {
+        if (verifiedFileCache.matches(target, metadata, "SHA-256", expectedSha256, file.getSize())) {
             return FileInspection.reused(target, expectedSha256);
         }
 
         String existingSha256 = ChecksumUtils.sha256(target);
         if (existingSha256.equalsIgnoreCase(expectedSha256)) {
-            verifiedFileCache.recordVerified(target, "SHA-256", expectedSha256);
+            VerifiedFileCache.FileMetadata verifiedMetadata = VerifiedFileCache.readMetadata(target);
+            if (!metadata.sameFileState(verifiedMetadata)) {
+                verifiedFileCache.remove(target);
+                return FileInspection.download(target, expectedSha256, "changed-during-check");
+            }
+            verifiedFileCache.recordVerified(target, "SHA-256", expectedSha256, verifiedMetadata);
             return FileInspection.reused(target, expectedSha256);
         }
 
