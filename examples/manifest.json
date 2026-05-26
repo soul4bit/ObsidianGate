@@ -1,25 +1,32 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.26.8",
+    "version":  "2026.05.26.9",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
-                 "title":  "Стабильный вход и диагностика",
+                 "title":  "Индустриальная ветка и удобство",
                  "date":  "2026-05-26",
-                 "body":  "Деплой сервера теперь применяет systemd-настройки, а причины киков авторизации стали понятнее в логах.",
+                 "body":  "Начали перевод сборки в сторону Industrial + Thaumcraft 6 + DivineRPG и добавили несколько модов для удобной игры.",
                  "highlights":  [
-                                    "Новый mc-rpg.service с authGraceSeconds=60 теперь доезжает на сервер при публикации.",
-                                    "В логах кика появились маркеры AUTH_TIMEOUT_NO_TICKET, AUTH_TICKET_EXPIRED, AUTH_TICKET_SERVER_MISMATCH и AUTH_API_UNREACHABLE.",
-                                    "Разбирать проблемы входа после обновления лаунчера стало проще."
+                                    "Добавлены IndustrialCraft 2 и Immersive Engineering как основа технологической ветки.",
+                                    "Добавлены AppleSkin, Controlling, Better Advancements, Crafting Tweaks и Neat для более удобного интерфейса.",
+                                    "На сервер добавлен AI Improvements для снижения нагрузки от мобов."
                                 ],
                  "newMods":  [
-
+                                 "IndustrialCraft 2",
+                                 "Immersive Engineering",
+                                 "AppleSkin",
+                                 "Controlling",
+                                 "Better Advancements",
+                                 "Crafting Tweaks",
+                                 "Neat",
+                                 "AI Improvements"
                              ],
                  "removedMods":  [
 
                                  ],
                  "important":  [
-
+                                   "Для полноценной индустриальной генерации лучше запускать новый мир или осваивать новые чанки."
                                ]
              },
     "history":  [
@@ -129,7 +136,7 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.26.8",
+                           "version":  "2026.05.26.9",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
                            "sha256":  "19f145abf93f5e5b8bda10876ef472d94655f2ecf290cc0c1be496b2f1194df4",
                            "size":  18089113,
@@ -1030,6 +1037,12 @@
                       "executable":  false
                   },
                   {
+                      "path":  "mods/AppleSkin-mc1.12-1.0.14.jar",
+                      "sha256":  "4bbd37edecff0b420ab0eea166b5d7b4b41a9870bfb8647bf243140dc57f101e",
+                      "size":  33683,
+                      "executable":  false
+                  },
+                  {
                       "path":  "mods/AutoRegLib-1.3-32.jar",
                       "sha256":  "d8610a94da8f30815db4612b3291ecdcfd8204eaf1a4db8c5d0663c7b1191d91",
                       "size":  108306,
@@ -1039,6 +1052,12 @@
                       "path":  "mods/Baubles-1.12-1.5.2.jar",
                       "sha256":  "b32010b2f2778aa1188585e7ead91ad46d4cb2c715f9c778a61848ba7fe51f8d",
                       "size":  108450,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/BetterAdvancements-1.12.2-0.1.0.77.jar",
+                      "sha256":  "c70cda15d9c76cc79423399c1002977d6dfcc229128b33b87f25d5b4238bea34",
+                      "size":  62668,
                       "executable":  false
                   },
                   {
@@ -1096,6 +1115,18 @@
                       "executable":  false
                   },
                   {
+                      "path":  "mods/Controlling-3.0.12.2.jar",
+                      "sha256":  "0f8c848d0e715142cb9e8af9a9b5cf369c89ab4bda784c200538083e556ef3a6",
+                      "size":  28932,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/CraftingTweaks_1.12.2-8.1.9.jar",
+                      "sha256":  "b2f6bf5d4a5118a6b07afde92af9b34932c07c1ebbd6b12eb0441547f98b8de6",
+                      "size":  97854,
+                      "executable":  false
+                  },
+                  {
                       "path":  "mods/crafttweaker2-1.12-4.1.20.jar",
                       "sha256":  "f2176225db04fc95dce462e7ed45b2aac9c4c58f9887c9beba6f3a096543d389",
                       "size":  1363036,
@@ -1138,6 +1169,18 @@
                       "executable":  false
                   },
                   {
+                      "path":  "mods/ImmersiveEngineering-0.12-98.jar",
+                      "sha256":  "1dceb974d037dae7161f9a8e9f78cb33dfaad9e3adf02d14d52a3024eb961e58",
+                      "size":  6360959,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/industrialcraft-2-2.8.222-ex112.jar",
+                      "sha256":  "f96b1886b6d060b308fb811029d5c5cc76deb17b835aa368dcb6071f2de290d4",
+                      "size":  8698102,
+                      "executable":  false
+                  },
+                  {
                       "path":  "mods/InventoryTweaks-1.63.jar",
                       "sha256":  "ef2fdcb59f9a766ee5c3c4c514c78f0a9e35b3d6bf02c17051b7dd4e94efdf7a",
                       "size":  263258,
@@ -1177,6 +1220,12 @@
                       "path":  "mods/MouseTweaks_2.10_mc1.12.2.jar",
                       "sha256":  "77969c0e7f76c078ebb7004642e86746d57f47b7a46237fcb1c06d4a55679448",
                       "size":  75170,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/Neat+1.4-17.jar",
+                      "sha256":  "2062c99a371921fb2eb7cf6833d682c05244ca5a527db8f0c36e7f12c8ca1379",
+                      "size":  18527,
                       "executable":  false
                   },
                   {
@@ -1397,8 +1446,8 @@
                   },
                   {
                       "path":  "THIRD_PARTY_MODS.txt",
-                      "sha256":  "5dc828af354424226d1af4da3d1a073fffb07c1a0190e7314c758292501ebc4b",
-                      "size":  4233,
+                      "sha256":  "94bd08b46ffb38d721a087db27f96a64f7da32c152a4c75d13c131851d041353",
+                      "size":  4796,
                       "executable":  false
                   }
               ]

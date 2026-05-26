@@ -1,5 +1,11 @@
 Third-party mod credits
 
+AI Improvements
+Official page: https://modrinth.com/mod/ai-improvements
+
+AppleSkin
+Official page: https://modrinth.com/mod/appleskin
+
 Mixin 0.7-0.8 Compatibility
 Official page: https://www.curseforge.com/minecraft/mc-mods/mixin-0-7-0-8-compatibility
 
@@ -17,6 +23,9 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/better-questing
 
 Better Questing - Standard Expansion
 Official page: https://www.curseforge.com/minecraft/mc-mods/better-questing-standard-expansion
+
+Better Advancements
+Official page: https://modrinth.com/mod/better-advancements
 
 Bewitchment (Legacy)
 Official page: https://www.curseforge.com/minecraft/mc-mods/bewitchment-legacy
@@ -39,8 +48,14 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/chunkpregenerator
 Clumps
 Official page: https://www.curseforge.com/minecraft/mc-mods/clumps
 
+Controlling
+Official page: https://modrinth.com/mod/controlling
+
 CraftTweaker
 Official page: https://www.curseforge.com/minecraft/mc-mods/crafttweaker
+
+Crafting Tweaks
+Official page: https://modrinth.com/mod/crafting-tweaks
 
 DivineRPG
 Official page: https://www.curseforge.com/minecraft/mc-mods/official-divinerpg
@@ -59,6 +74,12 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/foamfix-optimization
 
 Hwyla
 Official page: https://www.curseforge.com/minecraft/mc-mods/hwyla
+
+Immersive Engineering
+Official page: https://modrinth.com/mod/immersiveengineering
+
+Industrial Craft
+Official page: https://modrinth.com/mod/industrial-craft
 
 Inventory Tweaks
 Official page: https://www.curseforge.com/minecraft/mc-mods/inventory-tweaks
@@ -80,6 +101,9 @@ Official page: https://modrinth.com/mod/mantle
 
 Mouse Tweaks
 Official page: https://www.curseforge.com/minecraft/mc-mods/mouse-tweaks
+
+Neat
+Official page: https://modrinth.com/mod/neat
 
 Patchouli
 Official page: https://modrinth.com/mod/patchouli

@@ -59,6 +59,8 @@ $serverModPaths = @(
     "mods/DynamicTreesBOP-1.12.2-1.4.1e.jar",
     "mods/Erebus-1.0.32.jar",
     "mods/foamfix-0.10.10-1.12.2.jar",
+    "mods/ImmersiveEngineering-0.12-98.jar",
+    "mods/industrialcraft-2-2.8.222-ex112.jar",
     "mods/ironchest-1.12.2-7.0.71.846.jar",
     "mods/IvToolkit-1.3.3-1.12.jar",
     "mods/Mantle-1.12-1.3.3.55.jar",
@@ -411,7 +413,7 @@ foreach ($serverDirectoryName in @("config", "scripts")) {
 }
 
 if (Test-Path -LiteralPath $serverSourceFullPath -PathType Container) {
-    foreach ($serverDirectoryName in @("config", "scripts", "systemd")) {
+    foreach ($serverDirectoryName in @("mods", "config", "scripts", "systemd")) {
         $sourceDirectory = Join-Path $serverSourceFullPath $serverDirectoryName
         if (-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {
             continue
