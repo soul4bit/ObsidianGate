@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,12 +15,33 @@ final class MinecraftResourcePackOptions {
     private static final Pattern QUOTED_VALUE_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"\\\\])*)\"");
     private static final String LANGUAGE_PREFIX = "lang:";
     private static final String RESOURCE_PACKS_PREFIX = "resourcePacks:";
+    private static final String INITIALIZED_MARKER = ".launcher-cache/resourcepacks-initialized";
 
     private MinecraftResourcePackOptions() {
     }
 
     static boolean ensureEnabled(Path gameDirectory, String packName) throws IOException {
-        if (gameDirectory == null || !hasText(packName) || !isInstalled(gameDirectory, packName)) {
+        return ensureEnabled(gameDirectory, Arrays.asList(packName));
+    }
+
+    static boolean ensureEnabled(Path gameDirectory, List<String> packNames) throws IOException {
+        if (gameDirectory == null || packNames == null || packNames.isEmpty()) {
+            return false;
+        }
+
+        List<String> installedPacks = new ArrayList<String>();
+        for (String packName : packNames) {
+            String normalizedPackName = hasText(packName) ? packName.trim() : "";
+            if (
+                hasText(normalizedPackName)
+                    && isInstalled(gameDirectory, normalizedPackName)
+                    && !installedPacks.contains(normalizedPackName)
+            ) {
+                installedPacks.add(normalizedPackName);
+            }
+        }
+
+        if (installedPacks.isEmpty()) {
             return false;
         }
 
@@ -30,14 +52,16 @@ final class MinecraftResourcePackOptions {
         List<String> packs = resourcePacksLine >= 0
             ? parseResourcePacks(lines.get(resourcePacksLine))
             : new ArrayList<String>();
+        List<String> originalPacks = new ArrayList<String>(packs);
 
-        boolean alreadyHighestPriority = !packs.isEmpty() && packName.equals(packs.get(packs.size() - 1));
-        if (alreadyHighestPriority) {
-            return false;
+        for (String packName : installedPacks) {
+            packs.removeIf(packName::equals);
+            packs.add(packName);
         }
 
-        packs.removeIf(packName::equals);
-        packs.add(packName);
+        if (originalPacks.equals(packs)) {
+            return false;
+        }
 
         String updatedLine = RESOURCE_PACKS_PREFIX + formatResourcePacks(packs);
         if (resourcePacksLine >= 0) {
@@ -49,6 +73,33 @@ final class MinecraftResourcePackOptions {
         Files.createDirectories(gameDirectory);
         Files.write(optionsFile, lines, StandardCharsets.UTF_8);
         return true;
+    }
+
+    static boolean ensureInitialDefaults(Path gameDirectory, List<String> packNames, String language) throws IOException {
+        if (gameDirectory == null) {
+            return false;
+        }
+
+        Path marker = gameDirectory.resolve(INITIALIZED_MARKER);
+        if (Files.exists(marker)) {
+            return false;
+        }
+
+        boolean changed = false;
+        changed |= ensureEnabled(gameDirectory, packNames);
+        changed |= ensureLanguage(gameDirectory, language);
+
+        Files.createDirectories(marker.getParent());
+        Files.write(
+            marker,
+            Arrays.asList("resourcePacks=true", "language=" + (language == null ? "" : language.trim())),
+            StandardCharsets.UTF_8
+        );
+        return changed;
+    }
+
+    static boolean hasInitialDefaultsMarker(Path gameDirectory) {
+        return gameDirectory != null && Files.exists(gameDirectory.resolve(INITIALIZED_MARKER));
     }
 
     static boolean ensureLanguage(Path gameDirectory, String language) throws IOException {

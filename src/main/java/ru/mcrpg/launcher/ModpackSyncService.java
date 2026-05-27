@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -20,6 +22,13 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class ModpackSyncService {
 
     private static final int FILE_DOWNLOAD_READ_TIMEOUT_MS = 30000;
+    private static final String DEFAULT_LANGUAGE = "ru_ru";
+    private static final List<String> DEFAULT_RESOURCE_PACKS = Collections.unmodifiableList(Arrays.asList(
+        "ModdedFaithful 1.12.2-rv1.zip",
+        "Faithful 1.12.2-rv4.zip",
+        "bushy-leaves-1.12.2.zip",
+        "ObsidianGate-Fixes-1.12.2"
+    ));
 
     public interface LogSink {
         void log(String message);
@@ -202,6 +211,10 @@ public final class ModpackSyncService {
 
         progressTracker.phase(ModpackSyncProgress.Phase.CLEANUP, "Проверяем устаревшие моды", true);
         int removedFiles = cleanupObsoleteModEntries(gameDirectory, manifest, logSink);
+        progressTracker.phase(ModpackSyncProgress.Phase.CLEANUP, "Настраиваем ресурс-паки", true);
+        if (MinecraftResourcePackOptions.ensureInitialDefaults(gameDirectory, DEFAULT_RESOURCE_PACKS, DEFAULT_LANGUAGE)) {
+            log(logSink, "Ресурс-паки и русский язык включены для первого запуска.");
+        }
         if (removedFiles > 0) {
             log(logSink, "Устаревших модов убрано: " + removedFiles);
         }

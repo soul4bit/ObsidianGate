@@ -1,29 +1,38 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.26.10",
+    "version":  "2026.05.27.1",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
-                 "title":  "ME-системы и больше русского",
-                 "date":  "2026-05-26",
-                 "body":  "Добавили Applied Energistics 2 для ME-сетей, автокрафта и цифрового хранения, а также Thaumic Energistics для связки ME с эссенцией Thaumcraft. Параллельно расширили русские переводы через встроенный ресурс-пак.",
+                 "title":  "Ресурс-паки включаются сами",
+                 "date":  "2026-05-27",
+                 "body":  "Лаунчер теперь сам включает рекомендованный набор ресурс-паков и русский язык при первом запуске клиента. После первой настройки ручной выбор игрока больше не перезаписывается.",
                  "highlights":  [
-                                    "Добавлены Applied Energistics 2 и Thaumic Energistics: ME-терминалы, накопители, автокрафт и хранение эссенции.",
-                                    "Серверная сборка теперь тоже получает AE2 и Thaumic Energistics, чтобы блоки и генерация работали в мире.",
-                                    "Добавлены русские строки для Crafting Tweaks, Neat, Dynamic Trees BOP, Recurrent Complex, Chunk-Pregenerator и недостающих ключей AE2/Thaumic Energistics."
+                                    "На первом запуске автоматически выбираются ModdedFaithful, Faithful, Bushy Leaves и ObsidianGate-Fixes.",
+                                    "ObsidianGate-Fixes остается в списке включенных паков, чтобы русские локализации и фиксы применялись сразу.",
+                                    "После применения создается маркер в .launcher-cache, поэтому дальнейшие ручные изменения игрока не сбрасываются."
                                 ],
                  "newMods":  [
-                                 "Applied Energistics 2",
-                                 "Thaumic Energistics"
+
                              ],
                  "removedMods":  [
 
                                  ],
                  "important":  [
-                                   "ME-метеориты и кварц AE2 появляются в новых чанках; после очистки карты это обновление хорошо ложится на свежий мир."
+                                   "Чтобы уже установленный клиент получил это поведение, нужен новый launcher update из этого релиза."
                                ]
              },
     "history":  [
+                    {
+                        "version":  "2026.05.26.10",
+                        "date":  "2026-05-26",
+                        "title":  "ME-системы и больше русского",
+                        "highlights":  [
+                                           "Добавлены Applied Energistics 2 и Thaumic Energistics: ME-терминалы, накопители, автокрафт и хранение эссенции.",
+                                           "Серверная сборка теперь тоже получает AE2 и Thaumic Energistics, чтобы блоки и генерация работали в мире.",
+                                           "Добавлены русские строки для Crafting Tweaks, Neat, Dynamic Trees BOP, Recurrent Complex, Chunk-Pregenerator и недостающих ключей AE2/Thaumic Energistics."
+                                       ]
+                    },
                     {
                         "version":  "2026.05.26.9",
                         "date":  "2026-05-26",
@@ -140,10 +149,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.26.10",
+                           "version":  "2026.05.27.1",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "19f145abf93f5e5b8bda10876ef472d94655f2ecf290cc0c1be496b2f1194df4",
-                           "size":  18089113,
+                           "sha256":  "a2970183e661d9afcca9d0d991aab9f32c99e3960897b21df25cea72381499db",
+                           "size":  18090414,
                            "required":  true,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
