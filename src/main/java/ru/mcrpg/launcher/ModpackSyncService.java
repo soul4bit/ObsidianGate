@@ -308,8 +308,8 @@ public final class ModpackSyncService {
 
         Path tempFile = Files.createTempFile(parent, target.getFileName().toString(), ".part");
         try {
-            long downloadedBytes = download(downloadUrl, tempFile, progressTracker);
-            verifyDownloadedFile(tempFile, file, inspection.getExpectedSha256());
+            DownloadUtils.DownloadResult downloadResult = download(downloadUrl, tempFile, progressTracker);
+            verifyDownloadedFile(downloadResult, file, inspection.getExpectedSha256());
             Files.move(tempFile, target, StandardCopyOption.REPLACE_EXISTING);
             verifiedFileCache.recordVerified(target, "SHA-256", inspection.getExpectedSha256());
 
@@ -318,7 +318,7 @@ public final class ModpackSyncService {
             }
 
             progressTracker.downloadCompleted(file);
-            return FileSyncOutcome.downloaded(downloadedBytes);
+            return FileSyncOutcome.downloaded(downloadResult.getBytes());
         } finally {
             Files.deleteIfExists(tempFile);
         }
@@ -381,13 +381,27 @@ public final class ModpackSyncService {
         );
     }
 
-    private static long download(URL downloadUrl, Path target, SyncProgressTracker progressTracker) throws IOException {
-        return DownloadUtils.download(downloadUrl, target, FILE_DOWNLOAD_READ_TIMEOUT_MS, progressTracker::bytesDownloaded);
+    private static DownloadUtils.DownloadResult download(
+        URL downloadUrl,
+        Path target,
+        SyncProgressTracker progressTracker
+    ) throws IOException {
+        return DownloadUtils.downloadWithDigest(
+            downloadUrl,
+            target,
+            FILE_DOWNLOAD_READ_TIMEOUT_MS,
+            "SHA-256",
+            progressTracker::bytesDownloaded
+        );
     }
 
-    private static void verifyDownloadedFile(Path path, ModpackFile file, String expectedSha256) throws IOException {
+    private static void verifyDownloadedFile(
+        DownloadUtils.DownloadResult downloadResult,
+        ModpackFile file,
+        String expectedSha256
+    ) throws IOException {
         if (file.getSize() != null && file.getSize().longValue() >= 0L) {
-            long actualSize = Files.size(path);
+            long actualSize = downloadResult.getBytes();
             if (actualSize != file.getSize().longValue()) {
                 throw new IOException(
                     "Размер файла " + file.getPath() + " не совпал. Ожидалось "
@@ -396,7 +410,7 @@ public final class ModpackSyncService {
             }
         }
 
-        String actualSha256 = ChecksumUtils.sha256(path);
+        String actualSha256 = downloadResult.getDigestHex();
         if (!actualSha256.equalsIgnoreCase(expectedSha256)) {
             throw new IOException(
                 "SHA-256 файла " + file.getPath() + " не совпал. Ожидалось "

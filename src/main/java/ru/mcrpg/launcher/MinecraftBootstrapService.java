@@ -458,12 +458,42 @@ public final class MinecraftBootstrapService {
         Path tempFile = Files.createTempFile(parent == null ? target.toAbsolutePath().getParent() : parent, "download-", ".part");
         try {
             log(logSink, "Скачиваем " + label + ": " + url);
-            download(url, tempFile);
-            verifyExistingFile(tempFile, expectedSha1, expectedSize, null);
+            DownloadUtils.DownloadResult downloadResult = download(
+                url,
+                tempFile,
+                hasText(expectedSha1) ? "SHA-1" : null
+            );
+            verifyDownloadedFile(tempFile, downloadResult, expectedSha1, expectedSize);
             Files.move(tempFile, target, StandardCopyOption.REPLACE_EXISTING);
-            verifiedFileCache.recordVerified(target, "SHA-1", expectedSha1);
+            if (verifiedFileCache != null && hasText(expectedSha1)) {
+                verifiedFileCache.recordVerified(target, "SHA-1", expectedSha1);
+            }
         } finally {
             Files.deleteIfExists(tempFile);
+        }
+    }
+
+    private static void verifyDownloadedFile(
+        Path target,
+        DownloadUtils.DownloadResult downloadResult,
+        String expectedSha1,
+        Long expectedSize
+    ) throws IOException {
+        if (expectedSize != null && expectedSize.longValue() >= 0L) {
+            long actualSize = downloadResult.getBytes();
+            if (actualSize != expectedSize.longValue()) {
+                throw new IOException(
+                    "Size mismatch for " + target + ". Expected " + expectedSize + ", got " + actualSize + "."
+                );
+            }
+        }
+        if (hasText(expectedSha1)) {
+            String actualSha1 = downloadResult.getDigestHex();
+            if (!actualSha1.equalsIgnoreCase(expectedSha1.trim())) {
+                throw new IOException(
+                    "SHA-1 mismatch for " + target + ". Expected " + expectedSha1 + ", got " + actualSha1 + "."
+                );
+            }
         }
     }
 
@@ -950,8 +980,9 @@ public final class MinecraftBootstrapService {
         }
     }
 
-    private static void download(URL url, Path target) throws IOException {
-        DownloadUtils.download(url, target, DOWNLOAD_READ_TIMEOUT_MS);
+    private static DownloadUtils.DownloadResult download(URL url, Path target, String digestAlgorithm)
+        throws IOException {
+        return DownloadUtils.downloadWithDigest(url, target, DOWNLOAD_READ_TIMEOUT_MS, digestAlgorithm);
     }
 
     private static void copy(InputStream inputStream, OutputStream outputStream) throws IOException {

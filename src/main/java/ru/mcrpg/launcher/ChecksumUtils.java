@@ -47,7 +47,7 @@ final class ChecksumUtils {
         return toHex(digest.digest());
     }
 
-    private static MessageDigest messageDigest(String algorithm) {
+    static MessageDigest messageDigest(String algorithm) {
         try {
             return MessageDigest.getInstance(algorithm);
         } catch (NoSuchAlgorithmException exception) {
@@ -55,7 +55,7 @@ final class ChecksumUtils {
         }
     }
 
-    private static String toHex(byte[] bytes) {
+    static String toHex(byte[] bytes) {
         char[] output = new char[bytes.length * 2];
         for (int index = 0; index < bytes.length; index++) {
             int value = bytes[index] & 0xff;

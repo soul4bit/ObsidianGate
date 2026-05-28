@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -33,6 +34,25 @@ class DownloadUtilsTest {
 
             assertEquals(payload.length, downloadedBytes);
             assertEquals("launcher-update", Files.readString(target, StandardCharsets.UTF_8));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void downloadCanReturnDigestFromCopiedBytes() throws Exception {
+        byte[] payload = "modpack-file".getBytes(StandardCharsets.UTF_8);
+        HttpServer server = createServer("/mod.jar", 200, payload);
+        try {
+            URL url = new URL("http://127.0.0.1:" + server.getAddress().getPort() + "/mod.jar");
+            Path target = tempDirectory.resolve("mod.jar");
+
+            DownloadUtils.DownloadResult result = DownloadUtils.downloadWithDigest(url, target, 2000, "SHA-256");
+
+            assertEquals(payload.length, result.getBytes());
+            assertEquals("SHA-256", result.getDigestAlgorithm());
+            assertEquals(ChecksumUtils.sha256(new ByteArrayInputStream(payload)), result.getDigestHex());
+            assertEquals("modpack-file", Files.readString(target, StandardCharsets.UTF_8));
         } finally {
             server.stop(0);
         }

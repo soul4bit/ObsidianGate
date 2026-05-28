@@ -114,8 +114,8 @@ final class KitCommand {
 
         try {
             List<Object> kitItems = createStartKit();
-            service.recordStartClaim(playerId, playerName);
             int dropped = giveItems(player, kitItems);
+            service.recordStartClaim(playerId, playerName);
             if (dropped > 0) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "выдан, но часть предметов выпала рядом: инвентарь заполнен.");
             } else {

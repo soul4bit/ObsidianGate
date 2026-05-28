@@ -9,6 +9,7 @@ public class EntityPlayerMP {
     public final double posX;
     public final double posY;
     public final double posZ;
+    public Object inventory;
     private final boolean operator;
 
     public EntityPlayerMP(UUID id, String name, int dimension, double x, double y, double z) {

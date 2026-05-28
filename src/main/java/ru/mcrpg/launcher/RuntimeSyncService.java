@@ -49,8 +49,8 @@ public final class RuntimeSyncService {
         Path archiveFile = Files.createTempFile(gameDirectory, "runtime-", ".zip");
         Path tempInstallDirectory = Files.createTempDirectory(gameDirectory, "runtime-install-");
         try {
-            download(downloadUrl, archiveFile);
-            verifyArchive(runtimePackage, archiveFile);
+            DownloadUtils.DownloadResult downloadResult = download(downloadUrl, archiveFile);
+            verifyArchive(runtimePackage, downloadResult);
             unzip(archiveFile, tempInstallDirectory);
 
             Path extractedJava = resolveJavaExecutable(tempInstallDirectory, runtimePackage);
@@ -155,9 +155,10 @@ public final class RuntimeSyncService {
         );
     }
 
-    private static void verifyArchive(RuntimePackage runtimePackage, Path archiveFile) throws IOException {
+    private static void verifyArchive(RuntimePackage runtimePackage, DownloadUtils.DownloadResult downloadResult)
+        throws IOException {
         if (runtimePackage.getSize() != null && runtimePackage.getSize().longValue() >= 0L) {
-            long actualSize = Files.size(archiveFile);
+            long actualSize = downloadResult.getBytes();
             if (actualSize != runtimePackage.getSize().longValue()) {
                 throw new IOException(
                     "Размер архива runtime не совпал. Ожидалось " + runtimePackage.getSize()
@@ -166,7 +167,7 @@ public final class RuntimeSyncService {
             }
         }
 
-        String actualSha256 = ChecksumUtils.sha256(archiveFile);
+        String actualSha256 = downloadResult.getDigestHex();
         if (!actualSha256.equalsIgnoreCase(runtimePackage.getSha256())) {
             throw new IOException(
                 "SHA-256 архива runtime не совпал. Ожидалось " + runtimePackage.getSha256()
@@ -210,8 +211,8 @@ public final class RuntimeSyncService {
         return resolved;
     }
 
-    private static long download(URL downloadUrl, Path target) throws IOException {
-        return DownloadUtils.download(downloadUrl, target, RUNTIME_DOWNLOAD_READ_TIMEOUT_MS);
+    private static DownloadUtils.DownloadResult download(URL downloadUrl, Path target) throws IOException {
+        return DownloadUtils.downloadWithDigest(downloadUrl, target, RUNTIME_DOWNLOAD_READ_TIMEOUT_MS, "SHA-256");
     }
 
     private static Path resolveInstallDirectory(Path gameDirectory, RuntimePackage runtimePackage) {
