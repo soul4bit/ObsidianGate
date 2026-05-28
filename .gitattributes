@@ -4,3 +4,4 @@ modpack/client/** -text
 # Linux deployment scripts and systemd units must stay LF on Windows checkouts.
 *.sh text eol=lf
 modpack/server/** text eol=lf
+modpack/server/mods/** -text
