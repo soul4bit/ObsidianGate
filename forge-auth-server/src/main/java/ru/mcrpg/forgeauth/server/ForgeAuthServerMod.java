@@ -94,7 +94,7 @@ public final class ForgeAuthServerMod {
         SpawnCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         WaypointTeleportCommand.register(event);
         CallCommand.register(event);
-        KitCommand.register(event, KIT_SERVICE);
+        KitCommand.register(event, KIT_SERVICE, LIFECYCLE);
         HomeCommand.register(event, HOME_SERVICE, TELEPORT_GUARD, LIFECYCLE);
         BackCommand.register(event, BACK_LOCATIONS, TELEPORT_GUARD, LIFECYCLE);
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);

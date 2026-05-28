@@ -45,6 +45,25 @@ class ForgeAuthServerLifecycleTest {
     }
 
     @Test
+    void accountIdForReturnsVerifiedLauncherAccount() throws Exception {
+        Map authStates = new ConcurrentHashMap();
+        Queue<Runnable> mainThreadActions = new ConcurrentLinkedQueue<Runnable>();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            FakePlayer player = new FakePlayer("Knight");
+            Object state = newState(player, "Knight", Instant.now());
+            setBoolean(state, "verified", true);
+            setString(state, "accountId", "account-123");
+            authStates.put("knight", state);
+            ForgeAuthServerLifecycle lifecycle = newLifecycle(authStates, mainThreadActions, executor);
+
+            assertTrue("account-123".equals(lifecycle.accountIdFor(player)));
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void timeoutDoesNotDisconnectWhileVerificationIsInFlight() throws Exception {
         Map authStates = new ConcurrentHashMap();
         Queue<Runnable> mainThreadActions = new ConcurrentLinkedQueue<Runnable>();
@@ -116,6 +135,12 @@ class ForgeAuthServerLifecycleTest {
         Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         field.setBoolean(target, value);
+    }
+
+    private static void setString(Object target, String name, String value) throws Exception {
+        Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     private static boolean getBoolean(Object target, String name) throws Exception {

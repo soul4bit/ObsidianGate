@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 final class KitCommand {
@@ -21,13 +20,13 @@ final class KitCommand {
     private KitCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, KitService service) {
+    static void register(FMLServerStartingEvent event, KitService service, PlayerRoleLookup auth) {
         try {
             Class<?> commandType = Class.forName("net.minecraft.command.ICommand");
             Object command = Proxy.newProxyInstance(
                 KitCommand.class.getClassLoader(),
                 new Class<?>[] { commandType },
-                new Handler(service)
+                new Handler(service, auth)
             );
             Method registerMethod = event.getClass().getMethod("registerServerCommand", commandType);
             registerMethod.invoke(event, command);
@@ -38,9 +37,11 @@ final class KitCommand {
 
     private static final class Handler implements InvocationHandler {
         private final KitService service;
+        private final PlayerRoleLookup auth;
 
-        private Handler(KitService service) {
+        private Handler(KitService service, PlayerRoleLookup auth) {
             this.service = service;
+            this.auth = auth;
         }
 
         @Override
@@ -56,7 +57,7 @@ final class KitCommand {
                 return Collections.emptyList();
             }
             if ("execute".equals(name) || "func_184881_a".equals(name)) {
-                execute(args[1], args[2], service);
+                execute(args[1], args[2], service, auth);
                 return null;
             }
             if ("checkPermission".equals(name) || "func_184882_a".equals(name)) {
@@ -92,7 +93,7 @@ final class KitCommand {
         }
     }
 
-    private static void execute(Object sender, Object arguments, KitService service) {
+    private static void execute(Object sender, Object arguments, KitService service, PlayerRoleLookup auth) {
         Object player = resolvePlayer(sender);
         if (player == null) {
             ServerChat.status(sender, ServerChat.Tone.ERROR, SUBJECT, "команду " + ServerChat.command("/kit") + " может использовать только игрок.");
@@ -105,9 +106,15 @@ final class KitCommand {
             return;
         }
 
-        String playerId = playerId(player);
         String playerName = playerName(player);
-        if (service.hasClaimedStart(playerId)) {
+        String accountId = auth == null ? "" : auth.accountIdFor(player);
+        if (accountId == null || accountId.trim().isEmpty()) {
+            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "доступен после подтверждения авторизации лаунчера.");
+            return;
+        }
+
+        String claimId = accountClaimId(accountId);
+        if (service.hasClaimedStart(claimId)) {
             ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "уже был получен на этом аккаунте.");
             return;
         }
@@ -115,7 +122,7 @@ final class KitCommand {
         try {
             List<Object> kitItems = createStartKit();
             int dropped = giveItems(player, kitItems);
-            service.recordStartClaim(playerId, playerName);
+            service.recordStartClaim(claimId, playerName);
             if (dropped > 0) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "выдан, но часть предметов выпала рядом: инвентарь заполнен.");
             } else {
@@ -235,12 +242,8 @@ final class KitCommand {
         return false;
     }
 
-    private static String playerId(Object player) {
-        Object uniqueId = invokeZeroArgIfPresent(player, "getUniqueID", "func_110124_au");
-        if (uniqueId instanceof UUID) {
-            return uniqueId.toString();
-        }
-        return "name:" + playerName(player).toLowerCase(Locale.ROOT);
+    private static String accountClaimId(String accountId) {
+        return "account:" + accountId.trim();
     }
 
     private static String playerName(Object player) {

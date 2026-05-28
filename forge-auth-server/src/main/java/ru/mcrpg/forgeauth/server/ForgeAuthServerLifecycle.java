@@ -225,6 +225,16 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         return state == null ? "player" : state.role;
     }
 
+    @Override
+    public String accountIdFor(Object player) {
+        String username = playerBridge.extractUsername(player);
+        if (username.isEmpty()) {
+            return "";
+        }
+        PlayerAuthState state = authStates.get(normalizeKey(username));
+        return state == null || !state.verified ? "" : state.accountId;
+    }
+
     private void verifyTicketAsync(String key, String expectedUsername, AuthTicketMessage message) {
         try {
             TicketVerificationResult result = verificationClient.verify(
@@ -264,6 +274,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         }
 
         state.verified = true;
+        state.accountId = result.getAccountId();
         state.role = result.getRole();
         chatAppearance.applyPlayerAppearance(state.player, state.role);
         logger.info(String.format(
@@ -358,6 +369,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         private final Instant connectedAt;
         private volatile boolean verificationInFlight;
         private volatile boolean verified;
+        private volatile String accountId = "";
         private volatile String role = "player";
 
         private PlayerAuthState(Object player, String username, Instant connectedAt) {
