@@ -56,6 +56,7 @@ $serverModPaths = @(
     "mods/Clumps-3.1.2.jar",
     "mods/crafttweaker2-1.12-4.1.20.jar",
     "mods/DivineRPG-1.7.1.jar",
+    "mods/DynamicSurroundings-1.12.2-3.6.1.0.jar",
     "mods/DynamicTrees-1.12.2-0.9.7.jar",
     "mods/DynamicTreesBOP-1.12.2-1.4.1e.jar",
     "mods/Erebus-1.0.32.jar",
@@ -65,6 +66,7 @@ $serverModPaths = @(
     "mods/ironchest-1.12.2-7.0.71.846.jar",
     "mods/IvToolkit-1.3.3-1.12.jar",
     "mods/Mantle-1.12-1.3.3.55.jar",
+    "mods/OreLib-1.12.2-3.6.0.1.jar",
     "mods/Patchouli-1.0-23.6.jar",
     "mods/Quark-r1.6-179.jar",
     "mods/randompatches-1.12.2-1.21.0.0.jar",
@@ -79,7 +81,8 @@ $serverModPaths = @(
     "mods/ThaumicAugmentation-1.12.2-2.1.14.jar",
     "mods/thaumicenergistics-2.2.4.jar",
     "mods/ThaumicInventoryScanning_1.12.2-2.0.10.jar",
-    "mods/twilightforest-1.12.2-3.11.1021-universal.jar"
+    "mods/twilightforest-1.12.2-3.11.1021-universal.jar",
+    "mods/TravelersBackpack-1.12.2-1.0.35.jar"
 )
 
 if (-not (Test-Path $manifestFullPath)) {

@@ -5,7 +5,7 @@ After=local-fs.target
 [Service]
 Type=oneshot
 Environment=SERVER_ROOT=/home/minecraft/mc-rpg
-Environment=WORLD_NAME=world
+Environment=WORLD_NAME=world-season-20260528
 Environment=BACKUP_ROOT=/home/minecraft/mc-rpg/backups/playerdata
 Environment=RETENTION=288
 ExecStart=/home/minecraft/mc-rpg/scripts/obsidiangate-playerdata-backup.sh

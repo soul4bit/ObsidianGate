@@ -63,6 +63,9 @@ Official page: https://modrinth.com/mod/crafting-tweaks
 DivineRPG
 Official page: https://www.curseforge.com/minecraft/mc-mods/official-divinerpg
 
+Dynamic Surroundings
+Official page: https://www.curseforge.com/minecraft/mc-mods/dynamic-surroundings
+
 Dynamic Trees
 Official page: https://www.curseforge.com/minecraft/mc-mods/dynamictrees
 
@@ -107,6 +110,9 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/mouse-tweaks
 
 Neat
 Official page: https://modrinth.com/mod/neat
+
+OreLib
+Official page: https://www.curseforge.com/minecraft/mc-mods/orelib
 
 Patchouli
 Official page: https://modrinth.com/mod/patchouli
@@ -158,6 +164,9 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/truetype-font-replac
 
 The Twilight Forest
 Official page: https://www.curseforge.com/minecraft/mc-mods/the-twilight-forest
+
+Traveler's Backpack
+Official page: https://modrinth.com/mod/travelersbackpack
 
 VanillaFix
 Official page: https://www.curseforge.com/minecraft/mc-mods/vanillafix

@@ -1,28 +1,42 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.28.8",
+    "version":  "2026.05.28.9",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
-                 "title":  "Вещи под защитой, сервер спокойнее",
+                 "title":  "Новый сезон: звуки, рюкзаки и чистая карта",
                  "date":  "2026-05-28",
-                 "body":  "Сделан безопасный пакет оптимизации: чистка дропа больше не трогает свежие предметы, инвентарь бэкапится чаще, опасные шорткаты Inventory Tweaks отключены, а лимиты chunkloading снижены, чтобы моды не держали лишние чанки.",
+                 "body":  "Запускаем свежую карту без старых инвентарей и старых прав. В сборку добавлены Dynamic Surroundings с OreLib для живой атмосферы, а также Traveler\u0027s Backpack для переносного хранения. Старый мир не удаляется сразу: он остаётся на сервере как запасной вариант, а активным станет новый мир.",
                  "highlights":  [
-                                    "Очистка дропа удаляет только предметы старше 30 минут и заранее предупреждает игроков.",
-                                    "Playerdata, stats и advancements теперь сохраняются каждые 5 минут, хранится 288 архивов.",
-                                    "Chunkloading и Inventory Tweaks настроены безопаснее, чтобы меньше лагало и меньше было случайных потерь."
+                                    "Добавлены Dynamic Surroundings и OreLib: больше атмосферных звуков, шагов и окружения на клиенте.",
+                                    "Добавлен Traveler\u0027s Backpack 1.12.2: рюкзаки работают на клиенте и сервере, удобно носить ресурсы в новом мире.",
+                                    "На сервере будет включена новая карта, а старые ops/admin-права и аккаунты очищаются перед сезоном."
                                 ],
                  "newMods":  [
-
+                                 "Dynamic Surroundings 1.12.2-3.6.1.0",
+                                 "OreLib 1.12.2-3.6.0.1",
+                                 "Traveler\u0027s Backpack 1.12.2-1.0.35"
                              ],
                  "removedMods":  [
 
                                  ],
                  "important":  [
-                                   "Вещи, выброшенные на землю, всё равно подчиняются обычному Minecraft despawn; ценный лут лучше складывать в сундуки."
-                               ]
+                                   "После сброса аккаунтов нужно зарегистрироваться заново в лаунчере.",
+                                   "Старый мир не выбран активным, поэтому новые игроки стартуют на чистой карте."
+                               ],
+                 "version":  "2026.05.28.9"
              },
     "history":  [
+                    {
+                        "version":  "2026.05.28.8",
+                        "date":  "2026-05-28",
+                        "title":  "Вещи под защитой, сервер спокойнее",
+                        "highlights":  [
+                                           "Очистка дропа удаляет только предметы старше 30 минут и заранее предупреждает игроков.",
+                                           "Playerdata, stats и advancements теперь сохраняются каждые 5 минут, хранится 288 архивов.",
+                                           "Chunkloading и Inventory Tweaks настроены безопаснее, чтобы меньше лагало и меньше было случайных потерь."
+                                       ]
+                    },
                     {
                         "version":  "2026.05.28.7",
                         "date":  "2026-05-28",
@@ -209,7 +223,7 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.28.8",
+                           "version":  "2026.05.28.9",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
                            "sha256":  "91dd1ac0f07cecb8365d743129c199d97f2963a81f2834c8573d98273fe5b126",
                            "size":  18096157,
@@ -1218,6 +1232,12 @@
                       "executable":  false
                   },
                   {
+                      "path":  "mods/DynamicSurroundings-1.12.2-3.6.1.0.jar",
+                      "sha256":  "5c3e26ab22aaf6ae4d89c487c9fdec6c6e99a88d71af371f9d6bdc984ee11546",
+                      "size":  15929762,
+                      "executable":  false
+                  },
+                  {
                       "path":  "mods/DynamicTrees-1.12.2-0.9.7.jar",
                       "sha256":  "a06ac23f60f334045eb314f685683b75db93d04815d08da570edeea89372607c",
                       "size":  789332,
@@ -1314,6 +1334,12 @@
                       "executable":  false
                   },
                   {
+                      "path":  "mods/OreLib-1.12.2-3.6.0.1.jar",
+                      "sha256":  "4483d8cc2b0334b82b7d0f5bb6354a2020a0e00ce63a48379e8ba5eb7d79eef9",
+                      "size":  341728,
+                      "executable":  false
+                  },
+                  {
                       "path":  "mods/Patchouli-1.0-23.6.jar",
                       "sha256":  "8fcceac75c71e0d041db734111200205d03431b7e8646f8209cf2c4de9afef7b",
                       "size":  472464,
@@ -1407,6 +1433,12 @@
                       "path":  "mods/ThaumicJEI-1.12.2-1.7.0.jar",
                       "sha256":  "df34181baa520fc3723c5a9a776e5ede1e550df55705cdb3bbeb9ed8675bc2fa",
                       "size":  58100,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/TravelersBackpack-1.12.2-1.0.35.jar",
+                      "sha256":  "39a7914b5a55b7d5ad5d1192c38a66b926895317e0426a359a529de2f8028581",
+                      "size":  397467,
                       "executable":  false
                   },
                   {
@@ -1579,8 +1611,8 @@
                   },
                   {
                       "path":  "THIRD_PARTY_MODS.txt",
-                      "sha256":  "ec7095234aab17231b551aaf78bfe614e09e9583a4df35f2d2e34473941466b1",
-                      "size":  5002,
+                      "sha256":  "b8f7441626a9978d9bcb6875a4a916c8472a61ecb898bbb064e7039899bdb82a",
+                      "size":  5259,
                       "executable":  false
                   }
               ]
