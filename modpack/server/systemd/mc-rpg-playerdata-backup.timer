@@ -1,0 +1,11 @@
+[Unit]
+Description=Frequent MC RPG playerdata backup
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+Unit=mc-rpg-playerdata-backup.service
+
+[Install]
+WantedBy=timers.target

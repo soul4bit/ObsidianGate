@@ -124,6 +124,10 @@ if [ -d "$STAGE_DIR/server/systemd" ]; then
         systemctl enable --now mc-rpg-world-backup.timer
         systemctl list-timers --all mc-rpg-world-backup.timer --no-pager
     fi
+    if [ -f /etc/systemd/system/mc-rpg-playerdata-backup.timer ]; then
+        systemctl enable --now mc-rpg-playerdata-backup.timer
+        systemctl list-timers --all mc-rpg-playerdata-backup.timer --no-pager
+    fi
 fi
 
 install -d "$WEB_ROOT"

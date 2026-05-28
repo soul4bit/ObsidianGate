@@ -1,0 +1,14 @@
+[Unit]
+Description=MC RPG playerdata backup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+Environment=SERVER_ROOT=/home/minecraft/mc-rpg
+Environment=WORLD_NAME=world
+Environment=BACKUP_ROOT=/home/minecraft/mc-rpg/backups/playerdata
+Environment=RETENTION=96
+ExecStart=/home/minecraft/mc-rpg/scripts/obsidiangate-playerdata-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
