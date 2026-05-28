@@ -1110,12 +1110,12 @@ public final class LauncherShellController extends AbstractScreenController {
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
         Button previousButton = newsOverlayButton("chevron-left", "Назад");
-        previousButton.getStyleClass().add("news-overlay-side-button");
+        previousButton.getStyleClass().add("news-overlay-bottom-button");
         previousButton.setDisable(index == 0);
         previousButton.setOnAction(event -> showNewsOverlay(index - 1));
 
         Button nextButton = newsOverlayButton("chevron-right", "Дальше");
-        nextButton.getStyleClass().add("news-overlay-side-button");
+        nextButton.getStyleClass().add("news-overlay-bottom-button");
         nextButton.setDisable(index >= currentNewsItems.size() - 1);
         nextButton.setOnAction(event -> showNewsOverlay(index + 1));
 
@@ -1125,20 +1125,18 @@ public final class LauncherShellController extends AbstractScreenController {
         HBox topBar = new HBox(10.0d, dateLabel, counterLabel, spacer(), closeButton);
         topBar.setAlignment(Pos.CENTER_LEFT);
 
-        VBox panel = new VBox(14.0d, topBar, scrollPane);
+        HBox navigation = new HBox(10.0d, previousButton, spacer(), nextButton);
+        navigation.setAlignment(Pos.CENTER_LEFT);
+        navigation.getStyleClass().add("news-overlay-navigation");
+
+        VBox panel = new VBox(14.0d, topBar, scrollPane, navigation);
         panel.getStyleClass().add("news-overlay-panel");
         panel.setMaxWidth(860.0d);
         panel.setMaxHeight(Double.MAX_VALUE);
         StackPane.setAlignment(panel, Pos.CENTER);
         StackPane.setMargin(panel, new Insets(16.0d, 22.0d, 16.0d, 22.0d));
 
-        StackPane overlayContent = new StackPane(panel, previousButton, nextButton);
-        StackPane.setAlignment(previousButton, Pos.CENTER_LEFT);
-        StackPane.setAlignment(nextButton, Pos.CENTER_RIGHT);
-        StackPane.setMargin(previousButton, new Insets(0.0d, 0.0d, 0.0d, 30.0d));
-        StackPane.setMargin(nextButton, new Insets(0.0d, 30.0d, 0.0d, 0.0d));
-
-        StackPane overlay = new StackPane(overlayContent);
+        StackPane overlay = new StackPane(panel);
         overlay.getStyleClass().add("news-overlay");
         overlay.setFocusTraversable(true);
         overlay.setOnKeyPressed(event -> {

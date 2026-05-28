@@ -1127,7 +1127,11 @@
     -fx-opacity: 0.35;
 }
 
-.button.news-overlay-side-button {
+.news-overlay-navigation {
+    -fx-padding: 2px 0 0 0;
+}
+
+.button.news-overlay-bottom-button {
     -fx-min-height: 36px;
     -fx-pref-height: 36px;
     -fx-background-color: rgba(15, 23, 42, 0.70);

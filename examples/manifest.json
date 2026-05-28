@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.28.6",
+    "version":  "2026.05.28.7",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Ночи стали опаснее",
@@ -199,10 +199,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.28.6",
+                           "version":  "2026.05.28.7",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "1a27f0b9422571e21eac13947c861c0cebf52af65e00d1b38d645c4ae3193706",
-                           "size":  18096163,
+                           "sha256":  "91dd1ac0f07cecb8365d743129c199d97f2963a81f2834c8573d98273fe5b126",
+                           "size":  18096157,
                            "required":  true,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
