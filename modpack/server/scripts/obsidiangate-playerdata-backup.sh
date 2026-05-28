@@ -4,7 +4,7 @@ set -eu
 SERVER_ROOT="${SERVER_ROOT:-/home/minecraft/mc-rpg}"
 WORLD_NAME="${WORLD_NAME:-world}"
 BACKUP_ROOT="${BACKUP_ROOT:-$SERVER_ROOT/backups/playerdata}"
-RETENTION="${RETENTION:-96}"
+RETENTION="${RETENTION:-288}"
 BACKUP_OWNER="${BACKUP_OWNER:-minecraft:minecraft}"
 LOCK_FILE="${LOCK_FILE:-/tmp/obsidiangate-playerdata-backup.lock}"
 

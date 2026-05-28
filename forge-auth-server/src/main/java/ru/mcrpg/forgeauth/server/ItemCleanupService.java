@@ -25,6 +25,7 @@ public final class ItemCleanupService {
     private static final Path CONFIG_PATH = Paths.get("config", "obsidiangate-item-cleanup.properties");
     private static final int TICKS_PER_SECOND = 20;
     private static final int DEFAULT_INTERVAL_SECONDS = 3600;
+    private static final int DEFAULT_MIN_AGE_SECONDS = 1800;
     private static final int MIN_INTERVAL_SECONDS = 60;
     private static final int MAX_INTERVAL_SECONDS = 86400;
     private static final String ENTITY_ITEM_CLASS_NAME = "net.minecraft.entity.item.EntityItem";
@@ -60,9 +61,10 @@ public final class ItemCleanupService {
         ticksUntilSecond = TICKS_PER_SECOND;
         warnedSeconds.clear();
         logger.info(String.format(
-            "Очистка предметов загружена. enabled=%s intervalSeconds=%d warnings=%s",
+            "Очистка предметов загружена. enabled=%s intervalSeconds=%d minAgeSeconds=%d warnings=%s",
             config.enabled,
             config.intervalSeconds,
+            config.minAgeSeconds,
             config.warningSeconds
         ));
     }
@@ -123,6 +125,7 @@ public final class ItemCleanupService {
         Config loaded = new Config(
             readBoolean(properties, "enabled", true),
             clampInterval(readInt(properties, "intervalSeconds", DEFAULT_INTERVAL_SECONDS)),
+            clampInterval(readInt(properties, "minAgeSeconds", DEFAULT_MIN_AGE_SECONDS)),
             readWarningSeconds(properties)
         );
 
@@ -136,6 +139,7 @@ public final class ItemCleanupService {
         Properties properties = new Properties();
         properties.setProperty("enabled", Boolean.toString(value.enabled));
         properties.setProperty("intervalSeconds", Integer.toString(value.intervalSeconds));
+        properties.setProperty("minAgeSeconds", Integer.toString(value.minAgeSeconds));
         properties.setProperty("warningSeconds", joinIntegers(value.warningSeconds));
 
         try {
@@ -160,7 +164,7 @@ public final class ItemCleanupService {
                 continue;
             }
             for (Object entity : new ArrayList<Object>((List<?>) entities)) {
-                if (isDroppedItem(entity) && !isDead(entity)) {
+                if (isDroppedItem(entity) && !isDead(entity) && isOldEnoughToClean(entity, config.minAgeSeconds)) {
                     invokeZeroArgIfPresent(entity, "setDead", "func_70106_y");
                     removed++;
                 }
@@ -250,6 +254,18 @@ public final class ItemCleanupService {
     private static boolean isDead(Object entity) {
         Object value = readFieldIfPresent(entity, "isDead", "field_70128_L");
         return Boolean.TRUE.equals(value);
+    }
+
+    private static boolean isOldEnoughToClean(Object entity, int minAgeSeconds) {
+        if (minAgeSeconds <= 0) {
+            return true;
+        }
+        Object value = readFieldIfPresent(entity, "age", "field_70292_b");
+        if (!(value instanceof Number)) {
+            return false;
+        }
+        int ageTicks = ((Number) value).intValue();
+        return ageTicks >= minAgeSeconds * TICKS_PER_SECOND;
     }
 
     private static boolean isEndPhase(Object event) {
@@ -400,11 +416,13 @@ public final class ItemCleanupService {
     static final class Config {
         final boolean enabled;
         final int intervalSeconds;
+        final int minAgeSeconds;
         final Set<Integer> warningSeconds;
 
-        private Config(boolean enabled, int intervalSeconds, Set<Integer> warningSeconds) {
+        private Config(boolean enabled, int intervalSeconds, int minAgeSeconds, Set<Integer> warningSeconds) {
             this.enabled = enabled;
             this.intervalSeconds = intervalSeconds;
+            this.minAgeSeconds = minAgeSeconds;
             this.warningSeconds = new HashSet<>(warningSeconds);
         }
 
@@ -412,7 +430,7 @@ public final class ItemCleanupService {
             Set<Integer> warnings = new HashSet<>();
             warnings.add(Integer.valueOf(60));
             warnings.add(Integer.valueOf(5));
-            return new Config(true, DEFAULT_INTERVAL_SECONDS, warnings);
+            return new Config(true, DEFAULT_INTERVAL_SECONDS, DEFAULT_MIN_AGE_SECONDS, warnings);
         }
     }
 }
