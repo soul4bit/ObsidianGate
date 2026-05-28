@@ -128,6 +128,9 @@ public final class LauncherIcons {
             case "trash" -> stroke("M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7");
             case "download" -> stroke("M12 3v12M7 10l5 5 5-5M5 21h14");
             case "logout" -> stroke("M10 17l5-5-5-5M15 12H3M21 4v16h-8");
+            case "chevron-left" -> stroke("M15 18l-6-6 6-6");
+            case "chevron-right" -> stroke("M9 6l6 6-6 6");
+            case "x" -> stroke("M7 7l10 10M17 7 7 17");
             case "window-minimize" -> stroke("M6 12h12");
             case "window-close" -> stroke("M7 7l10 10M17 7 7 17");
             default -> fill("M4 4h16v16H4z");
