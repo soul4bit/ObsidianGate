@@ -26,11 +26,13 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
@@ -40,6 +42,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Arc;
 import javafx.util.Duration;
@@ -92,12 +95,17 @@ public final class LauncherShellController extends AbstractScreenController {
     private Timeline heroPortalEnergyTimeline;
     private Timeline playButtonFeedbackTimeline;
     private Timeline playButtonPulseTimeline;
+    private List<NewsItem> currentNewsItems = Collections.emptyList();
+    private StackPane newsOverlay;
 
     @FXML
     private Label brandLogoLabel;
 
     @FXML
     private Label sidebarVersionLabel;
+
+    @FXML
+    private StackPane launcherShellRoot;
 
     @FXML
     private Button homeNavButton;
@@ -751,7 +759,11 @@ public final class LauncherShellController extends AbstractScreenController {
 
     @FXML
     private void openNews() {
-        requestNewsRefresh();
+        if (currentNewsItems.isEmpty()) {
+            requestNewsRefresh();
+            return;
+        }
+        showNewsOverlay(0);
     }
 
     @FXML
@@ -962,6 +974,7 @@ public final class LauncherShellController extends AbstractScreenController {
             return;
         }
         if (error != null && !error.trim().isEmpty()) {
+            currentNewsItems = Collections.emptyList();
             newsListBox.getChildren().setAll(newsState(
                 "Новости недоступны",
                 shorten(error, 96),
@@ -973,6 +986,7 @@ public final class LauncherShellController extends AbstractScreenController {
             return;
         }
         if (items.isEmpty()) {
+            currentNewsItems = Collections.emptyList();
             newsListBox.getChildren().setAll(newsState(
                 "Новостей пока нет",
                 "Manifest загружен, но блок новостей пуст.",
@@ -984,9 +998,11 @@ public final class LauncherShellController extends AbstractScreenController {
             return;
         }
 
+        currentNewsItems = new ArrayList<NewsItem>(items);
         List<Node> rows = new ArrayList<Node>();
-        for (NewsItem item : items) {
-            rows.add(newsRow(item));
+        int visibleItems = Math.min(items.size(), NEWS_ITEM_LIMIT);
+        for (int index = 0; index < visibleItems; index++) {
+            rows.add(newsRow(items.get(index), index));
         }
         newsListBox.getChildren().setAll(rows);
     }
@@ -1033,7 +1049,7 @@ public final class LauncherShellController extends AbstractScreenController {
         return row;
     }
 
-    private static Node newsRow(NewsItem item) {
+    private Node newsRow(NewsItem item, int index) {
         Label dateLabel = new Label(item.date());
         dateLabel.getStyleClass().add("news-date");
         dateLabel.setMinWidth(62.0d);
@@ -1052,7 +1068,139 @@ public final class LauncherShellController extends AbstractScreenController {
 
         HBox row = new HBox(12.0d, dateLabel, body);
         row.setAlignment(Pos.TOP_LEFT);
+        row.getStyleClass().add("news-row");
+        row.setOnMouseClicked(event -> showNewsOverlay(index));
         return row;
+    }
+
+    private void showNewsOverlay(int requestedIndex) {
+        if (launcherShellRoot == null || currentNewsItems.isEmpty()) {
+            return;
+        }
+
+        int index = Math.max(0, Math.min(requestedIndex, currentNewsItems.size() - 1));
+        NewsItem item = currentNewsItems.get(index);
+        closeNewsOverlay();
+
+        Label dateLabel = new Label(item.date());
+        dateLabel.getStyleClass().add("news-overlay-date");
+
+        Label counterLabel = new Label((index + 1) + " / " + currentNewsItems.size());
+        counterLabel.getStyleClass().add("news-overlay-counter");
+
+        Label titleLabel = new Label(item.fullTitle());
+        titleLabel.getStyleClass().add("news-overlay-title");
+        titleLabel.setWrapText(true);
+
+        Label bodyLabel = new Label(item.fullText());
+        bodyLabel.getStyleClass().add("news-overlay-body");
+        bodyLabel.setWrapText(true);
+
+        VBox content = new VBox(12.0d, titleLabel, bodyLabel);
+        addNewsSection(content, "Важное", item.important());
+        addNewsSection(content, "Главное", item.highlights());
+        addNewsSection(content, "Новые моды", item.newMods());
+        addNewsSection(content, "Удалено", item.removedMods());
+
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.getStyleClass().add("news-overlay-scroll");
+
+        Button previousButton = newsOverlayButton("chevron-left", "Назад");
+        previousButton.setDisable(index == 0);
+        previousButton.setOnAction(event -> showNewsOverlay(index - 1));
+
+        Button nextButton = newsOverlayButton("chevron-right", "Дальше");
+        nextButton.setDisable(index >= currentNewsItems.size() - 1);
+        nextButton.setOnAction(event -> showNewsOverlay(index + 1));
+
+        Button closeButton = newsOverlayButton("x", "Закрыть");
+        closeButton.setOnAction(event -> closeNewsOverlay());
+
+        HBox topBar = new HBox(10.0d, dateLabel, counterLabel, spacer(), closeButton);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        HBox navigation = new HBox(10.0d, previousButton, spacer(), nextButton);
+        navigation.setAlignment(Pos.CENTER_LEFT);
+
+        VBox panel = new VBox(14.0d, topBar, scrollPane, navigation);
+        panel.getStyleClass().add("news-overlay-panel");
+        panel.setMaxWidth(640.0d);
+        panel.setMaxHeight(520.0d);
+        StackPane.setAlignment(panel, Pos.CENTER);
+        StackPane.setMargin(panel, new Insets(22.0d));
+
+        StackPane overlay = new StackPane(panel);
+        overlay.getStyleClass().add("news-overlay");
+        overlay.setFocusTraversable(true);
+        overlay.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                event.consume();
+                closeNewsOverlay();
+            } else if (event.getCode() == KeyCode.LEFT && index > 0) {
+                event.consume();
+                showNewsOverlay(index - 1);
+            } else if (event.getCode() == KeyCode.RIGHT && index < currentNewsItems.size() - 1) {
+                event.consume();
+                showNewsOverlay(index + 1);
+            }
+        });
+        overlay.setOnMouseClicked(event -> {
+            if (event.getTarget() == overlay) {
+                closeNewsOverlay();
+            }
+        });
+
+        newsOverlay = overlay;
+        launcherShellRoot.getChildren().add(overlay);
+        Platform.runLater(overlay::requestFocus);
+    }
+
+    private void closeNewsOverlay() {
+        if (newsOverlay == null || launcherShellRoot == null) {
+            newsOverlay = null;
+            return;
+        }
+        launcherShellRoot.getChildren().remove(newsOverlay);
+        newsOverlay = null;
+    }
+
+    private static Button newsOverlayButton(String iconName, String tooltipText) {
+        Button button = new Button();
+        button.setMnemonicParsing(false);
+        button.setGraphic(LauncherIcons.icon(iconName, 16.0d, "#f8fafc"));
+        button.getStyleClass().add("news-overlay-button");
+        button.setTooltip(new Tooltip(tooltipText));
+        return button;
+    }
+
+    private static Region spacer() {
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        return spacer;
+    }
+
+    private static void addNewsSection(VBox content, String title, List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("news-overlay-section-title");
+
+        VBox list = new VBox(6.0d);
+        for (String value : values) {
+            if (!hasText(value)) {
+                continue;
+            }
+            Label itemLabel = new Label("• " + value.trim());
+            itemLabel.getStyleClass().add("news-overlay-list-item");
+            itemLabel.setWrapText(true);
+            list.getChildren().add(itemLabel);
+        }
+        if (!list.getChildren().isEmpty()) {
+            content.getChildren().add(new VBox(7.0d, titleLabel, list));
+        }
     }
 
     private static String packDisplayName(ModpackManifest manifest) {
@@ -1129,10 +1277,7 @@ public final class LauncherShellController extends AbstractScreenController {
         for (ModpackNews news : manifest.getHistory()) {
             addNewsItem(items, news, manifest.getVersion());
         }
-        if (items.size() <= NEWS_ITEM_LIMIT) {
-            return items;
-        }
-        return new ArrayList<NewsItem>(items.subList(0, NEWS_ITEM_LIMIT));
+        return items;
     }
 
     private static void addNewsItem(List<NewsItem> items, ModpackNews news, String manifestVersion) {
@@ -1159,7 +1304,24 @@ public final class LauncherShellController extends AbstractScreenController {
             firstListText(news.getRemovedMods()),
             "Изменения сборки доступны для установки."
         );
-        return new NewsItem(shorten(date, 18), shorten(title, 44), shorten(text, 72));
+        return new NewsItem(
+            shorten(date, 18),
+            shorten(title, 44),
+            title,
+            shorten(text, 72),
+            firstText(news.getBody(), "Изменения сборки доступны для установки."),
+            safeList(news.getHighlights()),
+            safeList(news.getNewMods()),
+            safeList(news.getRemovedMods()),
+            safeList(news.getImportant())
+        );
+    }
+
+    private static List<String> safeList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<String>(values);
     }
 
     private static String firstListText(List<String> values) {
@@ -1469,7 +1631,17 @@ public final class LauncherShellController extends AbstractScreenController {
     private record LaunchStartResult(long pid, Path logFile, ModpackSyncResult syncResult) {
     }
 
-    private record NewsItem(String date, String title, String text) {
+    private record NewsItem(
+        String date,
+        String title,
+        String fullTitle,
+        String text,
+        String fullText,
+        List<String> highlights,
+        List<String> newMods,
+        List<String> removedMods,
+        List<String> important
+    ) {
     }
 
     private void applyServerAddress() {

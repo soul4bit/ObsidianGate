@@ -14,7 +14,8 @@
 <?import javafx.scene.shape.Arc?>
 <?import javafx.scene.shape.Circle?>
 
-<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+<StackPane fx:id="launcherShellRoot"
+           xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="ru.mcrpg.launcher.LauncherShellController"
            styleClass="launcher-shell">
     <children>
