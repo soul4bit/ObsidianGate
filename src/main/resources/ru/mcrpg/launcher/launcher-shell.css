@@ -997,12 +997,12 @@
 }
 
 .news-overlay {
-    -fx-padding: 20px;
+    -fx-padding: 10px;
     -fx-background-color: rgba(2, 6, 14, 0.68);
 }
 
 .news-overlay-panel {
-    -fx-padding: 18px;
+    -fx-padding: 18px 20px 18px 20px;
     -fx-background-color:
         linear-gradient(to bottom, rgba(13, 26, 43, 0.98), rgba(5, 12, 23, 0.98)),
         radial-gradient(center 8% 0%, radius 120%, rgba(34, 197, 94, 0.10), transparent);
@@ -1036,6 +1036,49 @@
 }
 
 .news-overlay-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.news-overlay-scroll .scroll-bar:vertical,
+.news-overlay-scroll .scroll-bar:horizontal {
+    -fx-background-color: rgba(5, 13, 25, 0.82);
+    -fx-background-radius: 999px;
+    -fx-border-color: rgba(148, 163, 184, 0.16);
+    -fx-border-radius: 999px;
+    -fx-padding: 2px;
+}
+
+.news-overlay-scroll .scroll-bar:vertical {
+    -fx-pref-width: 10px;
+}
+
+.news-overlay-scroll .scroll-bar .track {
+    -fx-background-color: rgba(8, 17, 30, 0.76);
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+}
+
+.news-overlay-scroll .scroll-bar .thumb {
+    -fx-background-color: linear-gradient(to bottom, #22c55e, #7c3aed);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 1px;
+}
+
+.news-overlay-scroll .scroll-bar .increment-button,
+.news-overlay-scroll .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+}
+
+.news-overlay-scroll .scroll-bar .increment-arrow,
+.news-overlay-scroll .scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.news-overlay-scroll .corner {
     -fx-background-color: transparent;
 }
 
@@ -1082,6 +1125,12 @@
 
 .button.news-overlay-button:disabled {
     -fx-opacity: 0.35;
+}
+
+.button.news-overlay-side-button {
+    -fx-min-height: 36px;
+    -fx-pref-height: 36px;
+    -fx-background-color: rgba(15, 23, 42, 0.70);
 }
 
 .footer {
