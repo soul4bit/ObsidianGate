@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,7 +40,7 @@ final class KitService {
             }
         }
         loaded = true;
-        logger.info(String.format("Выдачи китов загружены из %s. Записей=%d", claimsPath, claims.size()));
+        logger.info(String.format("Выдачи китов загружены из %s. Записей=%d", claimsPath, claimCount()));
     }
 
     synchronized boolean hasClaimedStart(String playerId) {
@@ -48,8 +49,17 @@ final class KitService {
     }
 
     synchronized void recordStartClaim(String playerId, String playerName) {
+        recordStartClaim(playerId, playerName, "", "");
+    }
+
+    synchronized void recordStartClaim(String playerId, String playerName, String accountId, String playerUuid) {
         ensureLoaded();
-        claims.setProperty(startKitKey(playerId), playerName == null ? "" : playerName);
+        String key = startKitKey(playerId);
+        claims.setProperty(key, playerName == null ? "" : playerName);
+        claims.setProperty(key + ".accountId", accountId == null ? "" : accountId.trim());
+        claims.setProperty(key + ".playerName", playerName == null ? "" : playerName.trim());
+        claims.setProperty(key + ".playerUuid", playerUuid == null ? "" : playerUuid.trim());
+        claims.setProperty(key + ".claimedAt", Instant.now().toString());
         save();
     }
 
@@ -71,6 +81,17 @@ final class KitService {
         } catch (IOException exception) {
             throw new IllegalStateException("Не удалось сохранить выдачи китов.", exception);
         }
+    }
+
+    private int claimCount() {
+        int count = 0;
+        for (Object key : claims.keySet()) {
+            String name = String.valueOf(key);
+            if (name.startsWith(START_KIT_PREFIX) && name.indexOf('.', START_KIT_PREFIX.length()) < 0) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static String startKitKey(String playerId) {

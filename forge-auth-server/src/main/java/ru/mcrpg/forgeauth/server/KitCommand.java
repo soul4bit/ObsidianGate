@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 final class KitCommand {
@@ -122,7 +123,7 @@ final class KitCommand {
         try {
             List<Object> kitItems = createStartKit();
             int dropped = giveItems(player, kitItems);
-            service.recordStartClaim(claimId, playerName);
+            service.recordStartClaim(claimId, playerName, accountId, playerUuid(player));
             if (dropped > 0) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "выдан, но часть предметов выпала рядом: инвентарь заполнен.");
             } else {
@@ -249,6 +250,11 @@ final class KitCommand {
     private static String playerName(Object player) {
         Object name = invokeZeroArgIfPresent(player, "getName", "func_70005_c_");
         return name == null ? "unknown" : name.toString();
+    }
+
+    private static String playerUuid(Object player) {
+        Object uniqueId = invokeZeroArgIfPresent(player, "getUniqueID", "func_110124_au");
+        return uniqueId instanceof UUID ? uniqueId.toString() : "";
     }
 
     private static int compareTo(Object other) {

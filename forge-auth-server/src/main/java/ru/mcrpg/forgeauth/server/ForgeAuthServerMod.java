@@ -34,6 +34,7 @@ public final class ForgeAuthServerMod {
     private static final ForgeAuthServerLifecycle LIFECYCLE = new ForgeAuthServerLifecycle(LOGGER);
     private static final SpawnProtectionService SPAWN_PROTECTION = new SpawnProtectionService(LOGGER);
     private static final ItemCleanupService ITEM_CLEANUP = new ItemCleanupService(LOGGER);
+    private static final RandomLightningService RANDOM_LIGHTNING = new RandomLightningService(LOGGER);
     private static final KitService KIT_SERVICE = new KitService(LOGGER);
     private static final FirstJoinWelcomeService FIRST_JOIN_WELCOME = new FirstJoinWelcomeService(LOGGER);
     private static final HomeService HOME_SERVICE = new HomeService(LOGGER);
@@ -59,6 +60,7 @@ public final class ForgeAuthServerMod {
         channel.registerMessage(AuthTicketMessageHandler.class, AuthTicketMessage.class, 0, net.minecraftforge.fml.relauncher.Side.SERVER);
         SPAWN_PROTECTION.load();
         ITEM_CLEANUP.load();
+        RANDOM_LIGHTNING.load();
         KIT_SERVICE.load();
         FIRST_JOIN_WELCOME.load();
         HOME_SERVICE.load();
@@ -69,6 +71,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(SPAWN_PROTECTION);
         MinecraftForge.EVENT_BUS.register(PLAYER_REGION_PROTECTION);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
+        MinecraftForge.EVENT_BUS.register(RANDOM_LIGHTNING);
         MinecraftForge.EVENT_BUS.register(TELEPORT_GUARD);
         MinecraftForge.EVENT_BUS.register(BACK_LOCATIONS);
         MinecraftForge.EVENT_BUS.register(HOME_RESPAWN);
