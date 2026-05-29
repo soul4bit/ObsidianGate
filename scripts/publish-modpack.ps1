@@ -5,6 +5,10 @@ param(
     [string]$ServerSourceDir = "modpack/server",
     [string]$DistDir = "dist",
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
+    [string]$PublicBaseUrl = $env:OBSIDIANGATE_PUBLIC_BASE_URL,
+    [string]$PublicServerHost = $env:OBSIDIANGATE_PUBLIC_SERVER_HOST,
+    [int]$PublicServerPort = [int]($env:OBSIDIANGATE_PUBLIC_SERVER_PORT -as [int]),
+    [string]$PublicAuthBaseUrl = $env:OBSIDIANGATE_PUBLIC_AUTH_BASE_URL,
     [switch]$SkipSourceManifestUpdate,
     [switch]$SkipLauncherRelease,
     [string]$Target = "mc-rpg-deploy",
@@ -57,6 +61,10 @@ if (-not $WhatIfPreference -and -not $SkipConnectivityCheck) {
     -ServerSourceDir $ServerSourceDir `
     -DistDir $DistDir `
     -ManifestVersion $ManifestVersion `
+    -PublicBaseUrl $PublicBaseUrl `
+    -PublicServerHost $PublicServerHost `
+    -PublicServerPort $PublicServerPort `
+    -PublicAuthBaseUrl $PublicAuthBaseUrl `
     -SkipSourceManifestUpdate:$SkipSourceManifestUpdate `
     -SkipLauncherRelease:$SkipLauncherRelease
 

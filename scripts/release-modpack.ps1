@@ -7,6 +7,10 @@ param(
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
     [string]$LauncherUpdatePath = "client/launcher/obsidian-gate-launcher.jar",
     [string]$LauncherBootstrapSourceDir = "launcher/windows",
+    [string]$PublicBaseUrl = $env:OBSIDIANGATE_PUBLIC_BASE_URL,
+    [string]$PublicServerHost = $env:OBSIDIANGATE_PUBLIC_SERVER_HOST,
+    [int]$PublicServerPort = [int]($env:OBSIDIANGATE_PUBLIC_SERVER_PORT -as [int]),
+    [string]$PublicAuthBaseUrl = $env:OBSIDIANGATE_PUBLIC_AUTH_BASE_URL,
     [switch]$SkipSourceManifestUpdate,
     [switch]$SkipAuthRelease,
     [switch]$SkipLauncherRelease
@@ -126,6 +130,59 @@ function Test-RelativeContentPath {
         return $false
     }
     return -not $trimmed.StartsWith("/")
+}
+
+function Test-HasText {
+    param(
+        [AllowNull()]
+        [string]$Value
+    )
+
+    return -not [string]::IsNullOrWhiteSpace($Value)
+}
+
+function Apply-PublicManifestOverrides {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Manifest
+    )
+
+    if (Test-HasText $PublicBaseUrl) {
+        $Manifest.baseUrl = $PublicBaseUrl.Trim()
+    }
+
+    if (-not $Manifest.PSObject.Properties.Name.Contains("launcher") -or $null -eq $Manifest.launcher) {
+        $Manifest | Add-Member -NotePropertyName "launcher" -NotePropertyValue ([pscustomobject]@{})
+    }
+
+    if (Test-HasText $PublicServerHost) {
+        Set-ManifestProperty -Target $Manifest.launcher -Name "serverHost" -Value $PublicServerHost.Trim()
+    }
+    if ($PublicServerPort -gt 0) {
+        Set-ManifestProperty -Target $Manifest.launcher -Name "serverPort" -Value $PublicServerPort
+    }
+    if (Test-HasText $PublicAuthBaseUrl) {
+        Set-ManifestProperty -Target $Manifest.launcher -Name "authBaseUrl" -Value $PublicAuthBaseUrl.Trim()
+    }
+}
+
+function Set-ManifestProperty {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Target,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [AllowNull()]
+        [object]$Value
+    )
+
+    if ($Target.PSObject.Properties.Name.Contains($Name)) {
+        $Target.$Name = $Value
+    } else {
+        $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+    }
 }
 
 function Get-RelativePath {
@@ -534,12 +591,14 @@ Get-ChildItem $distClientRoot -Recurse -File -Force |
 
 $manifest.files = @($manifestFiles)
 
+if (-not $SkipSourceManifestUpdate) {
+    $sourceManifestJson = $manifest | ConvertTo-Json -Depth 10
+    Write-Utf8NoBom -Path $manifestFullPath -Content ($sourceManifestJson + [Environment]::NewLine)
+}
+
+Apply-PublicManifestOverrides -Manifest $manifest
 $manifestJson = $manifest | ConvertTo-Json -Depth 10
 Write-Utf8NoBom -Path $distManifestPath -Content ($manifestJson + [Environment]::NewLine)
-
-if (-not $SkipSourceManifestUpdate) {
-    Write-Utf8NoBom -Path $manifestFullPath -Content ($manifestJson + [Environment]::NewLine)
-}
 
 $metadata = [pscustomobject][ordered]@{
     generatedAt = (Get-Date).ToString("o")
