@@ -45,6 +45,7 @@ public final class ForgeAuthServerMod {
     private static final PlayerRegionService PLAYER_REGIONS = new PlayerRegionService(LOGGER);
     private static final PlayerRegionProtectionService PLAYER_REGION_PROTECTION =
         new PlayerRegionProtectionService(LOGGER, PLAYER_REGIONS);
+    private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER, PLAYER_REGION_PROTECTION);
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -72,6 +73,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(FIRST_JOIN_WELCOME);
         MinecraftForge.EVENT_BUS.register(SPAWN_PROTECTION);
         MinecraftForge.EVENT_BUS.register(PLAYER_REGION_PROTECTION);
+        MinecraftForge.EVENT_BUS.register(TREE_FELLING);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
         MinecraftForge.EVENT_BUS.register(RANDOM_LIGHTNING);
         MinecraftForge.EVENT_BUS.register(JUDGEMENT_NIGHT);
