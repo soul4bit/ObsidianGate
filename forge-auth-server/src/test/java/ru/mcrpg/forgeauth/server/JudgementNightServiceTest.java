@@ -1,6 +1,7 @@
 package ru.mcrpg.forgeauth.server;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -25,8 +26,39 @@ class JudgementNightServiceTest {
         assertTrue(Files.exists(configPath));
         assertTrue(service.config().enabled);
         assertEquals(7, service.config().periodDays);
-        assertEquals(30, service.config().waveIntervalSeconds);
-        assertEquals(6, service.config().mobsPerPlayer);
-        assertEquals(36, service.config().maxHostilesNearPlayer);
+        assertEquals(20, service.config().waveIntervalSeconds);
+        assertEquals(10, service.config().mobsPerPlayer);
+        assertEquals(64, service.config().maxHostilesNearPlayer);
+    }
+
+    @Test
+    void usesActualSeventhDayMultiples() {
+        JudgementNightService.Config config = JudgementNightService.Config.defaults();
+
+        assertTrue(JudgementNightService.isJudgementNight(new FakeWorld(7L * 24000L + 13000L), config));
+        assertTrue(JudgementNightService.isJudgementNight(new FakeWorld(14L * 24000L + 13000L), config));
+        assertTrue(JudgementNightService.isJudgementNight(new FakeWorld(21L * 24000L + 13000L), config));
+        assertEquals(14L, JudgementNightService.dayNumber(new FakeWorld(14L * 24000L + 13000L)));
+    }
+
+    @Test
+    void ignoresNonJudgementDays() {
+        JudgementNightService.Config config = JudgementNightService.Config.defaults();
+
+        assertEquals(13L, JudgementNightService.dayNumber(new FakeWorld(13L * 24000L + 13000L)));
+        assertFalse(JudgementNightService.isJudgementNight(new FakeWorld(13L * 24000L + 13000L), config));
+        assertFalse(JudgementNightService.isJudgementNight(new FakeWorld(14L * 24000L + 11999L), config));
+    }
+
+    static final class FakeWorld {
+        private final long worldTime;
+
+        FakeWorld(long worldTime) {
+            this.worldTime = worldTime;
+        }
+
+        public long getWorldTime() {
+            return worldTime;
+        }
     }
 }

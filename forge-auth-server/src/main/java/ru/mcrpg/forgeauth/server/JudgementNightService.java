@@ -28,7 +28,9 @@ final class JudgementNightService {
         "net.minecraft.entity.monster.EntityZombie",
         "net.minecraft.entity.monster.EntitySkeleton",
         "net.minecraft.entity.monster.EntitySpider",
-        "net.minecraft.entity.monster.EntityCreeper"
+        "net.minecraft.entity.monster.EntityCreeper",
+        "net.minecraft.entity.monster.EntityWitch",
+        "net.minecraft.entity.monster.EntityEnderman"
     };
 
     private final Logger logger;
@@ -191,15 +193,15 @@ final class JudgementNightService {
         Config loaded = new Config(
             readBoolean(properties, "enabled", true),
             clamp(readInt(properties, "periodDays", 7), 2, 100),
-            clamp(readInt(properties, "waveIntervalSeconds", 30), 10, 3600),
-            clamp(readInt(properties, "mobsPerPlayer", 6), 1, 40),
-            clamp(readInt(properties, "maxHostilesNearPlayer", 36), 1, 200),
-            clamp(readInt(properties, "densityCheckRadius", 64), 16, 256),
-            clamp(readInt(properties, "minSpawnRadius", 24), 8, 256),
-            clamp(readInt(properties, "maxSpawnRadius", 56), 8, 512),
+            clamp(readInt(properties, "waveIntervalSeconds", 20), 10, 3600),
+            clamp(readInt(properties, "mobsPerPlayer", 10), 1, 40),
+            clamp(readInt(properties, "maxHostilesNearPlayer", 64), 1, 200),
+            clamp(readInt(properties, "densityCheckRadius", 72), 16, 256),
+            clamp(readInt(properties, "minSpawnRadius", 18), 8, 256),
+            clamp(readInt(properties, "maxSpawnRadius", 64), 8, 512),
             readInt(properties, "dimension", 0),
-            clamp(readInt(properties, "nightStartTick", 12500), 0, 23999),
-            clamp(readInt(properties, "nightEndTick", 23500), 0, 23999)
+            clamp(readInt(properties, "nightStartTick", 12000), 0, 23999),
+            clamp(readInt(properties, "nightEndTick", 23999), 0, 23999)
         ).normalized();
 
         if (!Files.exists(configPath)) {
@@ -235,7 +237,7 @@ final class JudgementNightService {
         }
     }
 
-    private static boolean isJudgementNight(Object world, Config config) {
+    static boolean isJudgementNight(Object world, Config config) {
         if (world == null) {
             return false;
         }
@@ -244,8 +246,8 @@ final class JudgementNightService {
         return day > 0L && day % config.periodDays == 0L && tick >= config.nightStartTick && tick <= config.nightEndTick;
     }
 
-    private static long dayNumber(Object world) {
-        return worldTime(world) / 24000L + 1L;
+    static long dayNumber(Object world) {
+        return worldTime(world) / 24000L;
     }
 
     private static long worldTime(Object world) {
@@ -551,7 +553,7 @@ final class JudgementNightService {
         }
 
         static Config defaults() {
-            return new Config(true, 7, 30, 6, 36, 64, 24, 56, 0, 12500, 23500);
+            return new Config(true, 7, 20, 10, 64, 72, 18, 64, 0, 12000, 23999);
         }
     }
 }

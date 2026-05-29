@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-WRAPPER_VERSION="2026.05.26-systemd.2"
+WRAPPER_VERSION="2026.05.29-config-merge.1"
 
 if [ "${1:-}" = "--self-test" ]; then
     echo "obsidiangate-remote-deploy: ok $WRAPPER_VERSION"
@@ -83,19 +83,8 @@ fi
 install -m 644 "$STAGE_DIR/$SERVER_JAR" "$SERVER_MODS_DIR/$SERVER_JAR"
 
 if [ -d "$STAGE_DIR/server/config" ]; then
-    preserved_spawn_config="$(mktemp)"
-    if [ -f "$SERVER_ROOT/config/obsidiangate-spawn-protection.properties" ]; then
-        cp "$SERVER_ROOT/config/obsidiangate-spawn-protection.properties" "$preserved_spawn_config"
-    else
-        rm -f "$preserved_spawn_config"
-    fi
-    rm -rf "$SERVER_ROOT/config"
     install -d "$SERVER_ROOT/config"
     cp -a "$STAGE_DIR/server/config/." "$SERVER_ROOT/config/"
-    if [ -f "$preserved_spawn_config" ]; then
-        install -m 644 "$preserved_spawn_config" "$SERVER_ROOT/config/obsidiangate-spawn-protection.properties"
-        rm -f "$preserved_spawn_config"
-    fi
 fi
 
 if [ -d "$STAGE_DIR/server/scripts" ]; then

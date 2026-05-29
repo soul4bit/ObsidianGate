@@ -49,11 +49,13 @@ class ItemCleanupServiceTest {
         oldLiveItem.age = 1800 * 20;
         EntityItem freshLiveItem = new EntityItem();
         freshLiveItem.age = 60 * 20;
+        EntityItem oldByTicksExistedItem = new EntityItem();
+        oldByTicksExistedItem.ticksExisted = 1800 * 20;
         EntityItem alreadyDeadItem = new EntityItem();
         alreadyDeadItem.age = 1800 * 20;
         alreadyDeadItem.isDead = true;
         FakeEntity otherEntity = new FakeEntity();
-        FakeWorld world = new FakeWorld(oldLiveItem, freshLiveItem, alreadyDeadItem, otherEntity);
+        FakeWorld world = new FakeWorld(oldLiveItem, freshLiveItem, oldByTicksExistedItem, alreadyDeadItem, otherEntity);
         FakeServer server = new FakeServer(world);
         ItemCleanupService service = new ItemCleanupService(Logger.getLogger("test"), configPath, () -> server);
 
@@ -64,6 +66,7 @@ class ItemCleanupServiceTest {
 
         assertTrue(oldLiveItem.isDead);
         assertFalse(freshLiveItem.isDead);
+        assertTrue(oldByTicksExistedItem.isDead);
         assertTrue(alreadyDeadItem.isDead);
         assertFalse(otherEntity.isDead);
     }

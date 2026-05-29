@@ -260,11 +260,18 @@ public final class ItemCleanupService {
         if (minAgeSeconds <= 0) {
             return true;
         }
-        Object value = readFieldIfPresent(entity, "age", "field_70292_b");
-        if (!(value instanceof Number)) {
+        Object ageValue = readFieldIfPresent(entity, "age", "field_70292_b");
+        Object ticksExistedValue = readFieldIfPresent(entity, "ticksExisted", "field_70173_aa");
+        int ageTicks = 0;
+        if (ageValue instanceof Number) {
+            ageTicks = Math.max(ageTicks, ((Number) ageValue).intValue());
+        }
+        if (ticksExistedValue instanceof Number) {
+            ageTicks = Math.max(ageTicks, ((Number) ticksExistedValue).intValue());
+        }
+        if (ageTicks <= 0) {
             return false;
         }
-        int ageTicks = ((Number) value).intValue();
         return ageTicks >= minAgeSeconds * TICKS_PER_SECOND;
     }
 
