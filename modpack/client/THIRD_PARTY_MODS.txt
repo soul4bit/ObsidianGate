@@ -78,6 +78,9 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/the-erebus
 FoamFix
 Official page: https://www.curseforge.com/minecraft/mc-mods/foamfix-optimization-mod
 
+Giselbaer's Durability Viewer
+Official page: https://www.curseforge.com/minecraft/mc-mods/giselbaers-durability-viewer
+
 Hwyla
 Official page: https://www.curseforge.com/minecraft/mc-mods/hwyla
 

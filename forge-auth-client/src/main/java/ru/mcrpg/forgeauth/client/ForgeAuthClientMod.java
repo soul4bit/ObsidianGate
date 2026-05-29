@@ -30,7 +30,6 @@ public final class ForgeAuthClientMod {
         SimpleNetworkWrapper channel = NetworkRegistry.INSTANCE.newSimpleChannel(NETWORK_CHANNEL);
         channel.registerMessage(AuthTicketMessageNoopHandler.class, AuthTicketMessage.class, 0, net.minecraftforge.fml.relauncher.Side.SERVER);
         MinecraftForge.EVENT_BUS.register(new ForgeAuthClientLifecycle(channel, LOGGER));
-        MinecraftForge.EVENT_BUS.register(new DurabilityHudService());
         LOGGER.info("Forge auth client инициализирован.");
     }
 }
