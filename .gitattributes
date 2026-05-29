@@ -1,7 +1,11 @@
 # Modpack release inputs are hashed byte-for-byte in manifest.json.
+.gitattributes text eol=lf
 modpack/client/** -text
 
 # Linux deployment scripts and systemd units must stay LF on Windows checkouts.
 *.sh text eol=lf
 modpack/server/** text eol=lf
 modpack/server/mods/** -text
+
+# Human-readable project docs are UTF-8 text.
+*.md text working-tree-encoding=UTF-8 eol=lf
