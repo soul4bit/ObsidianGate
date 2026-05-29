@@ -8,7 +8,10 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 final class DurabilityHudService {
 
     private static final String PREFIX = "\u041f\u0440\u043e\u0447\u043d\u043e\u0441\u0442\u044c: ";
-    private static final int BOTTOM_OFFSET = 59;
+    private static final int BOTTOM_OFFSET = 62;
+    private static final int PANEL_HEIGHT = 16;
+    private static final int PANEL_PADDING_X = 7;
+    private static final int PANEL_MIN_WIDTH = 92;
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
@@ -35,7 +38,14 @@ final class DurabilityHudService {
 
         int itemDamage = intValue(invokeZeroArgIfPresent(stack, "getItemDamage", "func_77952_i"));
         int remaining = Math.max(0, maxDamage - itemDamage);
-        drawCentered(minecraft, invokeZeroArgIfPresent(event, "getResolution"), PREFIX + remaining + "/" + maxDamage, colorFor(remaining, maxDamage));
+        double ratio = Math.max(0.0D, Math.min(1.0D, (double) remaining / (double) maxDamage));
+        drawCenteredPanel(
+            minecraft,
+            invokeZeroArgIfPresent(event, "getResolution"),
+            PREFIX + remaining + "/" + maxDamage,
+            ratio,
+            colorFor(ratio)
+        );
     }
 
     private static boolean isDamageableStack(Object stack) {
@@ -45,7 +55,7 @@ final class DurabilityHudService {
         return Boolean.TRUE.equals(invokeZeroArgIfPresent(stack, "isItemStackDamageable", "func_77984_f"));
     }
 
-    private static void drawCentered(Object minecraft, Object resolution, String text, int color) {
+    private static void drawCenteredPanel(Object minecraft, Object resolution, String text, double ratio, int accentColor) {
         Object font = readFieldIfPresent(minecraft, "fontRenderer", "fontRendererObj", "field_71466_p");
         if (font == null || resolution == null) {
             return;
@@ -54,12 +64,44 @@ final class DurabilityHudService {
         int width = intValue(invokeZeroArgIfPresent(resolution, "getScaledWidth", "func_78326_a"));
         int height = intValue(invokeZeroArgIfPresent(resolution, "getScaledHeight", "func_78328_b"));
         int textWidth = intValue(invokeIfPresent(font, new Object[] { text }, "getStringWidth", "func_78256_a"));
+        int panelWidth = Math.max(PANEL_MIN_WIDTH, textWidth + PANEL_PADDING_X * 2);
+        int left = (width - panelWidth) / 2;
+        int top = height - BOTTOM_OFFSET;
+        int right = left + panelWidth;
+        int bottom = top + PANEL_HEIGHT;
+        int barLeft = left + 4;
+        int barTop = bottom - 4;
+        int barRight = right - 4;
+        int barFillRight = barLeft + (int) Math.round((barRight - barLeft) * ratio);
+
+        drawRect(left, top, right, bottom, 0x99081018);
+        drawRect(left, top, right, top + 1, 0x55FFFFFF);
+        drawRect(left, bottom - 1, right, bottom, 0x66000000);
+        drawRect(barLeft, barTop, barRight, barTop + 2, 0x66323A46);
+        drawRect(barLeft, barTop, Math.max(barLeft, barFillRight), barTop + 2, accentColor);
+
+        int textX = left + (panelWidth - textWidth) / 2;
+        int textY = top + 3;
         invokeIfPresent(font, new Object[] {
             text,
-            Float.valueOf((width - textWidth) / 2.0F),
-            Float.valueOf(height - BOTTOM_OFFSET),
-            Integer.valueOf(color)
+            Float.valueOf(textX),
+            Float.valueOf(textY),
+            Integer.valueOf(0xF2F5F8)
         }, "drawStringWithShadow", "func_175063_a");
+    }
+
+    private static void drawRect(int left, int top, int right, int bottom, int color) {
+        try {
+            Class<?> type = Class.forName("net.minecraft.client.gui.Gui");
+            invokeIfPresent(null, type, new Object[] {
+                Integer.valueOf(left),
+                Integer.valueOf(top),
+                Integer.valueOf(right),
+                Integer.valueOf(bottom),
+                Integer.valueOf(color)
+            }, "drawRect", "func_73734_a");
+        } catch (ClassNotFoundException ignored) {
+        }
     }
 
     private static Object minecraft() {
@@ -71,15 +113,14 @@ final class DurabilityHudService {
         }
     }
 
-    private static int colorFor(int remaining, int maxDamage) {
-        double ratio = (double) remaining / (double) maxDamage;
+    private static int colorFor(double ratio) {
         if (ratio <= 0.15D) {
-            return 0xFF6B6B;
+            return 0xFFFF5C5C;
         }
         if (ratio <= 0.35D) {
-            return 0xFFD166;
+            return 0xFFFFC857;
         }
-        return 0xB7F7C8;
+        return 0xFF57D68D;
     }
 
     private static int intValue(Object value) {
