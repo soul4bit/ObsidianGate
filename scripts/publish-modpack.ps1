@@ -7,7 +7,7 @@ param(
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
     [switch]$SkipSourceManifestUpdate,
     [switch]$SkipLauncherRelease,
-    [string]$Target = "minecraft@192.168.1.103",
+    [string]$Target = "mc-rpg-deploy",
     [string]$RemoteHome = "/home/minecraft",
     [string]$RemoteStageDir = "/home/minecraft/obsidiangate-deploy",
     [string]$RemoteServerModsDir = "/home/minecraft/mc-rpg/mods",

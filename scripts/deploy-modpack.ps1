@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$DistDir = "dist",
-    [string]$Target = "minecraft@192.168.1.103",
+    [string]$Target = "mc-rpg-deploy",
     [string]$RemoteHome = "/home/minecraft",
     [string]$RemoteStageDir = "/home/minecraft/obsidiangate-deploy",
     [string]$RemoteServerRoot = "/home/minecraft/mc-rpg",

@@ -1,15 +1,15 @@
 # ObsidianGate Game Auth Common
 
-Общий Java 8-совместимый модуль для клиентского и серверного Forge auth.
+Java 8 совместимый общий модуль для клиентской и серверной Forge-авторизации.
 
-## Что лежит внутри
+## Что внутри
 
-- модель `LauncherSession` для `.obsidiangate/session.json`
-- `LauncherSessionFiles` для чтения и записи session-файла
-- поддержка форматов `expiresAt` в виде ISO-8601 и старого числового значения
-- `TicketVerificationClient` для `POST /game/tickets/verify`
-- DTO для результата проверки ticket
-- небольшой встроенный JSON-парсер без внешней runtime-зависимости на Jackson
+- `LauncherSession` - модель `.obsidiangate/session.json`.
+- `LauncherSessionFiles` - чтение и запись session-файла.
+- `GameTicketProof` - данные ticket, которые отправляются из клиента на сервер.
+- `TicketVerificationClient` - HTTP-клиент для `POST /game/tickets/verify`.
+- `TicketVerificationResult` - результат проверки ticket.
+- `SimpleJsonObject` - небольшой JSON-помощник без runtime-зависимости на Jackson.
 
 ## Сборка
 
@@ -17,7 +17,7 @@
 mvn -f game-auth-common/pom.xml test
 ```
 
-Если модуль нужен как зависимость для других Maven-модулей проекта:
+Установка в локальный Maven-репозиторий для Forge-модулей:
 
 ```bash
 mvn -f game-auth-common/pom.xml install
@@ -25,6 +25,11 @@ mvn -f game-auth-common/pom.xml install
 
 ## Где используется
 
-- клиентский Forge-мод читает `-Dobsidiangate.sessionFile=...` и загружает `LauncherSession`
-- серверный Forge-мод проверяет ticket через `TicketVerificationClient`
-- launcher пишет `session.json` в совместимом формате
+- Лаунчер пишет `session.json` в совместимом формате.
+- Клиентский Forge-мод читает `-Dobsidiangate.sessionFile=...`.
+- Серверный Forge-мод проверяет ticket через `TicketVerificationClient`.
+
+## Важно
+
+- Модуль должен оставаться совместимым с Java 8.
+- Не добавляй тяжелые runtime-зависимости без необходимости: этот jar встраивается в Forge-моды.

@@ -229,7 +229,7 @@
                                                                                         <Label styleClass="field-label"
                                                                                                text="Адрес сервера"/>
                                                                                         <TextField fx:id="serverHostField"
-                                                                                                   promptText="obsidiangates.duckdns.org"
+                                                                                                   promptText="play.example.com"
                                                                                                    styleClass="settings-input"/>
                                                                                     </children>
                                                                                 </VBox>

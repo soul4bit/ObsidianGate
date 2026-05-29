@@ -78,5 +78,13 @@
                 <Label styleClass="user-arrow" text="›"/>
             </children>
         </HBox>
+        <VBox alignment="CENTER" spacing="9.0" styleClass="sidebar-links">
+            <children>
+                <Region maxWidth="1.7976931348623157E308" styleClass="sidebar-link-divider"/>
+                <Button fx:id="githubNavButton" maxWidth="1.7976931348623157E308"
+                        mnemonicParsing="false" onAction="#openGitHub"
+                        styleClass="github-link-button" text="Проект на GitHub"/>
+            </children>
+        </VBox>
     </children>
 </VBox>

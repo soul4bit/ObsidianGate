@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$DistDir = "dist",
-    [string]$Target = "minecraft@192.168.1.103",
+    [string]$Target = "mc-rpg-deploy",
     [string]$RemoteHome = "/home/minecraft",
     [string]$RemoteServerModsDir = "/home/minecraft/mc-rpg/mods",
     [string]$RemoteWebRoot = "/var/www/mc-rpg",

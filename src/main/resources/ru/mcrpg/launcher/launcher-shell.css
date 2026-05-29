@@ -233,6 +233,46 @@
     -fx-text-fill: #bbf7d0;
 }
 
+.sidebar-links {
+    -fx-padding: 9px 0 0 0;
+}
+
+.sidebar-link-divider {
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+    -fx-background-color: rgba(148, 163, 184, 0.14);
+}
+
+.button.github-link-button {
+    -fx-min-height: 38px;
+    -fx-pref-height: 38px;
+    -fx-padding: 0 12px;
+    -fx-alignment: center-left;
+    -fx-background-color:
+        linear-gradient(to right, rgba(139, 92, 246, 0.14), transparent 5px),
+        linear-gradient(to bottom, rgba(24, 37, 54, 0.72), rgba(8, 18, 31, 0.84));
+    -fx-background-radius: 7px;
+    -fx-border-color: rgba(148, 163, 184, 0.20);
+    -fx-border-radius: 7px;
+    -fx-text-fill: #dbe4ef;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-graphic-text-gap: 8px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.14), 14, 0.18, 0, 6);
+}
+
+.button.github-link-button:hover,
+.button.github-link-button:focused {
+    -fx-background-color:
+        linear-gradient(to right, rgba(139, 92, 246, 0.24), transparent 5px),
+        linear-gradient(to bottom, rgba(30, 45, 64, 0.86), rgba(10, 22, 36, 0.92));
+    -fx-border-color: rgba(216, 180, 254, 0.34);
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow(gaussian, rgba(139, 92, 246, 0.18), 18, 0.26, 0, 7);
+}
+
 .status-dot {
     -fx-min-width: 6px;
     -fx-pref-width: 6px;

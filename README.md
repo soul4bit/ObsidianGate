@@ -1,44 +1,72 @@
 # ObsidianGate
 
-`ObsidianGate` — это набор компонентов для Minecraft 1.12.2:
+ObsidianGate - это набор компонентов для Minecraft 1.12.2 сервера: JavaFX-лаунчер, сервер авторизации, Forge-моды для передачи игровых ticket и директория подготовки модпака.
 
-- JavaFX-лаунчер для синхронизации и запуска клиента
-- Spring Boot API для регистрации, логина и выдачи игровых ticket
-- клиентский Forge-мод для передачи ticket из игры
-- серверный Forge-мод для проверки ticket на сервере
-- общий Java 8-модуль с форматом `session.json` и HTTP-клиентом верификации
+Проект закрывает полный путь игрока: вход в лаунчер, синхронизация клиента по `manifest.json`, запуск Forge, выдача одноразового игрового ticket и проверка этого ticket на сервере.
+
+## Содержание
+
+- [Скриншоты лаунчера](#скриншоты-лаунчера)
+- [Компоненты](#компоненты)
+- [Быстрый старт](#быстрый-старт)
+- [Конфигурация лаунчера](#конфигурация-лаунчера)
+- [Manifest модпака](#manifest-модпака)
+- [Поток авторизации](#поток-авторизации)
+- [Релиз и деплой](#релиз-и-деплой)
+- [Приватные адреса](#приватные-адреса)
+- [Структура проекта](#структура-проекта)
+
+## Скриншоты лаунчера
+
+### Главный экран
+
+![Главный экран лаунчера](docs/screenshots/launcher-home.png)
+
+### Вход и регистрация
+
+![Экран входа](docs/screenshots/launcher-auth.png)
+
+![Экран регистрации](docs/screenshots/launcher-reg.png)
+
+### Профиль игрока
+
+![Профиль игрока](docs/screenshots/launcher-profile.png)
+
+### Настройки
+
+![Настройки лаунчера](docs/screenshots/launcher-settings.png)
+
+
+## Компоненты
+
+- `src/` - JavaFX-лаунчер.
+- `auth-api/` - Spring Boot API для аккаунтов, JWT и игровых ticket.
+- `game-auth-common/` - Java 8 совместимый общий модуль для session/ticket логики.
+- `forge-auth-client/` - клиентский Forge 1.12.2 мод, который отправляет ticket на сервер.
+- `forge-auth-server/` - серверный Forge 1.12.2 мод, который проверяет ticket через Auth API и содержит серверные команды.
+- `modpack/` - директория подготовки клиентских и серверных файлов модпака.
+- `scripts/` - скрипты релиза и деплоя.
+- `launcher/windows/` - Windows-загрузчик для скачивания и запуска лаунчера.
 
 ## Что умеет лаунчер
 
-- показывает, к какому Minecraft-серверу пойдёт подключение
-- загружает `manifest.json` по HTTP(S)
-- синхронизирует файлы клиента по `manifest.json`
-- при необходимости скачивает portable Java runtime
-- при необходимости добирает официальный bootstrap Minecraft/Forge
-- создаёт одноразовый игровой ticket для авторизованного пользователя
-- записывает `.obsidiangate/session.json` в папку игры
-- передаёт путь к `session.json` в игровой процесс через `-Dobsidiangate.sessionFile=...`
-- запускает клиент через `launchTemplate`
-- сохраняет настройки в `~/.obsidian-gate-launcher/launcher.properties`
-
-## Что есть в интерфейсе
-
-Сейчас в UI есть:
-
-- главный экран со статусом сервера, manifest и кнопками `Предпросмотр` / `Играть`
-- экран аккаунта
-- экран `Моды` со списком `manifest.files[]` и runtime packages
-- экран `Настройки` для локального конфига лаунчера
-- журнал выполнения
-
-Базовые настройки теперь можно менять прямо из экрана `Настройки` в UI. Файл `launcher.properties` по-прежнему остаётся источником локального конфига и может редактироваться вручную при необходимости.
+- Загружает `manifest.json` по HTTP(S).
+- Синхронизирует файлы клиента по SHA-256 и размеру.
+- Скачивает переносимую Java, если она описана в manifest.
+- Добирает официальную подготовку Minecraft/Forge, если она описана в manifest.
+- Показывает новости, список изменений, статус сервера и прогресс синхронизации.
+- Создает одноразовый игровой ticket для авторизованного игрока.
+- Пишет `.obsidiangate/session.json` в папку игры.
+- Запускает клиент через настраиваемый `launchTemplate`.
+- Хранит локальные настройки в `~/.obsidian-gate-launcher/launcher.properties`.
 
 ## Требования
 
-- Java 17 для лаунчера
-- Maven 3.9+
-- HTTP(S)-доступ к `manifest.json` и файлам модпака
-- запущенный `auth-api`, если нужен вход через launcher auth
+- Java 17 для лаунчера и `auth-api`.
+- Java 8 совместимость для Forge-модов Minecraft 1.12.2.
+- Maven 3.9+.
+- HTTP(S)-раздача `manifest.json` и файлов модпака.
+- PostgreSQL для `auth-api`.
 
 ## Быстрый старт
 
@@ -60,7 +88,7 @@ mvn package
 java -jar target/obsidian-gate-launcher-0.1.6-test.jar
 ```
 
-Сборка auth API:
+Сборка Auth API:
 
 ```bash
 mvn -f auth-api/pom.xml clean package
@@ -74,39 +102,13 @@ mvn -f forge-auth-client/pom.xml clean package
 mvn -f forge-auth-server/pom.xml clean package
 ```
 
-Сборка лаунчера делает fat jar, отдельные зависимости рядом не нужны.
+Тесты основного лаунчера:
 
-## Автоматизация auth-релиза
-
-Подготовка релиза auth-модулей:
-
-```powershell
-.\scripts\release-auth.ps1 -ManifestVersion 2026.05.08
+```bash
+mvn test
 ```
 
-Скрипт:
-
-- собирает `game-auth-common`, `forge-auth-client`, `forge-auth-server`
-- пересчитывает `sha256` и `size`
-- обновляет запись клиентского auth-мода в `examples/manifest.json`
-- складывает готовые артефакты и итоговый `manifest.json` в `dist/`
-- пишет метаданные релиза в `dist/auth-release.json`
-
-Деплой на сервер:
-
-```powershell
-.\scripts\deploy-auth.ps1 -Target minecraft@192.168.1.103
-```
-
-По умолчанию `deploy-auth.ps1`:
-
-- загружает серверный и клиентский auth jar в домашнюю директорию `minecraft`
-- устанавливает серверный jar в `~/mc-rpg/mods/`
-- устанавливает клиентский jar в `/var/www/mc-rpg/client/mods/`
-- обновляет `/var/www/mc-rpg/manifest.json`
-- перезапускает `mc-rpg.service`
-
-## Настройки launcher
+## Конфигурация лаунчера
 
 Файл настроек:
 
@@ -121,52 +123,17 @@ username=Player
 java.command=java
 game.directory=C:\\Users\\<user>\\rpg-client
 working.directory=
-server.host=obsidiangates.duckdns.org
+server.host=play.example.com
 server.port=25565
-manifest.url=http://obsidiangates.duckdns.org:8080/manifest.json
+manifest.url=http://play.example.com:8080/manifest.json
+auth.base.url=http://play.example.com:8081
+server.id=obsidiangate-main
 launch.template={java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}
 update.files.before.launch=true
+launcher.updates.enabled=true
 ```
 
-Значения по умолчанию:
-
-- `server.host`: `obsidiangates.duckdns.org`
-- `server.port`: `25565`
-- `manifest.url`: `http://obsidiangates.duckdns.org:8080/manifest.json`
-- `game.directory`: `~/rpg-client`
-
-## Как работает launcher
-
-1. Читает локальный `launcher.properties`.
-2. Загружает `manifest.json`.
-3. Если в manifest заполнен `launcher`, он может переопределить `serverHost`, `serverPort`, `workingDirectory` и `launchTemplate`.
-4. Если в manifest заполнен `baseUrl`, файлы скачиваются относительно него. Если нет, базой считается директория самого `manifest.json`.
-5. Перед скачиванием launcher сверяет файлы по `SHA-256` и, если указан, по `size`.
-6. Если в manifest есть `runtime.packages`, launcher может скачать portable Java.
-7. Если в manifest есть секция `minecraft`, launcher может добрать официальный Minecraft/Forge bootstrap.
-8. Если пользователь авторизован, launcher создаёт game ticket через `POST /game/tickets`, пишет `.obsidiangate/session.json` и передаёт путь к нему в клиент.
-9. После синхронизации строится launch-команда и запускается клиент.
-
-## Как работает launcher auth
-
-1. Пользователь логинится в лаунчере через `auth-api`.
-2. Перед запуском игры лаунчер создаёт одноразовый ticket.
-3. Лаунчер пишет `.obsidiangate/session.json` в папку игры.
-4. Клиентский Forge-мод читает `session.json` и после сетевого handshake отправляет ticket на сервер по каналу `ogauth`.
-5. Серверный Forge-мод вызывает `POST /game/tickets/verify`.
-6. Если ticket валиден, игрок остаётся в игре. Если нет, сервер разрывает соединение.
-
-Игровой ticket живёт 900 секунд по умолчанию, чтобы медленный старт тяжёлой 1.12.2-сборки не приводил к кикам до завершения загрузки.
-
-Важно для offline-mode сервера: Minecraft привязывает `world/playerdata/<uuid>.dat` к точному нику игрока. Ник в auth-аккаунте должен оставаться стабильным, включая регистр, иначе сервер создаст новый playerdata-файл и инвентарь будет выглядеть пустым.
-
-Для защиты инвентарей сервер дополнительно запускает `mc-rpg-playerdata-backup.timer`: каждые 5 минут архивируются `world/playerdata`, `world/stats` и `world/advancements` в `~/mc-rpg/backups/playerdata/`. Хранится 288 последних архивов. Если у игрока пропал инвентарь после смены ника или UUID, сначала проверьте соответствующий `.dat` в этих архивах и восстанавливайте только файл игрока, не весь мир.
-
-Очистка дропа настроена осторожно: `obsidiangate-item-cleanup.properties` удаляет только предметы старше `minAgeSeconds`, чтобы свежий дроп не исчезал прямо перед игроком во время плановой чистки.
-
-## Плейсхолдеры `launchTemplate`
-
-Поддерживаются:
+Поддерживаемые подстановки в `launchTemplate`:
 
 - `{java}`
 - `{username}`
@@ -179,34 +146,25 @@ update.files.before.launch=true
 - `{userType}`
 - `{gameSessionFile}`
 
-Пример:
+Если в шаблоне нет `{gameSessionFile}`, лаунчер сам добавит `-Dobsidiangate.sessionFile=...` сразу после Java-команды.
 
-```text
-{java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}
-```
+## Manifest модпака
 
-Если в шаблоне нет `{gameSessionFile}`, launcher сам добавит `-Dobsidiangate.sessionFile=...` сразу после java-команды.
+Полный пример лежит в [examples/manifest.json](examples/manifest.json).
 
-## Формат manifest
+Ключевые поля:
 
-Актуальный пример лежит в [examples/manifest.json](examples/manifest.json).
-
-Коротко по ключевым полям:
-
-- `schemaVersion`: версия схемы, сейчас используется `1`
-- `baseUrl`: базовый URL для файлов модпака
-- `news` или `changelog`: текст текущего обновления, важные пункты, новые и удалённые моды для главного экрана лаунчера
-- `history[]`: короткая история обновлений по версиям для блока changelog
-- `launcher.serverHost`: хост Minecraft-сервера
-- `launcher.serverPort`: порт Minecraft-сервера
-- `launcher.authBaseUrl`: базовый URL `auth-api`
-- `launcher.serverId`: идентификатор сервера для game ticket
-- `launcher.workingDirectory`: рабочая папка внутри `game directory`
-- `launcher.launchTemplate`: шаблон запуска клиента
-- `launcherUpdate`: версия и URL нового launcher `.jar` для самообновления
-- `runtime.packages[]`: portable runtime-пакеты
-- `minecraft`: настройки официального bootstrap Minecraft/Forge
-- `files[]`: список файлов для синхронизации
+- `schemaVersion` - версия схемы, сейчас используется `1`.
+- `baseUrl` - базовый URL для файлов клиента.
+- `news` / `changelog` - новости и список изменений для главного экрана лаунчера.
+- `history[]` - история обновлений.
+- `launcher.serverHost` и `launcher.serverPort` - адрес подключения Minecraft.
+- `launcher.authBaseUrl` - URL `auth-api`.
+- `launcher.serverId` - идентификатор сервера для игрового ticket.
+- `launcherUpdate` - новая версия launcher jar для самообновления.
+- `runtime.packages[]` - переносимая Java.
+- `minecraft` - настройки официальной подготовки Minecraft/Forge.
+- `files[]` - файлы для синхронизации.
 
 Минимальный пример:
 
@@ -214,37 +172,21 @@ update.files.before.launch=true
 {
   "schemaVersion": 1,
   "id": "rpg",
-  "version": "2026.05.05",
-  "baseUrl": "http://obsidiangates.duckdns.org:8080/client/",
+  "version": "2026.05.29",
+  "baseUrl": "http://play.example.com:8080/client/",
   "news": {
     "title": "Последние новости",
-    "date": "2026-05-21",
+    "date": "2026-05-29",
     "body": "Коротко о последнем обновлении.",
-    "highlights": ["Видно ход синхронизации: текущий файл, скорость и сколько осталось."],
-    "newMods": ["ExampleNewMod"],
-    "removedMods": ["LegacyOldMod"],
-    "important": ["Важное предупреждение для игрока."]
+    "highlights": ["Улучшена синхронизация клиента."]
   },
-  "history": [
-    {
-      "version": "2026.05.21.4",
-      "date": "2026-05-21",
-      "title": "Улучшены новости",
-      "highlights": ["Блок новостей растянут до низа карточки файла сборки."]
-    }
-  ],
   "launcher": {
-    "serverHost": "obsidiangates.duckdns.org",
+    "serverHost": "play.example.com",
     "serverPort": 25565,
+    "authBaseUrl": "http://play.example.com:8081",
+    "serverId": "obsidiangate-main",
     "workingDirectory": ".",
     "launchTemplate": ""
-  },
-  "launcherUpdate": {
-    "version": "2026.05.13.2",
-    "url": "launcher/obsidian-gate-launcher.jar",
-    "sha256": "PUT_REAL_LAUNCHER_SHA256_HERE",
-    "size": 12345678,
-    "required": false
   },
   "files": [
     {
@@ -256,126 +198,95 @@ update.files.before.launch=true
 }
 ```
 
-## Как раздавать файлы
+## Поток авторизации
 
-Обычная схема:
+1. Игрок входит в аккаунт через лаунчер.
+2. Лаунчер получает JWT от `auth-api`.
+3. Перед запуском игры лаунчер создает одноразовый игровой ticket.
+4. Лаунчер пишет `.obsidiangate/session.json` в папку игры.
+5. Клиентский Forge-мод читает session-файл и после сетевого рукопожатия отправляет ticket на канал `ogauth`.
+6. Серверный Forge-мод вызывает `POST /game/tickets/verify`.
+7. Валидный ticket пропускает игрока, невалидный ticket приводит к разрыву соединения.
 
-```text
-/var/www/rpg/
-  manifest.json
-  launcher/
-    obsidian-gate-launcher.jar
-  client/
-    runtime/
-    mods/
-    config/
-```
+Игровой ticket живет 900 секунд по умолчанию, чтобы тяжелый Minecraft 1.12.2 клиент успевал загрузиться.
 
-Тогда:
+## Релиз и деплой
 
-- `manifest.url` можно сделать `http://obsidiangates.duckdns.org:8080/manifest.json`
-- `baseUrl` можно сделать `http://obsidiangates.duckdns.org:8080/client/`
-- `launcherUpdate.url` можно сделать `launcher/obsidian-gate-launcher.jar`; он считается относительно `manifest.json`
-
-Важно: launcher ждёт именно HTTP(S)-раздачу `manifest.json` и файлов модпака. Это не Minecraft-порт `25565`.
-
-## Ограничения
-
-- launcher не удаляет лишние локальные файлы, которых больше нет в manifest
-- `workingDirectory` должен оставаться внутри `game directory`
-- `runtime.extractDir`, `runtime.javaPath` и `files[].path` тоже не должны выходить за пределы `game directory`
-- game ticket одноразовый: повторный вход из уже запущенного клиента может получить `used`
-
-## Ключевые файлы проекта
-
-- `src/main/java/ru/mcrpg/launcher/LauncherShellApplication.java` — запуск JavaFX-окна
-- `src/main/java/ru/mcrpg/launcher/LauncherShellController.java` — основной UI и действия синхронизации/запуска
-- `src/main/java/ru/mcrpg/launcher/ModpackManifestClient.java` — загрузка `manifest.json`
-- `src/main/java/ru/mcrpg/launcher/ModpackSyncService.java` — синхронизация файлов
-- `src/main/java/ru/mcrpg/launcher/LaunchCommandBuilder.java` — сборка команды запуска
-- `src/main/java/ru/mcrpg/launcher/SessionFileWriter.java` — запись `.obsidiangate/session.json`
-- `src/main/java/ru/mcrpg/launcher/MinecraftBootstrapService.java` — официальный bootstrap Minecraft/Forge
-- `src/main/java/ru/mcrpg/launcher/RuntimeSyncService.java` — portable Java runtime
-- `auth-api/` — backend для аккаунтов, JWT и game ticket
-- `game-auth-common/` — общий модуль session/ticket логики
-- `forge-auth-client/` — Forge-клиент для отправки ticket
-- `forge-auth-server/` — Forge-сервер для проверки ticket
-
-## Full modpack deploy
-
-Используйте `modpack/client/` как локальный источник файлов, которые должны публиковаться в `/var/www/mc-rpg/client/`.
-
-Подготовка полного modpack-релиза:
+Подготовить auth-релиз:
 
 ```powershell
-.\scripts\release-modpack.ps1 -ClientSourceDir modpack/client -ManifestVersion 2026.05.12
+.\scripts\release-auth.ps1 -ManifestVersion 2026.05.29
 ```
 
-Скрипт:
-
-- запускает `scripts/release-auth.ps1`
-- копирует `modpack/client/` в `dist/client/`
-- добавляет свежий `forge-auth-client` в `dist/client/mods/`
-- пересчитывает `manifest.files[]` по фактическому содержимому `dist/client/`
-- обновляет `runtime.packages[].sha256` и `runtime.packages[].size` для относительных runtime URL
-- собирает launcher `.jar`, кладёт его в `dist/launcher/` и обновляет `launcherUpdate`
-- пишет `dist/manifest.json`
-- пишет `dist/modpack-release.json`
-
-Деплой на сервер:
+Деплой auth-модулей:
 
 ```powershell
-.\scripts\deploy-modpack.ps1 -Target minecraft@192.168.1.103
+.\scripts\deploy-auth.ps1 -Target mc-rpg-deploy
 ```
 
-Скрипт загружает:
+Подготовить полный релиз модпака:
 
-- `dist/client/`
-- `dist/server/`
-- `dist/launcher/`
-- `dist/manifest.json`
-- серверный auth jar
+```powershell
+.\scripts\release-modpack.ps1 -ClientSourceDir modpack/client -ManifestVersion 2026.05.29
+```
 
-и устанавливает их в:
+Деплой полного модпака:
 
-- `~/mc-rpg/mods/`
-- `~/mc-rpg/config/`
-- `~/mc-rpg/scripts/`
-- `/var/www/mc-rpg/client/`
-- `/var/www/mc-rpg/launcher/`
-- `/var/www/mc-rpg/manifest.json`
+```powershell
+.\scripts\deploy-modpack.ps1 -Target mc-rpg-deploy
+```
 
 Полный цикл одной командой:
 
 ```powershell
-.\scripts\publish-modpack.ps1 -Target minecraft@192.168.1.103
+.\scripts\publish-modpack.ps1 -Target mc-rpg-deploy -ManifestVersion 2026.05.29
 ```
 
-## Passwordless deploy setup
-
-Один раз настройте SSH key и `sudo` wrapper:
+Первичная настройка SSH-псевдонима и деплоя без пароля:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\setup-deploy-access.ps1 -Target minecraft@192.168.1.103
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-deploy-access.ps1 -Target minecraft@your.server.host -HostName your.server.host
 ```
 
-Re-run this command after changing `scripts/obsidiangate-remote-deploy.sh`, because the server keeps its own copy at `/usr/local/bin/obsidiangate-deploy`.
+После изменения `scripts/obsidiangate-remote-deploy.sh` повтори настройку, потому что сервер хранит свою копию обертки в `/usr/local/bin/obsidiangate-deploy`.
 
-Скрипт:
+## Приватные адреса
 
-- добавляет SSH alias `mc-rpg-deploy` в `~/.ssh/config`
-- устанавливает ваш `~/.ssh/id_ed25519.pub` в `authorized_keys` пользователя `minecraft`
-- ставит `/usr/local/bin/obsidiangate-deploy` на сервер
-- добавляет `sudoers` правило для запуска этого wrapper без пароля
+В репозитории не должно быть реального домена, публичного IP, приватного IP сервера, паролей, JWT-секрета и `.env`.
 
-После этого основной сценарий:
+Используй подстановочные значения:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\publish-modpack.ps1 -Target mc-rpg-deploy -ManifestVersion 2026.05.12
+- `play.example.com` - публичный домен в документации и примерах.
+- `your.server.host` - адрес сервера для инструкций.
+- `mc-rpg-deploy` - SSH-псевдоним для скриптов деплоя.
+
+Перед публикацией удобно проверить:
+
+```bash
+rg "your-real-domain|your-real-ip|JWT_SECRET|DB_PASSWORD" .
 ```
 
-Если нужно вернуться к старому режиму с интерактивным `sudo`, используйте:
+Если реальный домен или IP уже попадал в GitHub, простой новый коммит убирает его только из актуальной версии. Для удаления из истории нужна отдельная перезапись истории через `git filter-repo` или BFG и принудительная отправка изменений.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\deploy-modpack.ps1 -Target minecraft@192.168.1.103 -LegacyPromptSudo
+## Структура проекта
+
+```text
+.
+├─ auth-api/             Spring Boot API авторизации
+├─ forge-auth-client/    клиентский Forge-мост авторизации
+├─ forge-auth-server/    серверный Forge-мост и команды сервера
+├─ game-auth-common/     общий Java 8 код ticket/session
+├─ launcher/windows/     Windows-скрипты запуска
+├─ modpack/              подготовка клиентского и серверного модпака
+├─ scripts/              автоматизация релиза и деплоя
+├─ src/                  JavaFX-лаунчер
+└─ examples/             пример manifest
 ```
+
+## Дополнительные README
+
+- [auth-api/README.md](auth-api/README.md)
+- [game-auth-common/README.md](game-auth-common/README.md)
+- [forge-auth-client/README.md](forge-auth-client/README.md)
+- [forge-auth-server/README.md](forge-auth-server/README.md)
+- [modpack/README.md](modpack/README.md)

@@ -1,8 +1,8 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [string]$Target = "minecraft@192.168.1.103",
+    [string]$Target = "minecraft@your.server.host",
     [string]$HostAlias = "mc-rpg-deploy",
-    [string]$HostName = "192.168.1.103",
+    [string]$HostName = "your.server.host",
     [string]$User = "minecraft",
     [string]$IdentityFile = "~/.ssh/id_ed25519",
     [string]$RemoteDeployCommand = "/usr/local/bin/obsidiangate-deploy",

@@ -1,5 +1,8 @@
 package ru.mcrpg.launcher;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.net.URI;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -14,6 +17,8 @@ import ru.mcrpg.launcher.ui.MicroInteractions;
 
 public final class CleanGlassSidebarController {
 
+    private static final String PROJECT_URL = "https://github.com/soul4bit/ObsidianGate";
+
     @FXML
     private Button homeNavButton;
 
@@ -22,6 +27,9 @@ public final class CleanGlassSidebarController {
 
     @FXML
     private Button profileNavButton;
+
+    @FXML
+    private Button githubNavButton;
 
     @FXML
     private ImageView sidebarProfileAvatarView;
@@ -49,6 +57,7 @@ public final class CleanGlassSidebarController {
         setGraphic(homeNavButton, "home", 16.0d, "#f8fafc");
         setGraphic(settingsNavButton, "settings", 16.0d, "#f8fafc");
         setGraphic(profileNavButton, "profile", 16.0d, "#f8fafc");
+        setGraphic(githubNavButton, "github", 16.0d, "#dbe4ef");
         applyActiveScreen();
         applyProfileState();
         configureMicroInteractions();
@@ -90,6 +99,15 @@ public final class CleanGlassSidebarController {
     }
 
     @FXML
+    private void openGitHub() {
+        try {
+            openBrowser(PROJECT_URL);
+        } catch (IOException exception) {
+            // Keep the launcher usable if the OS cannot open browser links.
+        }
+    }
+
+    @FXML
     private void openProfileFromKeyboard(KeyEvent event) {
         if (event == null || (event.getCode() != KeyCode.ENTER && event.getCode() != KeyCode.SPACE)) {
             return;
@@ -112,6 +130,7 @@ public final class CleanGlassSidebarController {
         MicroInteractions.installHoverLift(homeNavButton, -1.0d, 1.01d);
         MicroInteractions.installHoverLift(settingsNavButton, -1.0d, 1.01d);
         MicroInteractions.installHoverLift(profileNavButton, -1.0d, 1.01d);
+        MicroInteractions.installHoverLift(githubNavButton, -1.0d, 1.04d);
         MicroInteractions.installHoverLift(sidebarProfileCard, -2.0d, 1.01d);
     }
 
@@ -184,6 +203,17 @@ public final class CleanGlassSidebarController {
         if (label != null) {
             label.setText(value);
         }
+    }
+
+    private static void openBrowser(String url) throws IOException {
+        if (!Desktop.isDesktopSupported()) {
+            throw new IOException("Desktop integration is not supported.");
+        }
+        Desktop desktop = Desktop.getDesktop();
+        if (!desktop.isSupported(Desktop.Action.BROWSE)) {
+            throw new IOException("Desktop browser integration is not supported.");
+        }
+        desktop.browse(URI.create(url));
     }
 
     private static String firstText(String... values) {

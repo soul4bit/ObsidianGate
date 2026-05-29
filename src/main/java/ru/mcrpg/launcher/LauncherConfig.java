@@ -2,7 +2,7 @@ package ru.mcrpg.launcher;
 
 public final class LauncherConfig {
 
-    public static final String DEFAULT_SERVER_HOST = "obsidiangates.duckdns.org";
+    public static final String DEFAULT_SERVER_HOST = "play.example.com";
     public static final int DEFAULT_SERVER_PORT = 25565;
     public static final int DEFAULT_MEMORY_MIN_MB = 1024;
     public static final int DEFAULT_MEMORY_MAX_MB = 4096;

@@ -2,7 +2,7 @@
     "schemaVersion":  1,
     "id":  "mc-rpg",
     "version":  "2026.05.28.13",
-    "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
+    "baseUrl":  "http://play.example.com:8080/client/",
     "news":  {
                  "title":  "Новый сезон: звуки, рюкзаки и чистая карта",
                  "date":  "2026-05-28",
@@ -219,9 +219,9 @@
                     }
                 ],
     "launcher":  {
-                     "serverHost":  "obsidiangates.duckdns.org",
+                     "serverHost":  "play.example.com",
                      "serverPort":  25565,
-                     "authBaseUrl":  "http://obsidiangates.duckdns.org:8081",
+                     "authBaseUrl":  "http://play.example.com:8081",
                      "serverId":  "obsidiangate-main",
                      "workingDirectory":  ".",
                      "launchTemplate":  ""

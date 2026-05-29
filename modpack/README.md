@@ -1,32 +1,51 @@
-# Modpack Staging
+# Подготовка Модпака
 
-Папка `modpack/client/` — это локальный источник файлов, которые должны оказаться в `/var/www/mc-rpg/client/`.
+`modpack/` - локальный источник файлов, из которых собирается клиентская и серверная публикация модпака.
 
-Сюда кладутся только файлы modpack/web root, которые раздаёт launcher:
+## Структура
 
 ```text
 modpack/
   client/
     config/
     mods/
+    resourcepacks/
     runtime/
+    scripts/
+  server/
+    config/
+    mods/
+    scripts/
+    systemd/
 ```
 
-Принцип работы:
+`client/` попадает в web root для скачивания лаунчером. `server/` содержит файлы, которые нужны выделенному серверу.
 
-1. `scripts/release-modpack.ps1` копирует содержимое `modpack/client/` в `dist/client/`.
-2. Скрипт добавляет свежесобранный `forge-auth-client` в `dist/client/mods/`.
-3. Скрипт пересчитывает `manifest.json` по фактическим файлам из `dist/client/`.
-4. `scripts/deploy-modpack.ps1` выкладывает `dist/client/` и `dist/manifest.json` на сервер.
+## Как собирается релиз
 
-Ожидания от структуры:
+1. `scripts/release-modpack.ps1` копирует `modpack/client/` в `dist/client/`.
+2. Скрипт добавляет свежий `forge-auth-client` в `dist/client/mods/`.
+3. Скрипт пересчитывает `manifest.files[]` по фактическим файлам из `dist/client/`.
+4. Скрипт собирает launcher jar и кладет его в `dist/launcher/`.
+5. Скрипт подготавливает серверные файлы в `dist/server/`.
+6. `scripts/deploy-modpack.ps1` выкладывает `dist/client/`, `dist/server/`, `dist/launcher/` и `dist/manifest.json` на сервер.
 
-- `manifest.baseUrl` должен указывать на корень `client/`
-- `manifest.runtime.packages[].url` должен совпадать с относительным путём файла внутри `client/`
-- auth API jar сюда не кладётся: этот workflow занимается web root и auth-модами
+## Быстрый сценарий
 
-Быстрый сценарий:
+Из корня проекта:
 
 ```powershell
-.\scripts\publish-modpack.ps1 -Target minecraft@192.168.1.103
+.\scripts\publish-modpack.ps1 -Target mc-rpg-deploy -ManifestVersion 2026.05.29
 ```
+
+## Ожидания от Manifest
+
+- `manifest.baseUrl` должен указывать на опубликованный каталог `client/`.
+- `manifest.runtime.packages[].url` должен совпадать с относительным путем архива переносимой Java внутри `client/`.
+- `manifest.files[]` генерируется скриптом релиза, руками его обычно не правят.
+
+## Важно
+
+- Auth API jar сюда не кладется, он деплоится отдельным серверным процессом.
+- Не клади в `modpack/` миры, приватные резервные копии, секреты и локальные отчеты о падениях.
+- Перед публичным коммитом проверь, что в конфигах нет реального домена, IP, токенов или паролей.
