@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,25 @@ class JudgementNightServiceTest {
         assertEquals(7, service.config().periodDays);
         assertEquals(20, service.config().waveIntervalSeconds);
         assertEquals(10, service.config().mobsPerPlayer);
-        assertEquals(64, service.config().maxHostilesNearPlayer);
+        assertEquals(96, service.config().maxHostilesNearPlayer);
+        assertTrue(service.config().mobClassNames.contains("divinerpg.objects.entities.entity.vanilla.EntityTheGrue"));
+    }
+
+    @Test
+    void loadAllowsCustomMobPool() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-judgement-night.properties");
+        Files.write(
+            configPath,
+            ("mobClassNames=net.minecraft.entity.monster.EntityZombie, divinerpg.objects.entities.entity.vanilla.EntityTheEye\n")
+                .getBytes(StandardCharsets.UTF_8)
+        );
+        JudgementNightService service = new JudgementNightService(Logger.getLogger("test"), configPath, () -> null, new Random(1));
+
+        service.load();
+
+        assertEquals(2, service.config().mobClassNames.size());
+        assertEquals("net.minecraft.entity.monster.EntityZombie", service.config().mobClassNames.get(0));
+        assertEquals("divinerpg.objects.entities.entity.vanilla.EntityTheEye", service.config().mobClassNames.get(1));
     }
 
     @Test

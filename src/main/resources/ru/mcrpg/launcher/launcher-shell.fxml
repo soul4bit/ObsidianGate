@@ -164,7 +164,7 @@
                                                         <Label fx:id="serverAddressLabel"
                                                                maxWidth="1.7976931348623157E308"
                                                                styleClass="server-address-text"
-                                                               text="play.example.com:25565" HBox.hgrow="ALWAYS"/>
+                                                               text="obsidiangates.duckdns.org:25565" HBox.hgrow="ALWAYS"/>
                                                         <Button fx:id="copyIpIconButton" mnemonicParsing="false"
                                                                 onAction="#copyServerIp" styleClass="icon-button"/>
                                                     </children>

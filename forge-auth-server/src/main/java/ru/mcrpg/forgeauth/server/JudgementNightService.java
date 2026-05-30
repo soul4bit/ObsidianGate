@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
@@ -24,14 +26,30 @@ final class JudgementNightService {
     private static final Path CONFIG_PATH = Paths.get("config", "obsidiangate-judgement-night.properties");
     private static final int TICKS_PER_SECOND = 20;
     private static final String HOSTILE_MARKER_CLASS = "net.minecraft.entity.monster.IMob";
-    private static final String[] MOB_CLASS_NAMES = {
+    private static final String DIVINE_HOSTILE_BASE_CLASS = "divinerpg.objects.entities.entity.EntityDivineMob";
+    private static final List<String> DEFAULT_MOB_CLASS_NAMES = Collections.unmodifiableList(Arrays.asList(
         "net.minecraft.entity.monster.EntityZombie",
         "net.minecraft.entity.monster.EntitySkeleton",
         "net.minecraft.entity.monster.EntitySpider",
         "net.minecraft.entity.monster.EntityCreeper",
         "net.minecraft.entity.monster.EntityWitch",
-        "net.minecraft.entity.monster.EntityEnderman"
-    };
+        "net.minecraft.entity.monster.EntityEnderman",
+        "divinerpg.objects.entities.entity.vanilla.EntityCaveCrawler",
+        "divinerpg.objects.entities.entity.vanilla.EntityCaveclops",
+        "divinerpg.objects.entities.entity.vanilla.EntityCyclops",
+        "divinerpg.objects.entities.entity.vanilla.EntityEnthralledDramcryx",
+        "divinerpg.objects.entities.entity.vanilla.EntityFrost",
+        "divinerpg.objects.entities.entity.vanilla.EntityGlacon",
+        "divinerpg.objects.entities.entity.vanilla.EntityJungleDramcryx",
+        "divinerpg.objects.entities.entity.vanilla.EntityJungleSpider",
+        "divinerpg.objects.entities.entity.vanilla.EntityKobblin",
+        "divinerpg.objects.entities.entity.vanilla.EntityMiner",
+        "divinerpg.objects.entities.entity.vanilla.EntityRotatick",
+        "divinerpg.objects.entities.entity.vanilla.EntitySaguaroWorm",
+        "divinerpg.objects.entities.entity.vanilla.EntityStoneGolem",
+        "divinerpg.objects.entities.entity.vanilla.EntityTheEye",
+        "divinerpg.objects.entities.entity.vanilla.EntityTheGrue"
+    ));
 
     private final Logger logger;
     private final Path configPath;
@@ -66,7 +84,7 @@ final class JudgementNightService {
         secondsUntilWave = config.waveIntervalSeconds;
         announcedDay = -1L;
         logger.info(String.format(
-            "Judgement night loaded. enabled=%s periodDays=%d waveIntervalSeconds=%d mobsPerPlayer=%d maxHostilesNearPlayer=%d radius=%d-%d dimension=%d",
+            "Judgement night loaded. enabled=%s periodDays=%d waveIntervalSeconds=%d mobsPerPlayer=%d maxHostilesNearPlayer=%d radius=%d-%d dimension=%d mobClasses=%d",
             config.enabled,
             config.periodDays,
             config.waveIntervalSeconds,
@@ -74,7 +92,8 @@ final class JudgementNightService {
             config.maxHostilesNearPlayer,
             config.minSpawnRadius,
             config.maxSpawnRadius,
-            config.dimension
+            config.dimension,
+            config.mobClassNames.size()
         ));
     }
 
@@ -162,7 +181,7 @@ final class JudgementNightService {
             if (!isSafeSpawn(world, x, y, z)) {
                 continue;
             }
-            Object mob = createMob(world, MOB_CLASS_NAMES[random.nextInt(MOB_CLASS_NAMES.length)]);
+            Object mob = createRandomMob(world, snapshot.mobClassNames);
             if (mob == null) {
                 continue;
             }
@@ -195,13 +214,14 @@ final class JudgementNightService {
             clamp(readInt(properties, "periodDays", 7), 2, 100),
             clamp(readInt(properties, "waveIntervalSeconds", 20), 10, 3600),
             clamp(readInt(properties, "mobsPerPlayer", 10), 1, 40),
-            clamp(readInt(properties, "maxHostilesNearPlayer", 64), 1, 200),
+            clamp(readInt(properties, "maxHostilesNearPlayer", 96), 1, 200),
             clamp(readInt(properties, "densityCheckRadius", 72), 16, 256),
             clamp(readInt(properties, "minSpawnRadius", 18), 8, 256),
             clamp(readInt(properties, "maxSpawnRadius", 64), 8, 512),
             readInt(properties, "dimension", 0),
             clamp(readInt(properties, "nightStartTick", 12000), 0, 23999),
-            clamp(readInt(properties, "nightEndTick", 23999), 0, 23999)
+            clamp(readInt(properties, "nightEndTick", 23999), 0, 23999),
+            readMobClassNames(properties)
         ).normalized();
 
         if (!Files.exists(configPath)) {
@@ -223,6 +243,7 @@ final class JudgementNightService {
         properties.setProperty("dimension", Integer.toString(value.dimension));
         properties.setProperty("nightStartTick", Integer.toString(value.nightStartTick));
         properties.setProperty("nightEndTick", Integer.toString(value.nightEndTick));
+        properties.setProperty("mobClassNames", join(value.mobClassNames));
 
         try {
             Path parent = configPath.getParent();
@@ -283,6 +304,9 @@ final class JudgementNightService {
     private static boolean isHostile(Object entity) {
         Class<?> type = entity == null ? null : entity.getClass();
         while (type != null) {
+            if (DIVINE_HOSTILE_BASE_CLASS.equals(type.getName())) {
+                return true;
+            }
             for (Class<?> marker : type.getInterfaces()) {
                 if (HOSTILE_MARKER_CLASS.equals(marker.getName())) {
                     return true;
@@ -313,6 +337,20 @@ final class JudgementNightService {
         Object material = invokeIfPresent(state, new Object[0], "getMaterial", "func_185904_a");
         Object liquid = invokeIfPresent(material, new Object[0], "isLiquid", "func_76224_d");
         return Boolean.TRUE.equals(liquid);
+    }
+
+    private Object createRandomMob(Object world, List<String> mobClassNames) {
+        if (mobClassNames == null || mobClassNames.isEmpty()) {
+            return null;
+        }
+        int start = random.nextInt(mobClassNames.size());
+        for (int offset = 0; offset < mobClassNames.size(); offset++) {
+            Object mob = createMob(world, mobClassNames.get((start + offset) % mobClassNames.size()));
+            if (mob != null) {
+                return mob;
+            }
+        }
+        return null;
     }
 
     private static Object createMob(Object world, String className) {
@@ -404,6 +442,37 @@ final class JudgementNightService {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static List<String> readMobClassNames(Properties properties) {
+        String rawValue = properties.getProperty("mobClassNames");
+        if (rawValue == null || rawValue.trim().isEmpty()) {
+            return DEFAULT_MOB_CLASS_NAMES;
+        }
+
+        List<String> result = new ArrayList<String>();
+        String[] parts = rawValue.split(",");
+        for (String part : parts) {
+            String className = part == null ? "" : part.trim();
+            if (!className.isEmpty()) {
+                result.add(className);
+            }
+        }
+        if (result.isEmpty()) {
+            return DEFAULT_MOB_CLASS_NAMES;
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    private static String join(List<String> values) {
+        StringBuilder builder = new StringBuilder();
+        for (String value : values) {
+            if (builder.length() > 0) {
+                builder.append(',');
+            }
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private static Object invokeIfPresent(Object target, Object[] args, String... methodNames) {
@@ -506,6 +575,7 @@ final class JudgementNightService {
         final int dimension;
         final int nightStartTick;
         final int nightEndTick;
+        final List<String> mobClassNames;
 
         Config(
             boolean enabled,
@@ -518,7 +588,8 @@ final class JudgementNightService {
             int maxSpawnRadius,
             int dimension,
             int nightStartTick,
-            int nightEndTick
+            int nightEndTick,
+            List<String> mobClassNames
         ) {
             this.enabled = enabled;
             this.periodDays = periodDays;
@@ -531,6 +602,9 @@ final class JudgementNightService {
             this.dimension = dimension;
             this.nightStartTick = nightStartTick;
             this.nightEndTick = nightEndTick;
+            this.mobClassNames = mobClassNames == null || mobClassNames.isEmpty()
+                ? DEFAULT_MOB_CLASS_NAMES
+                : Collections.unmodifiableList(new ArrayList<String>(mobClassNames));
         }
 
         Config normalized() {
@@ -548,12 +622,13 @@ final class JudgementNightService {
                 minSpawnRadius,
                 dimension,
                 nightStartTick,
-                nightEndTick
+                nightEndTick,
+                mobClassNames
             );
         }
 
         static Config defaults() {
-            return new Config(true, 7, 20, 10, 64, 72, 18, 64, 0, 12000, 23999);
+            return new Config(true, 7, 20, 10, 96, 72, 18, 64, 0, 12000, 23999, DEFAULT_MOB_CLASS_NAMES);
         }
     }
 }

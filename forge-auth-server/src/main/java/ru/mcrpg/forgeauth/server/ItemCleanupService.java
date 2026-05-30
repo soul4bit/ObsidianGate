@@ -100,9 +100,16 @@ public final class ItemCleanupService {
         }
 
         if (secondsUntilCleanup <= 0) {
-            int removed = cleanupDroppedItems();
-            broadcastStatus("Очистка предметов", "завершена. Удалено: " + removed + ".");
-            logger.info("Очистка предметов завершена. Удалено EntityItem=" + removed);
+            CleanupResult result = cleanupDroppedItems(snapshot.minAgeSeconds);
+            broadcastStatus("Очистка предметов", cleanupSummary(result));
+            logger.info(
+                "Dropped item cleanup finished. worlds=" + result.worlds
+                    + " scanned=" + result.scanned
+                    + " removed=" + result.removed
+                    + " skippedFresh=" + result.skippedFresh
+                    + " skippedDead=" + result.skippedDead
+                    + " minAgeSeconds=" + snapshot.minAgeSeconds
+            );
             secondsUntilCleanup = snapshot.intervalSeconds;
             warnedSeconds.clear();
         }
@@ -155,22 +162,41 @@ public final class ItemCleanupService {
         }
     }
 
-    private int cleanupDroppedItems() {
+    private CleanupResult cleanupDroppedItems(int minAgeSeconds) {
         Object server = serverSupplier.get();
-        int removed = 0;
+        CleanupResult result = new CleanupResult();
         for (Object world : loadedWorlds(server)) {
+            result.worlds++;
             Object entities = readFieldIfPresent(world, "loadedEntityList", "field_72996_f");
             if (!(entities instanceof List<?>)) {
                 continue;
             }
             for (Object entity : new ArrayList<Object>((List<?>) entities)) {
-                if (isDroppedItem(entity) && !isDead(entity) && isOldEnoughToClean(entity, config.minAgeSeconds)) {
+                if (!isDroppedItem(entity)) {
+                    continue;
+                }
+                result.scanned++;
+                if (isDead(entity)) {
+                    result.skippedDead++;
+                    continue;
+                }
+                if (isOldEnoughToClean(entity, minAgeSeconds)) {
                     invokeZeroArgIfPresent(entity, "setDead", "func_70106_y");
-                    removed++;
+                    result.removed++;
+                } else {
+                    result.skippedFresh++;
                 }
             }
         }
-        return removed;
+        return result;
+    }
+
+    private static String cleanupSummary(CleanupResult result) {
+        String summary = "завершена. Удалено: " + result.removed + ".";
+        if (result.skippedFresh > 0) {
+            summary += " Свежих предметов пропущено: " + result.skippedFresh + ".";
+        }
+        return summary;
     }
 
     private void broadcastStatus(String subject, String detail) {
@@ -439,5 +465,13 @@ public final class ItemCleanupService {
             warnings.add(Integer.valueOf(5));
             return new Config(true, DEFAULT_INTERVAL_SECONDS, DEFAULT_MIN_AGE_SECONDS, warnings);
         }
+    }
+
+    private static final class CleanupResult {
+        private int worlds;
+        private int scanned;
+        private int removed;
+        private int skippedFresh;
+        private int skippedDead;
     }
 }
