@@ -46,7 +46,6 @@ final class JudgementNightService {
         "divinerpg.objects.entities.entity.vanilla.EntityMiner",
         "divinerpg.objects.entities.entity.vanilla.EntityRotatick",
         "divinerpg.objects.entities.entity.vanilla.EntitySaguaroWorm",
-        "divinerpg.objects.entities.entity.vanilla.EntityStoneGolem",
         "divinerpg.objects.entities.entity.vanilla.EntityTheEye",
         "divinerpg.objects.entities.entity.vanilla.EntityTheGrue"
     ));

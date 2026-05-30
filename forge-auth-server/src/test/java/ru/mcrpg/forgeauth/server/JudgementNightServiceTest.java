@@ -31,6 +31,7 @@ class JudgementNightServiceTest {
         assertEquals(10, service.config().mobsPerPlayer);
         assertEquals(96, service.config().maxHostilesNearPlayer);
         assertTrue(service.config().mobClassNames.contains("divinerpg.objects.entities.entity.vanilla.EntityTheGrue"));
+        assertFalse(service.config().mobClassNames.contains("divinerpg.objects.entities.entity.vanilla.EntityStoneGolem"));
     }
 
     @Test
