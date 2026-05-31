@@ -12,8 +12,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -65,6 +68,7 @@ final class JudgementNightService {
     private long activeJudgementDay = -1L;
     private long rewardedDay = -1L;
     private final Set<String> deathsDuringActiveNight = new HashSet<String>();
+    private final Map<String, NightPlayerStats> activeNightStats = new LinkedHashMap<String, NightPlayerStats>();
 
     JudgementNightService(Logger logger) {
         this(logger, CONFIG_PATH);
@@ -93,6 +97,7 @@ final class JudgementNightService {
         activeJudgementDay = -1L;
         rewardedDay = -1L;
         deathsDuringActiveNight.clear();
+        activeNightStats.clear();
         logger.info(String.format(
             "Judgement night loaded. enabled=%s periodDays=%d waveIntervalSeconds=%d mobsPerPlayer=%d maxHostilesNearPlayer=%d radius=%d-%d dimension=%d rewardLevels=%d mobClasses=%d",
             config.enabled,
@@ -120,6 +125,7 @@ final class JudgementNightService {
     public synchronized void onLivingDeath(LivingDeathEvent event) {
         Object entity = invokeIfPresent(event, new Object[0], "getEntityLiving", "getEntity");
         recordDeathIfActive(entity);
+        recordKillIfActive(entity, killerFromDeathEvent(event));
     }
 
     synchronized void runServerEndTick() {
@@ -148,6 +154,7 @@ final class JudgementNightService {
             announcedDay = day;
             activeJudgementDay = day;
             deathsDuringActiveNight.clear();
+            activeNightStats.clear();
             broadcast(server, "Судная ночь", "наступила. Держитесь вместе: волны мобов будут чаще обычного.");
             logger.info("Judgement night started for day " + day + ".");
         }
@@ -176,6 +183,17 @@ final class JudgementNightService {
             return;
         }
         deathsDuringActiveNight.add(PlayerIdentity.id(player));
+        statsFor(player).deaths++;
+    }
+
+    synchronized void recordKillIfActive(Object victim, Object killer) {
+        if (activeJudgementDay <= 0L || !isHostile(victim) || !TeleportSupport.isPlayer(killer)) {
+            return;
+        }
+        if (TeleportSupport.playerDimension(killer) != config.dimension) {
+            return;
+        }
+        statsFor(killer).kills++;
     }
 
     private void warnIfNeeded(Object server, Object world, Config snapshot) {
@@ -206,6 +224,7 @@ final class JudgementNightService {
 
         int rewardedPlayers = 0;
         for (Object player : playersInDimension(server, snapshot.dimension)) {
+            statsFor(player);
             if (deathsDuringActiveNight.contains(PlayerIdentity.id(player))) {
                 continue;
             }
@@ -220,10 +239,60 @@ final class JudgementNightService {
             }
         }
 
+        broadcast(server, "\u0421\u0443\u0434\u043d\u0430\u044f \u043d\u043e\u0447\u044c", judgementStatsSummary(rewardedPlayers, snapshot.survivalRewardLevels));
         rewardedDay = activeJudgementDay;
         activeJudgementDay = -1L;
         deathsDuringActiveNight.clear();
+        activeNightStats.clear();
         logger.info("Judgement night survival reward granted to " + rewardedPlayers + " players.");
+    }
+
+    String judgementStatsSummary(int rewardedPlayers, int rewardLevels) {
+        List<NightPlayerStats> stats = new ArrayList<NightPlayerStats>(activeNightStats.values());
+        Collections.sort(stats, new Comparator<NightPlayerStats>() {
+            @Override
+            public int compare(NightPlayerStats left, NightPlayerStats right) {
+                int kills = Integer.compare(right.kills, left.kills);
+                if (kills != 0) {
+                    return kills;
+                }
+                int deaths = Integer.compare(left.deaths, right.deaths);
+                if (deaths != 0) {
+                    return deaths;
+                }
+                return left.name.compareToIgnoreCase(right.name);
+            }
+        });
+
+        StringBuilder result = new StringBuilder("\u0438\u0442\u043e\u0433\u0438: ");
+        if (stats.isEmpty()) {
+            result.append("\u0443\u0431\u0438\u0439\u0441\u0442\u0432 \u043d\u0435\u0442, \u0441\u043c\u0435\u0440\u0442\u0435\u0439 \u043d\u0435\u0442");
+        } else {
+            int limit = Math.min(6, stats.size());
+            for (int index = 0; index < limit; index++) {
+                if (index > 0) {
+                    result.append("; ");
+                }
+                NightPlayerStats player = stats.get(index);
+                result
+                    .append(player.name)
+                    .append(": ")
+                    .append(player.kills)
+                    .append(" \u0443\u0431\u0438\u0439\u0441\u0442\u0432, ")
+                    .append(player.deaths)
+                    .append(" \u0441\u043c\u0435\u0440\u0442\u0435\u0439");
+            }
+            if (stats.size() > limit) {
+                result.append("; \u0435\u0449\u0435 ").append(stats.size() - limit);
+            }
+        }
+        result
+            .append(". \u0412\u044b\u0436\u0438\u0432\u0448\u0438\u0435: ")
+            .append(rewardedPlayers)
+            .append(", \u043d\u0430\u0433\u0440\u0430\u0434\u0430 +")
+            .append(rewardLevels)
+            .append(" \u0443\u0440\u043e\u0432\u043d\u0435\u0439.");
+        return result.toString();
     }
 
     private int spawnWaves(Object server, Config snapshot) {
@@ -370,6 +439,28 @@ final class JudgementNightService {
     private static long worldTime(Object world) {
         Object value = invokeIfPresent(world, new Object[0], "getWorldTime", "func_72820_D");
         return value instanceof Number ? ((Number) value).longValue() : 0L;
+    }
+
+    private NightPlayerStats statsFor(Object player) {
+        String id = PlayerIdentity.id(player);
+        NightPlayerStats stats = activeNightStats.get(id);
+        String name = PlayerIdentity.name(player);
+        if (stats == null) {
+            stats = new NightPlayerStats(name);
+            activeNightStats.put(id, stats);
+        } else if (name != null && !name.isEmpty()) {
+            stats.name = name;
+        }
+        return stats;
+    }
+
+    private static Object killerFromDeathEvent(Object event) {
+        Object source = invokeIfPresent(event, new Object[0], "getSource");
+        Object killer = invokeIfPresent(source, new Object[0], "getTrueSource", "func_76346_g");
+        if (TeleportSupport.isPlayer(killer)) {
+            return killer;
+        }
+        return invokeIfPresent(source, new Object[0], "getImmediateSource", "func_76364_f");
     }
 
     private static int countHostilesNear(Object world, Object player, int radius) {
@@ -685,6 +776,16 @@ final class JudgementNightService {
     private static double readDoubleField(Object target, String... fieldNames) {
         Object value = readFieldIfPresent(target, fieldNames);
         return value instanceof Number ? ((Number) value).doubleValue() : 0.0D;
+    }
+
+    private static final class NightPlayerStats {
+        private String name;
+        private int kills;
+        private int deaths;
+
+        private NightPlayerStats(String name) {
+            this.name = (name == null || name.isEmpty()) ? "player" : name;
+        }
     }
 
     static final class Config {

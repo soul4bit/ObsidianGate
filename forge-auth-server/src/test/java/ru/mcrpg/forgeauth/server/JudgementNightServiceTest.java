@@ -130,6 +130,34 @@ class JudgementNightServiceTest {
         assertEquals(0, player.levels);
     }
 
+    @Test
+    void summarizesJudgementNightKillsAndDeaths() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-judgement-night.properties");
+        Files.write(
+            configPath,
+            ("periodDays=2\nsurvivalRewardLevels=20\nwaveIntervalSeconds=3600\n")
+                .getBytes(StandardCharsets.UTF_8)
+        );
+        FakeWorld world = new FakeWorld(2L * 24000L + 12000L);
+        FakePlayer player = new FakePlayer(0);
+        FakeServer server = new FakeServer(world, player);
+        JudgementNightService service = new JudgementNightService(Logger.getLogger("test"), configPath, () -> server, new Random(1));
+
+        service.load();
+        runSeconds(service, 1);
+        service.recordKillIfActive(new FakeHostile(), player);
+        service.recordDeathIfActive(player);
+
+        String summary = service.judgementStatsSummary(0, 20);
+
+        assertTrue(summary.contains("Knight: 1"));
+        assertTrue(summary.contains("1 \u0441\u043c\u0435\u0440\u0442\u0435\u0439"));
+        assertTrue(summary.contains("\u043d\u0430\u0433\u0440\u0430\u0434\u0430 +20"));
+    }
+
+    static final class FakeHostile implements net.minecraft.entity.monster.IMob {
+    }
+
     private static void runSeconds(JudgementNightService service, int seconds) {
         for (int tick = 0; tick < seconds * 20; tick++) {
             service.runServerEndTick();
