@@ -239,7 +239,7 @@ final class JudgementNightService {
             }
         }
 
-        broadcast(server, "\u0421\u0443\u0434\u043d\u0430\u044f \u043d\u043e\u0447\u044c", judgementStatsSummary(rewardedPlayers, snapshot.survivalRewardLevels));
+        broadcastJudgementStats(server, rewardedPlayers, snapshot.survivalRewardLevels);
         rewardedDay = activeJudgementDay;
         activeJudgementDay = -1L;
         deathsDuringActiveNight.clear();
@@ -264,9 +264,9 @@ final class JudgementNightService {
             }
         });
 
-        StringBuilder result = new StringBuilder("\u0438\u0442\u043e\u0433\u0438: ");
+        StringBuilder result = new StringBuilder();
         if (stats.isEmpty()) {
-            result.append("\u0443\u0431\u0438\u0439\u0441\u0442\u0432 \u043d\u0435\u0442, \u0441\u043c\u0435\u0440\u0442\u0435\u0439 \u043d\u0435\u0442");
+            result.append("\u0411\u043e\u0435\u0432\u043e\u0439 \u0436\u0443\u0440\u043d\u0430\u043b: \u0443\u0431\u0438\u0439\u0441\u0442\u0432 \u043d\u0435\u0442, \u0441\u043c\u0435\u0440\u0442\u0435\u0439 \u043d\u0435\u0442");
         } else {
             int limit = Math.min(6, stats.size());
             for (int index = 0; index < limit; index++) {
@@ -293,6 +293,46 @@ final class JudgementNightService {
             .append(rewardLevels)
             .append(" \u0443\u0440\u043e\u0432\u043d\u0435\u0439.");
         return result.toString();
+    }
+
+    private void broadcastJudgementStats(Object server, int rewardedPlayers, int rewardLevels) {
+        broadcast(server, "\u0421\u0443\u0434\u043d\u0430\u044f \u043d\u043e\u0447\u044c", "\u0438\u0442\u043e\u0433\u0438 \u043d\u043e\u0447\u0438");
+        broadcastRaw(server, "\u00A77  \u0412\u044b\u0436\u0438\u0432\u0448\u0438\u0435: \u00A7a" + rewardedPlayers + "\u00A77  |  \u041d\u0430\u0433\u0440\u0430\u0434\u0430: \u00A7a+" + rewardLevels + " \u0443\u0440.");
+
+        List<NightPlayerStats> stats = sortedNightStats();
+        if (stats.isEmpty()) {
+            broadcastRaw(server, "\u00A77  \u0411\u043e\u0435\u0432\u043e\u0439 \u0436\u0443\u0440\u043d\u0430\u043b: \u00A7f\u0443\u0431\u0438\u0439\u0441\u0442\u0432 \u0438 \u0441\u043c\u0435\u0440\u0442\u0435\u0439 \u043d\u0435\u0442.");
+            return;
+        }
+
+        broadcastRaw(server, "\u00A78  \u0418\u0433\u0440\u043e\u043a                  \u00A7c\u2694 \u00A78| \u00A77\u2620");
+        int limit = Math.min(6, stats.size());
+        for (int index = 0; index < limit; index++) {
+            NightPlayerStats player = stats.get(index);
+            broadcastRaw(server, "\u00A77  " + padRight(player.name, 20) + " \u00A7c" + player.kills + " \u00A78| \u00A77" + player.deaths);
+        }
+        if (stats.size() > limit) {
+            broadcastRaw(server, "\u00A78  ... \u0435\u0449\u0435 " + (stats.size() - limit) + " \u0438\u0433\u0440.");
+        }
+    }
+
+    private List<NightPlayerStats> sortedNightStats() {
+        List<NightPlayerStats> stats = new ArrayList<NightPlayerStats>(activeNightStats.values());
+        Collections.sort(stats, new Comparator<NightPlayerStats>() {
+            @Override
+            public int compare(NightPlayerStats left, NightPlayerStats right) {
+                int kills = Integer.compare(right.kills, left.kills);
+                if (kills != 0) {
+                    return kills;
+                }
+                int deaths = Integer.compare(left.deaths, right.deaths);
+                if (deaths != 0) {
+                    return deaths;
+                }
+                return left.name.compareToIgnoreCase(right.name);
+            }
+        });
+        return stats;
     }
 
     private int spawnWaves(Object server, Config snapshot) {
@@ -589,6 +629,29 @@ final class JudgementNightService {
         for (Object player : (Iterable<?>) players) {
             ServerChat.status(player, ServerChat.Tone.WARNING, subject, detail);
         }
+    }
+
+    private static void broadcastRaw(Object server, String message) {
+        Object playerList = invokeIfPresent(server, new Object[0], "getPlayerList", "func_184103_al");
+        Object players = invokeIfPresent(playerList, new Object[0], "getPlayers", "func_181057_v");
+        if (!(players instanceof Iterable<?>)) {
+            return;
+        }
+        for (Object player : (Iterable<?>) players) {
+            ServerChat.info(player, message);
+        }
+    }
+
+    private static String padRight(String value, int width) {
+        String safeValue = value == null ? "" : value;
+        if (safeValue.length() >= width) {
+            return safeValue.substring(0, width);
+        }
+        StringBuilder result = new StringBuilder(safeValue);
+        while (result.length() < width) {
+            result.append(' ');
+        }
+        return result.toString();
     }
 
     private static boolean grantExperienceLevels(Object player, int levels) {
