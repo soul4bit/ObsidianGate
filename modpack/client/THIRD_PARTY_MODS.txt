@@ -1,5 +1,11 @@
 Third-party mod credits
 
+Advanced Solar Panels
+Official page: https://www.curseforge.com/minecraft/mc-mods/advanced-solar-panels
+
+Advanced Solar Panels Patcher
+Official page: https://www.curseforge.com/minecraft/mc-mods/advanced-solar-panels-patcher
+
 AI Improvements
 Official page: https://modrinth.com/mod/ai-improvements
 

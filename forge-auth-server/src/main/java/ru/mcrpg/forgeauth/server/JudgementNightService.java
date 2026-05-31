@@ -12,12 +12,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.function.Supplier;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
@@ -58,6 +61,10 @@ final class JudgementNightService {
     private int ticksUntilSecond;
     private int secondsUntilWave;
     private long announcedDay = -1L;
+    private long warnedForDay = -1L;
+    private long activeJudgementDay = -1L;
+    private long rewardedDay = -1L;
+    private final Set<String> deathsDuringActiveNight = new HashSet<String>();
 
     JudgementNightService(Logger logger) {
         this(logger, CONFIG_PATH);
@@ -82,8 +89,12 @@ final class JudgementNightService {
         ticksUntilSecond = TICKS_PER_SECOND;
         secondsUntilWave = config.waveIntervalSeconds;
         announcedDay = -1L;
+        warnedForDay = -1L;
+        activeJudgementDay = -1L;
+        rewardedDay = -1L;
+        deathsDuringActiveNight.clear();
         logger.info(String.format(
-            "Judgement night loaded. enabled=%s periodDays=%d waveIntervalSeconds=%d mobsPerPlayer=%d maxHostilesNearPlayer=%d radius=%d-%d dimension=%d mobClasses=%d",
+            "Judgement night loaded. enabled=%s periodDays=%d waveIntervalSeconds=%d mobsPerPlayer=%d maxHostilesNearPlayer=%d radius=%d-%d dimension=%d rewardLevels=%d mobClasses=%d",
             config.enabled,
             config.periodDays,
             config.waveIntervalSeconds,
@@ -92,6 +103,7 @@ final class JudgementNightService {
             config.minSpawnRadius,
             config.maxSpawnRadius,
             config.dimension,
+            config.survivalRewardLevels,
             config.mobClassNames.size()
         ));
     }
@@ -102,6 +114,12 @@ final class JudgementNightService {
             return;
         }
         runServerEndTick();
+    }
+
+    @SubscribeEvent
+    public synchronized void onLivingDeath(LivingDeathEvent event) {
+        Object entity = invokeIfPresent(event, new Object[0], "getEntityLiving", "getEntity");
+        recordDeathIfActive(entity);
     }
 
     synchronized void runServerEndTick() {
@@ -119,6 +137,8 @@ final class JudgementNightService {
         Object server = serverSupplier.get();
         Object world = world(server, snapshot.dimension);
         if (!isJudgementNight(world, snapshot)) {
+            rewardSurvivorsIfNeeded(server, world, snapshot);
+            warnIfNeeded(server, world, snapshot);
             secondsUntilWave = snapshot.waveIntervalSeconds;
             return;
         }
@@ -126,6 +146,8 @@ final class JudgementNightService {
         long day = dayNumber(world);
         if (announcedDay != day) {
             announcedDay = day;
+            activeJudgementDay = day;
+            deathsDuringActiveNight.clear();
             broadcast(server, "Судная ночь", "наступила. Держитесь вместе: волны мобов будут чаще обычного.");
             logger.info("Judgement night started for day " + day + ".");
         }
@@ -144,6 +166,64 @@ final class JudgementNightService {
 
     Config config() {
         return config;
+    }
+
+    synchronized void recordDeathIfActive(Object player) {
+        if (activeJudgementDay <= 0L || !TeleportSupport.isPlayer(player)) {
+            return;
+        }
+        if (TeleportSupport.playerDimension(player) != config.dimension) {
+            return;
+        }
+        deathsDuringActiveNight.add(PlayerIdentity.id(player));
+    }
+
+    private void warnIfNeeded(Object server, Object world, Config snapshot) {
+        if (!isJudgementEve(world, snapshot)) {
+            return;
+        }
+
+        long judgementDay = dayNumber(world) + 1L;
+        if (warnedForDay == judgementDay) {
+            return;
+        }
+
+        warnedForDay = judgementDay;
+        broadcast(server, "\u0421\u0443\u0434\u043d\u0430\u044f \u043d\u043e\u0447\u044c", "\u0437\u0430\u0432\u0442\u0440\u0430 \u043d\u0430\u0441\u0442\u0443\u043f\u0438\u0442 \u0441\u0443\u0434\u043d\u0430\u044f \u043d\u043e\u0447\u044c. \u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u044c\u0442\u0435 \u0431\u0430\u0437\u0443, \u0441\u0432\u0435\u0442 \u0438 \u0431\u043e\u0435\u0432\u043e\u0439 \u043a\u043e\u043c\u043f\u043b\u0435\u043a\u0442.");
+        logger.info("Judgement night warning announced for day " + judgementDay + ".");
+    }
+
+    private void rewardSurvivorsIfNeeded(Object server, Object world, Config snapshot) {
+        if (world == null || snapshot.survivalRewardLevels <= 0 || activeJudgementDay <= 0L) {
+            return;
+        }
+
+        long day = dayNumber(world);
+        long tick = dayTick(world);
+        if (day < activeJudgementDay || (day == activeJudgementDay && tick <= snapshot.nightEndTick) || rewardedDay == activeJudgementDay) {
+            return;
+        }
+
+        int rewardedPlayers = 0;
+        for (Object player : playersInDimension(server, snapshot.dimension)) {
+            if (deathsDuringActiveNight.contains(PlayerIdentity.id(player))) {
+                continue;
+            }
+            if (grantExperienceLevels(player, snapshot.survivalRewardLevels)) {
+                rewardedPlayers++;
+                ServerChat.status(
+                    player,
+                    ServerChat.Tone.SUCCESS,
+                    "\u0421\u0443\u0434\u043d\u0430\u044f \u043d\u043e\u0447\u044c",
+                    "\u0432\u044b \u043f\u0435\u0440\u0435\u0436\u0438\u043b\u0438 \u043d\u043e\u0447\u044c \u0438 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u0438 +" + snapshot.survivalRewardLevels + " \u0443\u0440\u043e\u0432\u043d\u0435\u0439."
+                );
+            }
+        }
+
+        rewardedDay = activeJudgementDay;
+        activeJudgementDay = -1L;
+        deathsDuringActiveNight.clear();
+        logger.info("Judgement night survival reward granted to " + rewardedPlayers + " players.");
     }
 
     private int spawnWaves(Object server, Config snapshot) {
@@ -220,6 +300,8 @@ final class JudgementNightService {
             readInt(properties, "dimension", 0),
             clamp(readInt(properties, "nightStartTick", 12000), 0, 23999),
             clamp(readInt(properties, "nightEndTick", 23999), 0, 23999),
+            clamp(readInt(properties, "warningStartTick", 12000), 0, 23999),
+            clamp(readInt(properties, "survivalRewardLevels", 20), 0, 100),
             readMobClassNames(properties)
         ).normalized();
 
@@ -242,6 +324,8 @@ final class JudgementNightService {
         properties.setProperty("dimension", Integer.toString(value.dimension));
         properties.setProperty("nightStartTick", Integer.toString(value.nightStartTick));
         properties.setProperty("nightEndTick", Integer.toString(value.nightEndTick));
+        properties.setProperty("warningStartTick", Integer.toString(value.warningStartTick));
+        properties.setProperty("survivalRewardLevels", Integer.toString(value.survivalRewardLevels));
         properties.setProperty("mobClassNames", join(value.mobClassNames));
 
         try {
@@ -262,12 +346,25 @@ final class JudgementNightService {
             return false;
         }
         long day = dayNumber(world);
-        long tick = worldTime(world) % 24000L;
+        long tick = dayTick(world);
         return day > 0L && day % config.periodDays == 0L && tick >= config.nightStartTick && tick <= config.nightEndTick;
+    }
+
+    static boolean isJudgementEve(Object world, Config config) {
+        if (world == null) {
+            return false;
+        }
+        long day = dayNumber(world);
+        long tick = dayTick(world);
+        return (day + 1L) > 0L && (day + 1L) % config.periodDays == 0L && tick >= config.warningStartTick;
     }
 
     static long dayNumber(Object world) {
         return worldTime(world) / 24000L;
+    }
+
+    private static long dayTick(Object world) {
+        return worldTime(world) % 24000L;
     }
 
     private static long worldTime(Object world) {
@@ -403,6 +500,16 @@ final class JudgementNightService {
         }
     }
 
+    private static boolean grantExperienceLevels(Object player, int levels) {
+        Object result = invokeIfPresent(
+            player,
+            new Object[] { Integer.valueOf(levels) },
+            "addExperienceLevel",
+            "func_82242_a"
+        );
+        return result != null || hasMethod(player, "addExperienceLevel", "func_82242_a");
+    }
+
     private static Object topPosition(Object world, int x, int z) {
         return invokeIfPresent(world, new Object[] { blockPos(x, 0, z) }, "getTopSolidOrLiquidBlock", "func_175672_r");
     }
@@ -496,6 +603,24 @@ final class JudgementNightService {
         return null;
     }
 
+    private static boolean hasMethod(Object target, String... methodNames) {
+        if (target == null) {
+            return false;
+        }
+        Class<?> type = target.getClass();
+        while (type != null) {
+            for (Method method : type.getDeclaredMethods()) {
+                for (String methodName : methodNames) {
+                    if (methodName.equals(method.getName())) {
+                        return true;
+                    }
+                }
+            }
+            type = type.getSuperclass();
+        }
+        return false;
+    }
+
     private static boolean matches(Method method, Object[] args, String... methodNames) {
         if (method.getParameterTypes().length != args.length) {
             return false;
@@ -574,6 +699,8 @@ final class JudgementNightService {
         final int dimension;
         final int nightStartTick;
         final int nightEndTick;
+        final int warningStartTick;
+        final int survivalRewardLevels;
         final List<String> mobClassNames;
 
         Config(
@@ -588,6 +715,8 @@ final class JudgementNightService {
             int dimension,
             int nightStartTick,
             int nightEndTick,
+            int warningStartTick,
+            int survivalRewardLevels,
             List<String> mobClassNames
         ) {
             this.enabled = enabled;
@@ -601,6 +730,8 @@ final class JudgementNightService {
             this.dimension = dimension;
             this.nightStartTick = nightStartTick;
             this.nightEndTick = nightEndTick;
+            this.warningStartTick = warningStartTick;
+            this.survivalRewardLevels = survivalRewardLevels;
             this.mobClassNames = mobClassNames == null || mobClassNames.isEmpty()
                 ? DEFAULT_MOB_CLASS_NAMES
                 : Collections.unmodifiableList(new ArrayList<String>(mobClassNames));
@@ -622,12 +753,14 @@ final class JudgementNightService {
                 dimension,
                 nightStartTick,
                 nightEndTick,
+                warningStartTick,
+                survivalRewardLevels,
                 mobClassNames
             );
         }
 
         static Config defaults() {
-            return new Config(true, 7, 20, 10, 96, 72, 18, 64, 0, 12000, 23999, DEFAULT_MOB_CLASS_NAMES);
+            return new Config(true, 7, 20, 10, 96, 72, 18, 64, 0, 12000, 23999, 12000, 20, DEFAULT_MOB_CLASS_NAMES);
         }
     }
 }

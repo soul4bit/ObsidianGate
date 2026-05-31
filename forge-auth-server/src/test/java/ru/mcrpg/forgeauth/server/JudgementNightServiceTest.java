@@ -7,8 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.logging.Logger;
+import net.minecraft.entity.player.EntityPlayerMP;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -30,6 +34,8 @@ class JudgementNightServiceTest {
         assertEquals(20, service.config().waveIntervalSeconds);
         assertEquals(10, service.config().mobsPerPlayer);
         assertEquals(96, service.config().maxHostilesNearPlayer);
+        assertEquals(12000, service.config().warningStartTick);
+        assertEquals(20, service.config().survivalRewardLevels);
         assertTrue(service.config().mobClassNames.contains("divinerpg.objects.entities.entity.vanilla.EntityTheGrue"));
         assertFalse(service.config().mobClassNames.contains("divinerpg.objects.entities.entity.vanilla.EntityStoneGolem"));
     }
@@ -70,8 +76,68 @@ class JudgementNightServiceTest {
         assertFalse(JudgementNightService.isJudgementNight(new FakeWorld(14L * 24000L + 11999L), config));
     }
 
+    @Test
+    void warnsOnEveningBeforeJudgementNight() {
+        JudgementNightService.Config config = JudgementNightService.Config.defaults();
+
+        assertTrue(JudgementNightService.isJudgementEve(new FakeWorld(6L * 24000L + 12000L), config));
+        assertTrue(JudgementNightService.isJudgementEve(new FakeWorld(13L * 24000L + 13000L), config));
+        assertFalse(JudgementNightService.isJudgementEve(new FakeWorld(6L * 24000L + 11999L), config));
+        assertFalse(JudgementNightService.isJudgementEve(new FakeWorld(5L * 24000L + 13000L), config));
+    }
+
+    @Test
+    void rewardsOnlineSurvivorsAfterJudgementNightEnds() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-judgement-night.properties");
+        Files.write(
+            configPath,
+            ("periodDays=2\nsurvivalRewardLevels=20\nwaveIntervalSeconds=3600\n")
+                .getBytes(StandardCharsets.UTF_8)
+        );
+        FakeWorld world = new FakeWorld(2L * 24000L + 12000L);
+        FakePlayer player = new FakePlayer(0);
+        FakeServer server = new FakeServer(world, player);
+        JudgementNightService service = new JudgementNightService(Logger.getLogger("test"), configPath, () -> server, new Random(1));
+
+        service.load();
+        runSeconds(service, 1);
+        world.worldTime = 3L * 24000L;
+        runSeconds(service, 1);
+        runSeconds(service, 2);
+
+        assertEquals(20, player.levels);
+    }
+
+    @Test
+    void doesNotRewardPlayersWhoDiedDuringJudgementNight() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-judgement-night.properties");
+        Files.write(
+            configPath,
+            ("periodDays=2\nsurvivalRewardLevels=20\nwaveIntervalSeconds=3600\n")
+                .getBytes(StandardCharsets.UTF_8)
+        );
+        FakeWorld world = new FakeWorld(2L * 24000L + 12000L);
+        FakePlayer player = new FakePlayer(0);
+        FakeServer server = new FakeServer(world, player);
+        JudgementNightService service = new JudgementNightService(Logger.getLogger("test"), configPath, () -> server, new Random(1));
+
+        service.load();
+        runSeconds(service, 1);
+        service.recordDeathIfActive(player);
+        world.worldTime = 3L * 24000L;
+        runSeconds(service, 1);
+
+        assertEquals(0, player.levels);
+    }
+
+    private static void runSeconds(JudgementNightService service, int seconds) {
+        for (int tick = 0; tick < seconds * 20; tick++) {
+            service.runServerEndTick();
+        }
+    }
+
     static final class FakeWorld {
-        private final long worldTime;
+        private long worldTime;
 
         FakeWorld(long worldTime) {
             this.worldTime = worldTime;
@@ -79,6 +145,48 @@ class JudgementNightServiceTest {
 
         public long getWorldTime() {
             return worldTime;
+        }
+    }
+
+    static final class FakePlayer extends EntityPlayerMP {
+        int levels;
+
+        FakePlayer(int dimension) {
+            super(UUID.randomUUID(), "Knight", dimension, 0.0D, 64.0D, 0.0D);
+        }
+
+        public void addExperienceLevel(int value) {
+            levels += value;
+        }
+    }
+
+    static final class FakeServer {
+        private final FakeWorld world;
+        private final FakePlayerList playerList;
+
+        FakeServer(FakeWorld world, FakePlayer... players) {
+            this.world = world;
+            this.playerList = new FakePlayerList(Arrays.asList(players));
+        }
+
+        public FakeWorld getWorld(int dimension) {
+            return dimension == 0 ? world : null;
+        }
+
+        public FakePlayerList getPlayerList() {
+            return playerList;
+        }
+    }
+
+    static final class FakePlayerList {
+        private final List<FakePlayer> players;
+
+        FakePlayerList(List<FakePlayer> players) {
+            this.players = players;
+        }
+
+        public List<FakePlayer> getPlayers() {
+            return players;
         }
     }
 }

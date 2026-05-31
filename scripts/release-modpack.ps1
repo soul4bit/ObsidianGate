@@ -46,6 +46,8 @@ $distLauncherRoot = Join-Path $distFullPath "launcher"
 
 $serverModPaths = @(
     "mods/[___MixinCompat-1.1-1.12.2___].jar",
+    "mods/AdvSolarPatch-1.2.1.jar",
+    "mods/Advanced Solar Panels-4.3.0.jar",
     "mods/appliedenergistics2-rv6-stable-7.jar",
     "mods/AutoRegLib-1.3-32.jar",
     "mods/Baubles-1.12-1.5.2.jar",
