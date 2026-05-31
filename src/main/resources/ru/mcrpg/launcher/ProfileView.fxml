@@ -40,9 +40,6 @@
                                                 <Insets left="18.0" top="14.0"/>
                                             </StackPane.margin>
                                         </Label>
-                                        <fx:include fx:id="windowControls" source="clean-glass-window-controls.fxml"
-                                                    StackPane.alignment="TOP_RIGHT"/>
-
                                         <HBox alignment="CENTER_LEFT" spacing="22.0"
                                               StackPane.alignment="CENTER_LEFT" styleClass="profile-page-hero-content">
                                             <children>
@@ -106,6 +103,9 @@
                                                         text="Редактировать"/>
                                             </children>
                                         </HBox>
+
+                                        <fx:include fx:id="windowControls" source="clean-glass-window-controls.fxml"
+                                                    StackPane.alignment="TOP_RIGHT"/>
                                     </children>
                                     <VBox.margin>
                                         <Insets bottom="14.0"/>
