@@ -1779,6 +1779,20 @@
     -fx-border-color: rgba(34, 197, 94, 0.18);
 }
 
+.profile-shell .role-limits-card {
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(24, 36, 52, 0.80), rgba(8, 18, 31, 0.90)),
+        radial-gradient(center 0% 0%, radius 64%, rgba(168, 85, 247, 0.10), transparent);
+    -fx-border-color: rgba(168, 85, 247, 0.20);
+}
+
+.profile-shell .player-brief-card {
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(22, 38, 54, 0.88), rgba(8, 18, 32, 0.94)),
+        radial-gradient(center 100% 0%, radius 68%, rgba(34, 197, 94, 0.08), transparent);
+    -fx-border-color: rgba(34, 197, 94, 0.18);
+}
+
 .profile-shell .section-title {
     -fx-text-fill: #ffffff;
     -fx-font-size: 13px;
@@ -1829,6 +1843,53 @@
     -fx-min-height: 48px;
     -fx-padding: 8px 0;
     -fx-border-color: transparent transparent rgba(148, 163, 184, 0.10) transparent;
+}
+
+.profile-limit-grid {
+    -fx-fill-height: true;
+}
+
+.profile-limit-tile {
+    -fx-min-width: 86px;
+    -fx-min-height: 72px;
+    -fx-padding: 10px 8px;
+    -fx-background-color: rgba(8, 17, 30, 0.46);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(148, 163, 184, 0.16);
+    -fx-border-radius: 6px;
+}
+
+.profile-limit-value {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.profile-news-brief {
+    -fx-padding: 10px 12px;
+    -fx-background-color: rgba(8, 17, 30, 0.46);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(148, 163, 184, 0.16);
+    -fx-border-radius: 6px;
+}
+
+.profile-news-date {
+    -fx-text-fill: #86efac;
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+}
+
+.profile-news-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+}
+
+.profile-news-body {
+    -fx-text-fill: #aeb8c8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-line-spacing: 2px;
 }
 
 .profile-shell .button.profile-action-button {

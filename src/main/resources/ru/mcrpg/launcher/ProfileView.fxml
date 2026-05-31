@@ -232,6 +232,130 @@
                                                     </children>
                                                 </HBox>
 
+                                                <HBox spacing="16.0" styleClass="profile-dashboard-grid">
+                                                    <children>
+                                                        <VBox fx:id="roleLimitsCard"
+                                                              minWidth="0.0" prefWidth="520.0" spacing="14.0"
+                                                              styleClass="profile-card, role-limits-card"
+                                                              HBox.hgrow="ALWAYS">
+                                                            <children>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10.0"
+                                                                      styleClass="card-header">
+                                                                    <children>
+                                                                        <Label fx:id="roleLimitsIconLabel"
+                                                                               styleClass="profile-card-icon"/>
+                                                                        <Label styleClass="section-title"
+                                                                               text="Возможности роли"/>
+                                                                    </children>
+                                                                </HBox>
+                                                                <HBox spacing="10.0" styleClass="profile-limit-grid">
+                                                                    <children>
+                                                                        <VBox alignment="CENTER" spacing="4.0"
+                                                                              styleClass="profile-limit-tile"
+                                                                              HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="muted" text="Дома"/>
+                                                                                <Label fx:id="maxHomesLabel"
+                                                                                       styleClass="profile-limit-value"
+                                                                                       text="-"/>
+                                                                            </children>
+                                                                        </VBox>
+                                                                        <VBox alignment="CENTER" spacing="4.0"
+                                                                              styleClass="profile-limit-tile"
+                                                                              HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="muted" text="Регионы"/>
+                                                                                <Label fx:id="maxRegionsLabel"
+                                                                                       styleClass="profile-limit-value"
+                                                                                       text="-"/>
+                                                                            </children>
+                                                                        </VBox>
+                                                                        <VBox alignment="CENTER" spacing="4.0"
+                                                                              styleClass="profile-limit-tile"
+                                                                              HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="muted" text="/home"/>
+                                                                                <Label fx:id="homeCooldownLabel"
+                                                                                       styleClass="profile-limit-value"
+                                                                                       text="-"/>
+                                                                            </children>
+                                                                        </VBox>
+                                                                        <VBox alignment="CENTER" spacing="4.0"
+                                                                              styleClass="profile-limit-tile"
+                                                                              HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="muted" text="/rtp"/>
+                                                                                <Label fx:id="rtpCooldownLabel"
+                                                                                       styleClass="profile-limit-value"
+                                                                                       text="-"/>
+                                                                            </children>
+                                                                        </VBox>
+                                                                    </children>
+                                                                </HBox>
+                                                                <Label fx:id="roleLimitsHintLabel"
+                                                                       styleClass="profile-sync-status"
+                                                                       text="Лимиты применяются сервером ObsidianGate."
+                                                                       wrapText="true"/>
+                                                            </children>
+                                                        </VBox>
+
+                                                        <VBox fx:id="playerBriefCard"
+                                                              maxWidth="340.0" minWidth="315.0" prefWidth="330.0"
+                                                              spacing="14.0" styleClass="profile-card, player-brief-card">
+                                                            <children>
+                                                                <HBox alignment="CENTER_LEFT" spacing="10.0"
+                                                                      styleClass="card-header">
+                                                                    <children>
+                                                                        <Label fx:id="playerBriefIconLabel"
+                                                                               styleClass="profile-card-icon"/>
+                                                                        <Label styleClass="section-title"
+                                                                               text="Игровая сводка"/>
+                                                                    </children>
+                                                                </HBox>
+                                                                <VBox spacing="0.0" styleClass="profile-info-list">
+                                                                    <children>
+                                                                        <HBox alignment="CENTER_LEFT" spacing="12.0"
+                                                                              styleClass="profile-info-row">
+                                                                            <children>
+                                                                                <Label styleClass="muted" text="Аватар"/>
+                                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                                <Label fx:id="avatarSummaryLabel"
+                                                                                       maxWidth="190.0"
+                                                                                       styleClass="value-label"
+                                                                                       text="-" wrapText="true"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                        <HBox alignment="CENTER_LEFT" spacing="12.0"
+                                                                              styleClass="profile-info-row">
+                                                                            <children>
+                                                                                <Label styleClass="muted" text="Сессия"/>
+                                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                                <Label fx:id="sessionSummaryLabel"
+                                                                                       maxWidth="190.0"
+                                                                                       styleClass="value-label"
+                                                                                       text="-" wrapText="true"/>
+                                                                            </children>
+                                                                        </HBox>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox spacing="5.0" styleClass="profile-news-brief">
+                                                                    <children>
+                                                                        <Label fx:id="playerNewsDateLabel"
+                                                                               styleClass="profile-news-date"
+                                                                               text="Новости"/>
+                                                                        <Label fx:id="playerNewsTitleLabel"
+                                                                               styleClass="profile-news-title"
+                                                                               text="Загружаем новости..." wrapText="true"/>
+                                                                        <Label fx:id="playerNewsBodyLabel"
+                                                                               styleClass="profile-news-body"
+                                                                               text="" wrapText="true"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </VBox>
+                                                    </children>
+                                                </HBox>
+
                                                 <HBox fx:id="securityCard"
                                                       alignment="CENTER_LEFT" spacing="14.0"
                                                       styleClass="profile-card, profile-security-card">

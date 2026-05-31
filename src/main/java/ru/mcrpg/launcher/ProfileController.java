@@ -22,6 +22,10 @@ public final class ProfileController extends AbstractScreenController {
 
     private static final DateTimeFormatter SESSION_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
         .withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter SESSION_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm")
+        .withZone(ZoneId.systemDefault());
+
+    private final ModpackManifestClient manifestClient = new ModpackManifestClient();
 
     @FXML
     private Label versionLabel;
@@ -117,6 +121,42 @@ public final class ProfileController extends AbstractScreenController {
     private Label securityIconLabel;
 
     @FXML
+    private Label roleLimitsIconLabel;
+
+    @FXML
+    private Label playerBriefIconLabel;
+
+    @FXML
+    private Label maxHomesLabel;
+
+    @FXML
+    private Label maxRegionsLabel;
+
+    @FXML
+    private Label homeCooldownLabel;
+
+    @FXML
+    private Label rtpCooldownLabel;
+
+    @FXML
+    private Label roleLimitsHintLabel;
+
+    @FXML
+    private Label avatarSummaryLabel;
+
+    @FXML
+    private Label sessionSummaryLabel;
+
+    @FXML
+    private Label playerNewsDateLabel;
+
+    @FXML
+    private Label playerNewsTitleLabel;
+
+    @FXML
+    private Label playerNewsBodyLabel;
+
+    @FXML
     private Node profileHeroCard;
 
     @FXML
@@ -127,6 +167,12 @@ public final class ProfileController extends AbstractScreenController {
 
     @FXML
     private Node securityCard;
+
+    @FXML
+    private Node roleLimitsCard;
+
+    @FXML
+    private Node playerBriefCard;
 
     @FXML
     private void initialize() {
@@ -144,17 +190,20 @@ public final class ProfileController extends AbstractScreenController {
         configureCleanGlassSidebar(ScreenRouter.Screen.PROFILE);
         renderAccount(state().getSession().getAccount());
         refreshProfileAsync();
+        refreshPlayerNewsAsync();
     }
 
     private void configureMicroInteractions() {
         MicroInteractions.installHoverLift(accountInfoCard);
         MicroInteractions.installHoverLift(quickActionsCard);
+        MicroInteractions.installHoverLift(roleLimitsCard);
+        MicroInteractions.installHoverLift(playerBriefCard);
         MicroInteractions.installHoverLift(securityCard);
         MicroInteractions.installHoverLift(editProfileButton, -1.0d, 1.005d);
         MicroInteractions.installHoverLift(switchAccountButton, -1.0d, 1.005d);
         MicroInteractions.installHoverLift(openGameFolderButton, -1.0d, 1.005d);
         MicroInteractions.installHoverLift(logoutButton, -1.0d, 1.005d);
-        MicroInteractions.playEntrance(profileHeroCard, accountInfoCard, quickActionsCard, securityCard);
+        MicroInteractions.playEntrance(profileHeroCard, accountInfoCard, quickActionsCard, roleLimitsCard, playerBriefCard, securityCard);
     }
 
     @FXML
@@ -226,6 +275,8 @@ public final class ProfileController extends AbstractScreenController {
         accountIdIconLabel.setGraphic(LauncherIcons.icon("id-card", 16.0d, "#b8c3d3"));
         quickActionsIconLabel.setGraphic(LauncherIcons.icon("bolt", 16.0d, "#c084fc"));
         securityIconLabel.setGraphic(LauncherIcons.icon("shield", 16.0d, "#86efac"));
+        roleLimitsIconLabel.setGraphic(LauncherIcons.icon("crown", 16.0d, "#c084fc"));
+        playerBriefIconLabel.setGraphic(LauncherIcons.icon("bell", 16.0d, "#86efac"));
     }
 
     private void refreshProfileAsync() {
@@ -257,6 +308,32 @@ public final class ProfileController extends AbstractScreenController {
         thread.start();
     }
 
+    private void refreshPlayerNewsAsync() {
+        setLabelText(playerNewsDateLabel, "Новости");
+        setLabelText(playerNewsTitleLabel, "Загружаем новости...");
+        setLabelText(playerNewsBodyLabel, "");
+
+        Task<ModpackNews> task = new Task<ModpackNews>() {
+            @Override
+            protected ModpackNews call() throws Exception {
+                LoadedManifest loadedManifest = manifestClient.load(state().getConfig().getManifestUrl());
+                ModpackManifest manifest = loadedManifest.getManifest();
+                return chooseProfileNews(manifest);
+            }
+        };
+
+        task.setOnSucceeded(event -> renderPlayerNews(task.getValue()));
+        task.setOnFailed(event -> {
+            setLabelText(playerNewsDateLabel, "Новости");
+            setLabelText(playerNewsTitleLabel, "Новости временно недоступны");
+            setLabelText(playerNewsBodyLabel, "Играть можно и без них, если сборка уже синхронизирована.");
+        });
+
+        Thread thread = new Thread(task, "profile-news-refresh");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
     private void setProfileStatus(String message) {
         if (statusLabel == null) {
             return;
@@ -269,6 +346,9 @@ public final class ProfileController extends AbstractScreenController {
         String roleLabel = resolveRoleLabel(account.getRole());
         String roleCode = resolveRoleCodeLabel(account.getRole());
         String accountStatus = resolveAccountStatusLabel(account.getStatus());
+        RoleSummary roleSummary = RoleSummary.forRole(account.getRole());
+        String sessionTime = SESSION_TIME_FORMAT.format(state().getSession().getExpiresAt());
+        String shortSessionTime = SESSION_DATE_FORMAT.format(state().getSession().getExpiresAt());
 
         profileAvatarView.setImage(AvatarImages.forAccount(account));
         profileNameLabel.setText(account.getUsername());
@@ -288,7 +368,59 @@ public final class ProfileController extends AbstractScreenController {
         accountRoleLabel.setText(roleLabel);
         profileEmailLabel.setText(valueOrFallback(account.getEmail(), "Email не указан"));
         accountIdLabel.setText(valueOrFallback(account.getId(), "—"));
-        sessionExpiresLabel.setText("Сессия активна до " + SESSION_TIME_FORMAT.format(state().getSession().getExpiresAt()));
+        sessionExpiresLabel.setText("Сессия активна до " + sessionTime);
+        avatarSummaryLabel.setText(avatarSummary(account));
+        sessionSummaryLabel.setText("до " + shortSessionTime);
+        maxHomesLabel.setText(roleSummary.maxHomesText());
+        maxRegionsLabel.setText(roleSummary.maxRegionsText());
+        homeCooldownLabel.setText(roleSummary.homeCooldownText());
+        rtpCooldownLabel.setText(roleSummary.randomTeleportCooldownText());
+        roleLimitsHintLabel.setText(roleSummary.description());
+    }
+
+    private void renderPlayerNews(ModpackNews news) {
+        if (news == null || !news.hasContent()) {
+            setLabelText(playerNewsDateLabel, "Новости");
+            setLabelText(playerNewsTitleLabel, "Свежих новостей пока нет");
+            setLabelText(playerNewsBodyLabel, "Здесь появится важное для игрока перед запуском.");
+            return;
+        }
+        setLabelText(playerNewsDateLabel, valueOrFallback(news.getDate(), valueOrFallback(news.getVersion(), "Новости")));
+        setLabelText(playerNewsTitleLabel, valueOrFallback(news.getTitle(), "Обновление ObsidianGate"));
+        setLabelText(playerNewsBodyLabel, summarizeNews(news));
+    }
+
+    private static ModpackNews chooseProfileNews(ModpackManifest manifest) {
+        if (manifest == null) {
+            return null;
+        }
+        if (manifest.getNews() != null && manifest.getNews().hasContent()) {
+            return manifest.getNews();
+        }
+        if (manifest.getChangelog() != null && manifest.getChangelog().hasContent()) {
+            return manifest.getChangelog();
+        }
+        if (manifest.getHistory() != null && !manifest.getHistory().isEmpty()) {
+            return manifest.getHistory().get(0);
+        }
+        return null;
+    }
+
+    private static String summarizeNews(ModpackNews news) {
+        if (news == null) {
+            return "";
+        }
+        if (hasText(news.getBody())) {
+            String body = news.getBody().trim();
+            return body.length() > 130 ? body.substring(0, 127).trim() + "..." : body;
+        }
+        if (news.getImportant() != null && !news.getImportant().isEmpty()) {
+            return news.getImportant().get(0);
+        }
+        if (news.getHighlights() != null && !news.getHighlights().isEmpty()) {
+            return news.getHighlights().get(0);
+        }
+        return "Откройте главную страницу, чтобы посмотреть подробности обновления.";
     }
 
     private boolean handleExpiredSession(Throwable error) {
@@ -371,6 +503,19 @@ public final class ProfileController extends AbstractScreenController {
         return hasText(value) ? value.trim() : fallback;
     }
 
+    private static String avatarSummary(AuthAccount account) {
+        if (account == null) {
+            return "по умолчанию";
+        }
+        if (hasText(account.getAvatar())) {
+            return account.getAvatar();
+        }
+        if (hasText(account.getAvatarUrl())) {
+            return "внешний";
+        }
+        return "авто";
+    }
+
     private static void setButtonGraphic(Button button, String iconName, double size, String color) {
         if (button != null) {
             button.setGraphic(LauncherIcons.icon(iconName, size, color));
@@ -386,5 +531,72 @@ public final class ProfileController extends AbstractScreenController {
 
     private static boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private static final class RoleSummary {
+        private final String label;
+        private final int maxHomes;
+        private final int maxRegions;
+        private final long homeCooldownSeconds;
+        private final long randomTeleportCooldownSeconds;
+
+        private RoleSummary(
+            String label,
+            int maxHomes,
+            int maxRegions,
+            long homeCooldownSeconds,
+            long randomTeleportCooldownSeconds
+        ) {
+            this.label = label;
+            this.maxHomes = maxHomes;
+            this.maxRegions = maxRegions;
+            this.homeCooldownSeconds = homeCooldownSeconds;
+            this.randomTeleportCooldownSeconds = randomTeleportCooldownSeconds;
+        }
+
+        private static RoleSummary forRole(String role) {
+            String normalized = role == null ? "" : role.trim().toLowerCase(Locale.ROOT);
+            if ("admin".equals(normalized) || "administrator".equals(normalized) || "owner".equals(normalized)) {
+                return new RoleSummary("администратора", Integer.MAX_VALUE, Integer.MAX_VALUE, 0L, 0L);
+            }
+            if ("vip".equals(normalized) || "premium".equals(normalized)) {
+                return new RoleSummary("VIP", 5, 5, 15L, 75L);
+            }
+            return new RoleSummary("игрока", 3, 3, 30L, 150L);
+        }
+
+        private String maxHomesText() {
+            return limitText(maxHomes);
+        }
+
+        private String maxRegionsText() {
+            return limitText(maxRegions);
+        }
+
+        private String homeCooldownText() {
+            return cooldownText(homeCooldownSeconds);
+        }
+
+        private String randomTeleportCooldownText() {
+            return cooldownText(randomTeleportCooldownSeconds);
+        }
+
+        private String description() {
+            return "Лимиты роли " + label + ": дома, регионы и перезарядки серверных телепортов.";
+        }
+
+        private static String limitText(int value) {
+            return value == Integer.MAX_VALUE ? "∞" : Integer.toString(value);
+        }
+
+        private static String cooldownText(long seconds) {
+            if (seconds <= 0L) {
+                return "нет";
+            }
+            if (seconds >= 60L && seconds % 60L == 0L) {
+                return seconds / 60L + " мин";
+            }
+            return seconds + " сек";
+        }
     }
 }

@@ -491,6 +491,7 @@ public final class LauncherShellController extends AbstractScreenController {
             });
         }
 
+        Platform.runLater(() -> applyLaunchStep("Проверяем сессию", "Обновляем вход в аккаунт", "profile", "#fbbf24"));
         AuthSession refreshedSession = context().getAuthService().refreshIfNeeded(launchConfig, session);
         if (refreshedSession == null || refreshedSession.getAccount() == null) {
             throw new AuthSessionExpiredException("Сессия истекла. Войдите в аккаунт снова.", null);
@@ -498,7 +499,9 @@ public final class LauncherShellController extends AbstractScreenController {
         state().setSession(refreshedSession);
         launchConfig.setUsername(refreshedSession.getAccount().getUsername());
 
+        Platform.runLater(() -> applyLaunchStep("Получаем билет входа", "Готовим одноразовый ticket для сервера", "shield", "#fbbf24"));
         GameTicket ticket = context().getAuthService().createGameTicket(launchConfig, refreshedSession);
+        Platform.runLater(() -> applyLaunchStep("Запускаем Minecraft", "Передаем профиль и session.json клиенту", "play", "#fbbf24"));
         Path sessionFile = context().getSessionFileWriter().write(launchConfig, ticket);
         LaunchIdentity identity = LaunchIdentity.authenticated(
             ticket.getUsername(),
@@ -1386,8 +1389,18 @@ public final class LauncherShellController extends AbstractScreenController {
             setSyncProgress(fallback);
             setText(syncProgressLabel, Math.round(fallback * 100.0d) + "%");
         }
-        setSyncStatus(describeSyncProgress(progress), SYNC_STATUS_WORKING, "sync", "#fbbf24");
+        setPlayButtonLaunchProgress(progress);
+        setSyncStatus(describeSyncProgress(progress), SYNC_STATUS_WORKING, iconForSyncPhase(progress.getPhase()), "#fbbf24");
         setSyncDetail(describeSyncDetail(progress));
+    }
+
+    private void applyLaunchStep(String buttonText, String detailText, String iconName, String iconColor) {
+        if (!launchInProgress || !isSyncCardAttachedToCurrentScene()) {
+            return;
+        }
+        setPlayButtonLaunchText(buttonText);
+        setSyncStatus(buttonText, SYNC_STATUS_WORKING, iconName, iconColor);
+        setSyncDetail(detailText);
     }
 
     private void setSyncStatus(String text, String statusStyleClass, String iconName, String iconColor) {
@@ -1403,6 +1416,20 @@ public final class LauncherShellController extends AbstractScreenController {
 
     private void setSyncDetail(String text) {
         setText(syncDetailLabel, text);
+    }
+
+    private void setPlayButtonLaunchProgress(ModpackSyncProgress progress) {
+        if (progress == null || !launchInProgress) {
+            return;
+        }
+        setPlayButtonLaunchText(describePlayButtonProgress(progress));
+    }
+
+    private void setPlayButtonLaunchText(String text) {
+        if (playButton == null || text == null || text.trim().isEmpty()) {
+            return;
+        }
+        playButton.setText(text.trim());
     }
 
     private boolean isSyncCardAttachedToCurrentScene() {
@@ -1496,6 +1523,45 @@ public final class LauncherShellController extends AbstractScreenController {
             return progress.getMessage().trim();
         }
         return "Синхронизация";
+    }
+
+    private static String describePlayButtonProgress(ModpackSyncProgress progress) {
+        if (progress.getPhase() == ModpackSyncProgress.Phase.CHECKING) {
+            return "Проверяем файлы";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.DOWNLOADING) {
+            long totalBytes = Math.max(0L, progress.getTotalDownloadBytes());
+            if (totalBytes > 0L) {
+                return "Скачиваем " + formatBytes(totalBytes);
+            }
+            return "Скачиваем файлы";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.RUNTIME) {
+            return "Проверяем Java";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.MINECRAFT) {
+            return "Готовим Minecraft";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.CLEANUP) {
+            return "Наводим порядок";
+        }
+        if (progress.getPhase() == ModpackSyncProgress.Phase.COMPLETE) {
+            return "Получаем билет входа";
+        }
+        return "Подготовка...";
+    }
+
+    private static String iconForSyncPhase(ModpackSyncProgress.Phase phase) {
+        if (phase == ModpackSyncProgress.Phase.DOWNLOADING) {
+            return "download";
+        }
+        if (phase == ModpackSyncProgress.Phase.RUNTIME || phase == ModpackSyncProgress.Phase.MINECRAFT) {
+            return "play";
+        }
+        if (phase == ModpackSyncProgress.Phase.COMPLETE) {
+            return "shield";
+        }
+        return "sync";
     }
 
     private static String describeSyncDetail(ModpackSyncProgress progress) {
