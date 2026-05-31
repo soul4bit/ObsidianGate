@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.05.31.1",
+    "version":  "2026.05.31.2",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Солнечные панели и новая Судная ночь",
@@ -334,7 +334,7 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.05.31.1",
+                           "version":  "2026.05.31.2",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
                            "sha256":  "fef553dc0c66797f2c3b7ce3816421bf14b540fc3f14e98b58f15f1b034e5e7b",
                            "size":  18097190,

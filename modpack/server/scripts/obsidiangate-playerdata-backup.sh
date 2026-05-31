@@ -89,6 +89,31 @@ copy_if_exists() {
     fi
 }
 
+validate_playerdata() {
+    playerdata_dir="$STAGING_DIR/$WORLD_NAME/playerdata"
+    invalid_list="$STAGING_DIR/invalid-playerdata.txt"
+    rm -f "$invalid_list"
+
+    if [ ! -d "$playerdata_dir" ]; then
+        fail "No playerdata directory found in $WORLD_DIR"
+    fi
+
+    find "$playerdata_dir" -type f -name '*.dat' | while IFS= read -r player_file; do
+        if [ ! -s "$player_file" ]; then
+            printf '%s: empty file\n' "$player_file" >> "$invalid_list"
+        elif ! gzip -t "$player_file" >/dev/null 2>&1; then
+            printf '%s: invalid gzip data\n' "$player_file" >> "$invalid_list"
+        fi
+    done
+
+    if [ -s "$invalid_list" ]; then
+        while IFS= read -r invalid_entry; do
+            log "Invalid playerdata: $invalid_entry"
+        done < "$invalid_list"
+        fail "Refusing to create backup with invalid playerdata files"
+    fi
+}
+
 write_backup_info() {
     {
         printf 'createdAt=%s\n' "$(date -Iseconds)"
@@ -114,11 +139,8 @@ mkdir -p "$STAGING_DIR/$WORLD_NAME"
 copy_if_exists "playerdata"
 copy_if_exists "stats"
 copy_if_exists "advancements"
+validate_playerdata
 write_backup_info
-
-if [ ! -d "$STAGING_DIR/$WORLD_NAME/playerdata" ]; then
-    fail "No playerdata directory found in $WORLD_DIR"
-fi
 
 log "Compressing playerdata backup: $ARCHIVE_PATH"
 tar -C "$STAGING_DIR" -czf "$TMP_ARCHIVE_PATH" "$WORLD_NAME" backup-info.txt
