@@ -126,6 +126,31 @@ copy_world_to_staging() {
     fi
 }
 
+validate_playerdata() {
+    playerdata_dir="$STAGING_WORLD_DIR/playerdata"
+    invalid_list="$STAGING_DIR/invalid-playerdata.txt"
+    rm -f "$invalid_list"
+
+    if [ ! -d "$playerdata_dir" ]; then
+        fail "No playerdata directory found in staged world copy"
+    fi
+
+    find "$playerdata_dir" -type f -name '*.dat' | while IFS= read -r player_file; do
+        if [ ! -s "$player_file" ]; then
+            printf '%s: empty file\n' "$player_file" >> "$invalid_list"
+        elif ! gzip -t "$player_file" >/dev/null 2>&1; then
+            printf '%s: invalid gzip data\n' "$player_file" >> "$invalid_list"
+        fi
+    done
+
+    if [ -s "$invalid_list" ]; then
+        while IFS= read -r invalid_entry; do
+            log "Invalid playerdata in world backup: $invalid_entry"
+        done < "$invalid_list"
+        fail "Refusing to create world backup with invalid playerdata files"
+    fi
+}
+
 write_backup_info() {
     {
         printf 'createdAt=%s\n' "$(date -Iseconds)"
@@ -151,6 +176,7 @@ log "Starting world backup: $WORLD_DIR"
 stop_server_if_needed
 copy_world_to_staging
 start_server_if_needed
+validate_playerdata
 
 write_backup_info
 log "Compressing backup: $ARCHIVE_PATH"

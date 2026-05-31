@@ -7,6 +7,8 @@ BACKUP_ROOT="${BACKUP_ROOT:-$SERVER_ROOT/backups/playerdata}"
 RETENTION="${RETENTION:-288}"
 BACKUP_OWNER="${BACKUP_OWNER:-minecraft:minecraft}"
 LOCK_FILE="${LOCK_FILE:-/tmp/obsidiangate-playerdata-backup.lock}"
+RCON_COMMAND="${RCON_COMMAND:-$SERVER_ROOT/scripts/obsidiangate-rcon-command.sh}"
+FLUSH_SERVER="${FLUSH_SERVER:-auto}"
 
 log() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -68,6 +70,29 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+should_flush_server() {
+    if [ "$FLUSH_SERVER" = "0" ] || [ "$FLUSH_SERVER" = "false" ]; then
+        return 1
+    fi
+
+    if [ ! -x "$RCON_COMMAND" ]; then
+        return 1
+    fi
+
+    "$RCON_COMMAND" "list" >/dev/null 2>&1
+}
+
+flush_server_if_needed() {
+    if ! should_flush_server; then
+        log "Online playerdata backup without RCON flush."
+        return
+    fi
+
+    log "Flushing Minecraft saves before playerdata backup..."
+    "$RCON_COMMAND" "save-all" >/dev/null || true
+    sleep 2
+}
 
 copy_if_exists() {
     source_path="$WORLD_DIR/$1"
@@ -136,6 +161,7 @@ prune_old_backups() {
 
 log "Starting playerdata backup: $WORLD_DIR"
 mkdir -p "$STAGING_DIR/$WORLD_NAME"
+flush_server_if_needed
 copy_if_exists "playerdata"
 copy_if_exists "stats"
 copy_if_exists "advancements"
