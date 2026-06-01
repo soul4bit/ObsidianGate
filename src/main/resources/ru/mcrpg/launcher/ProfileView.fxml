@@ -296,6 +296,60 @@
                                                                        styleClass="profile-sync-status"
                                                                        text="Лимиты применяются сервером ObsidianGate."
                                                                        wrapText="true"/>
+                                                                <HBox spacing="10.0" styleClass="role-command-strip">
+                                                                    <children>
+                                                                        <VBox spacing="6.0" styleClass="role-command-group"
+                                                                              HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="role-command-title"
+                                                                                       text="Жильё"/>
+                                                                                <HBox alignment="CENTER_LEFT" spacing="8.0"
+                                                                                      styleClass="role-command-row">
+                                                                                    <children>
+                                                                                        <Label styleClass="role-command-code"
+                                                                                               text="/sethome"/>
+                                                                                        <Label styleClass="role-command-note"
+                                                                                               text="сохранить точку" wrapText="true"/>
+                                                                                    </children>
+                                                                                </HBox>
+                                                                                <HBox alignment="CENTER_LEFT" spacing="8.0"
+                                                                                      styleClass="role-command-row">
+                                                                                    <children>
+                                                                                        <Label styleClass="role-command-code"
+                                                                                               text="/home"/>
+                                                                                        <Label styleClass="role-command-note"
+                                                                                               text="вернуться домой" wrapText="true"/>
+                                                                                    </children>
+                                                                                </HBox>
+                                                                            </children>
+                                                                        </VBox>
+                                                                        <VBox spacing="6.0" styleClass="role-command-group"
+                                                                              HBox.hgrow="ALWAYS">
+                                                                            <children>
+                                                                                <Label styleClass="role-command-title"
+                                                                                       text="Мир"/>
+                                                                                <HBox alignment="CENTER_LEFT" spacing="8.0"
+                                                                                      styleClass="role-command-row">
+                                                                                    <children>
+                                                                                        <Label styleClass="role-command-code"
+                                                                                               text="/claim"/>
+                                                                                        <Label styleClass="role-command-note"
+                                                                                               text="приват региона" wrapText="true"/>
+                                                                                    </children>
+                                                                                </HBox>
+                                                                                <HBox alignment="CENTER_LEFT" spacing="8.0"
+                                                                                      styleClass="role-command-row">
+                                                                                    <children>
+                                                                                        <Label styleClass="role-command-code"
+                                                                                               text="/rtp"/>
+                                                                                        <Label styleClass="role-command-note"
+                                                                                               text="случайный телепорт" wrapText="true"/>
+                                                                                    </children>
+                                                                                </HBox>
+                                                                            </children>
+                                                                        </VBox>
+                                                                    </children>
+                                                                </HBox>
                                                             </children>
                                                         </VBox>
 

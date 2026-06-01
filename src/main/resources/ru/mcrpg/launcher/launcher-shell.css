@@ -1865,6 +1865,43 @@
     -fx-font-weight: 900;
 }
 
+.role-command-strip {
+    -fx-padding: 4px 0 0 0;
+    -fx-fill-height: true;
+}
+
+.role-command-group {
+    -fx-min-width: 180px;
+    -fx-padding: 10px 12px;
+    -fx-background-color: rgba(8, 17, 30, 0.36);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(148, 163, 184, 0.12);
+    -fx-border-radius: 6px;
+}
+
+.role-command-title {
+    -fx-text-fill: #c4b5fd;
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+}
+
+.role-command-row {
+    -fx-min-height: 22px;
+}
+
+.role-command-code {
+    -fx-min-width: 64px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+}
+
+.role-command-note {
+    -fx-text-fill: #aeb8c8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
 .profile-news-brief {
     -fx-padding: 10px 12px;
     -fx-background-color: rgba(8, 17, 30, 0.46);
