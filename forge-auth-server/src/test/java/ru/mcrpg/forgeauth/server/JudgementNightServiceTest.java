@@ -155,6 +155,13 @@ class JudgementNightServiceTest {
         assertTrue(summary.contains("\u043d\u0430\u0433\u0440\u0430\u0434\u0430 +20"));
     }
 
+    @Test
+    void formatsJudgementStatsAsCompactRankedLine() {
+        String line = JudgementNightService.formatJudgementStatsLine(1, "soul4bit", 40, 0);
+
+        assertEquals("\u00A78  #1 \u00A77soul4bit \u00A78- \u00A7c\u2694 40\u00A78, \u00A77\u2620 0", line);
+    }
+
     static final class FakeHostile implements net.minecraft.entity.monster.IMob {
     }
 

@@ -305,11 +305,11 @@ final class JudgementNightService {
             return;
         }
 
-        broadcastRaw(server, "\u00A78  \u0418\u0433\u0440\u043e\u043a                  \u00A7c\u2694 \u00A78| \u00A77\u2620");
+        broadcastRaw(server, "\u00A78  \u0422\u043e\u043f \u043d\u043e\u0447\u0438:");
         int limit = Math.min(6, stats.size());
         for (int index = 0; index < limit; index++) {
             NightPlayerStats player = stats.get(index);
-            broadcastRaw(server, "\u00A77  " + padRight(player.name, 20) + " \u00A7c" + player.kills + " \u00A78| \u00A77" + player.deaths);
+            broadcastRaw(server, formatJudgementStatsLine(index + 1, player.name, player.kills, player.deaths));
         }
         if (stats.size() > limit) {
             broadcastRaw(server, "\u00A78  ... \u0435\u0449\u0435 " + (stats.size() - limit) + " \u0438\u0433\u0440.");
@@ -642,16 +642,26 @@ final class JudgementNightService {
         }
     }
 
-    private static String padRight(String value, int width) {
+    static String formatJudgementStatsLine(int rank, String playerName, int kills, int deaths) {
+        return "\u00A78  #"
+            + rank
+            + " \u00A77"
+            + trimDisplayName(playerName, 16)
+            + " \u00A78- \u00A7c\u2694 "
+            + kills
+            + "\u00A78, \u00A77\u2620 "
+            + deaths;
+    }
+
+    private static String trimDisplayName(String value, int width) {
         String safeValue = value == null ? "" : value;
-        if (safeValue.length() >= width) {
+        if (safeValue.isEmpty()) {
+            safeValue = "player";
+        }
+        if (safeValue.length() > width) {
             return safeValue.substring(0, width);
         }
-        StringBuilder result = new StringBuilder(safeValue);
-        while (result.length() < width) {
-            result.append(' ');
-        }
-        return result.toString();
+        return safeValue;
     }
 
     private static boolean grantExperienceLevels(Object player, int levels) {
