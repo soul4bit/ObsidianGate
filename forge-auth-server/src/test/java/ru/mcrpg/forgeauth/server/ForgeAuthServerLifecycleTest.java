@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 import ru.mcrpg.gameauth.TicketVerificationClient;
+import ru.mcrpg.gameauth.TicketVerificationResult;
 
 class ForgeAuthServerLifecycleTest {
 
@@ -107,6 +109,37 @@ class ForgeAuthServerLifecycleTest {
         }
     }
 
+    @Test
+    void verificationDisconnectsWhenTicketUuidDiffersFromPlayerUuid() throws Exception {
+        Map authStates = new ConcurrentHashMap();
+        Queue<Runnable> mainThreadActions = new ConcurrentLinkedQueue<Runnable>();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            FakePlayer player = new FakePlayer("Knight", UUID.fromString("00000000-0000-0000-0000-000000000001"));
+            authStates.put("knight", newState(player, "Knight", Instant.now()));
+            ForgeAuthServerLifecycle lifecycle = newLifecycle(authStates, mainThreadActions, executor);
+
+            applyVerificationResult(
+                lifecycle,
+                "knight",
+                "Knight",
+                new TicketVerificationResult(
+                    true,
+                    "account-123",
+                    "Knight",
+                    "00000000-0000-0000-0000-000000000002",
+                    "player",
+                    null
+                )
+            );
+
+            assertTrue(player.connection.lastMessage != null && player.connection.lastMessage.contains("AUTH_TICKET_UUID_MISMATCH"));
+            assertTrue(authStates.isEmpty());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static ForgeAuthServerLifecycle newLifecycle(
         Map authStates,
@@ -129,6 +162,22 @@ class ForgeAuthServerLifecycleTest {
         Constructor<?> constructor = stateClass.getDeclaredConstructor(Object.class, String.class, Instant.class);
         constructor.setAccessible(true);
         return constructor.newInstance(player, username, connectedAt);
+    }
+
+    private static void applyVerificationResult(
+        ForgeAuthServerLifecycle lifecycle,
+        String key,
+        String expectedUsername,
+        TicketVerificationResult result
+    ) throws Exception {
+        java.lang.reflect.Method method = ForgeAuthServerLifecycle.class.getDeclaredMethod(
+            "applyVerificationResult",
+            String.class,
+            String.class,
+            TicketVerificationResult.class
+        );
+        method.setAccessible(true);
+        method.invoke(lifecycle, key, expectedUsername, result);
     }
 
     private static void setBoolean(Object target, String name, boolean value) throws Exception {
@@ -157,14 +206,24 @@ class ForgeAuthServerLifecycleTest {
 
     static final class FakePlayer {
         private final String username;
+        private final UUID uuid;
         public final FakeConnection connection = new FakeConnection();
 
         FakePlayer(String username) {
+            this(username, UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        }
+
+        FakePlayer(String username, UUID uuid) {
             this.username = username;
+            this.uuid = uuid;
         }
 
         public String func_70005_c_() {
             return username;
+        }
+
+        public UUID getUniqueID() {
+            return uuid;
         }
     }
 

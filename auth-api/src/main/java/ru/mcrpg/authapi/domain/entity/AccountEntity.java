@@ -31,6 +31,9 @@ public class AccountEntity {
     @Column(name = "email_normalized", nullable = false, length = 255, unique = true)
     private String emailNormalized;
 
+    @Column(name = "minecraft_uuid", length = 36, unique = true)
+    private String minecraftUuid;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -80,6 +83,14 @@ public class AccountEntity {
 
     public void setEmailNormalized(String emailNormalized) {
         this.emailNormalized = emailNormalized;
+    }
+
+    public String getMinecraftUuid() {
+        return minecraftUuid;
+    }
+
+    public void setMinecraftUuid(String minecraftUuid) {
+        this.minecraftUuid = minecraftUuid;
     }
 
     public String getPasswordHash() {

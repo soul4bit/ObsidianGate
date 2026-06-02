@@ -3,6 +3,7 @@ package ru.mcrpg.forgeauth.server;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.UUID;
 
 final class MinecraftPlayerBridge {
 
@@ -35,6 +36,14 @@ final class MinecraftPlayerBridge {
 
     String extractUsername(Object player) {
         return extractUsernameStatic(player);
+    }
+
+    String extractUuid(Object player) {
+        Object value = invokeZeroArg(player, "getUniqueID", "func_110124_au");
+        if (value instanceof UUID) {
+            return value.toString();
+        }
+        return value == null ? "" : value.toString().trim();
     }
 
     static String extractUsernameStatic(Object player) {

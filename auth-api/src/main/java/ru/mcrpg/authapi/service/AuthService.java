@@ -57,6 +57,7 @@ public class AuthService {
         AccountEntity account = new AccountEntity();
         account.setUsername(normalizedUsername);
         account.setUsernameNormalized(usernameKey);
+        account.setMinecraftUuid(MinecraftPlayerUuid.offlineUuidForUsername(normalizedUsername));
         account.setEmail(normalizedEmail);
         account.setEmailNormalized(normalizedEmail);
         account.setPasswordHash(passwordEncoder.encode(password));

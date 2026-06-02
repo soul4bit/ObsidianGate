@@ -1,8 +1,6 @@
 package ru.mcrpg.authapi.service;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mcrpg.authapi.config.AuthApiProperties;
@@ -39,13 +37,13 @@ public class GameTicketService {
         GameTicketEntity ticket = new GameTicketEntity();
         ticket.setAccount(account);
         ticket.setUsername(account.getUsername());
-        ticket.setPlayerUuid(playerUuidFor(account));
+        ticket.setPlayerUuid(MinecraftPlayerUuid.stableUuidFor(account));
         ticket.setTicketHash(hashingService.sha256(rawTicket));
         ticket.setServerId(resolvedServerId);
         ticket.setExpiresAt(expiresAt);
         gameTicketRepository.save(ticket);
 
-        return new CreatedGameTicket(rawTicket, account.getUsername(), playerUuidFor(account), resolvedServerId, expiresAt);
+        return new CreatedGameTicket(rawTicket, account.getUsername(), MinecraftPlayerUuid.stableUuidFor(account), resolvedServerId, expiresAt);
     }
 
     @Transactional
@@ -79,7 +77,7 @@ public class GameTicketService {
         return VerifiedGameTicket.valid(
             account.getId().toString(),
             account.getUsername(),
-            playerUuidFor(account),
+            MinecraftPlayerUuid.stableUuidFor(account),
             account.getRole()
         );
     }
@@ -89,10 +87,6 @@ public class GameTicketService {
             return properties.getServerId();
         }
         return requestedServerId.trim();
-    }
-
-    private static String playerUuidFor(AccountEntity account) {
-        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + account.getUsername()).getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     private static String requireText(String value) {

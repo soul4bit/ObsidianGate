@@ -33,6 +33,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
     private static final String MARKER_AUTH_UNAVAILABLE = "AUTH_UNAVAILABLE";
     private static final String MARKER_INVALID_TICKET_PACKET = "AUTH_INVALID_TICKET_PACKET";
     private static final String MARKER_TICKET_USERNAME_MISMATCH = "AUTH_TICKET_USERNAME_MISMATCH";
+    private static final String MARKER_TICKET_UUID_MISMATCH = "AUTH_TICKET_UUID_MISMATCH";
     private static final String MARKER_VERIFY_ERROR = "AUTH_VERIFY_ERROR";
 
     private final Logger logger;
@@ -273,8 +274,22 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
             return;
         }
 
+        String actualPlayerUuid = playerBridge.extractUuid(state.player);
+        String expectedPlayerUuid = result.getPlayerUuid();
+        if (!sameUuid(actualPlayerUuid, expectedPlayerUuid)) {
+            logger.warning(String.format(
+                "Player %s joined with UUID %s, but launcher ticket expects %s. Refusing login to protect playerdata.",
+                expectedUsername,
+                actualPlayerUuid,
+                expectedPlayerUuid
+            ));
+            failAndDisconnect(expectedUsername, MARKER_TICKET_UUID_MISMATCH, "UUID игрока не совпадает с launcher ticket.");
+            return;
+        }
+
         state.verified = true;
         state.accountId = result.getAccountId();
+        state.playerUuid = normalizeUuid(result.getPlayerUuid());
         state.role = result.getRole();
         chatAppearance.applyPlayerAppearance(state.player, state.role);
         logger.info(String.format(
@@ -349,6 +364,16 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         return normalized.isEmpty() ? "AUTH_UNKNOWN" : normalized;
     }
 
+    private static boolean sameUuid(String left, String right) {
+        String normalizedLeft = normalizeUuid(left);
+        String normalizedRight = normalizeUuid(right);
+        return !normalizedLeft.isEmpty() && normalizedLeft.equals(normalizedRight);
+    }
+
+    private static String normalizeUuid(String value) {
+        return value == null ? "" : value.trim().replace("-", "").toLowerCase();
+    }
+
     private static ExecutorService newSingleThreadExecutor() {
         AtomicInteger counter = new AtomicInteger(1);
         ThreadFactory factory = runnable -> {
@@ -370,6 +395,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         private volatile boolean verificationInFlight;
         private volatile boolean verified;
         private volatile String accountId = "";
+        private volatile String playerUuid = "";
         private volatile String role = "player";
 
         private PlayerAuthState(Object player, String username, Instant connectedAt) {
