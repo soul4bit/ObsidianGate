@@ -84,6 +84,11 @@ final class RandomLightningService {
             return;
         }
 
+        long watchdogStart = MainThreadWatchdog.start();
+        boolean rolled = false;
+        boolean struck = false;
+        int candidatesCount = 0;
+        try {
         ticksUntilSecond--;
         if (ticksUntilSecond > 0) {
             return;
@@ -98,9 +103,11 @@ final class RandomLightningService {
 
         Object server = serverSupplier.get();
         List<Object> candidates = playersInDimension(server, snapshot.dimension);
+        candidatesCount = candidates.size();
         if (candidates.size() < snapshot.minPlayers) {
             return;
         }
+        rolled = true;
         if (random.nextInt(100) >= snapshot.chancePercent) {
             return;
         }
@@ -118,7 +125,19 @@ final class RandomLightningService {
         double strikeY = top == null ? Math.max(64.0D, TeleportSupport.playerY(anchor)) : blockY(top);
         double strikeZ = z + 0.5D;
         if (spawnLightning(world, strikeX, strikeY, strikeZ, snapshot.effectOnly)) {
+            struck = true;
             logger.info(String.format("Random lightning struck dim=%d x=%.1f y=%.1f z=%.1f", snapshot.dimension, strikeX, strikeY, strikeZ));
+        }
+        } finally {
+            MainThreadWatchdog.warnIfSlow(
+                logger,
+                "random-lightning tick",
+                watchdogStart,
+                "rolled=" + rolled
+                    + " struck=" + struck
+                    + " candidates=" + candidatesCount
+                    + " radius=" + snapshot.radius
+            );
         }
     }
 

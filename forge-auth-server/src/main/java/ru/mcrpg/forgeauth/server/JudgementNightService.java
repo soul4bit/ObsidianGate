@@ -134,6 +134,10 @@ final class JudgementNightService {
             return;
         }
 
+        long watchdogStart = MainThreadWatchdog.start();
+        int spawned = 0;
+        boolean activeNight = false;
+        try {
         ticksUntilSecond--;
         if (ticksUntilSecond > 0) {
             return;
@@ -150,6 +154,7 @@ final class JudgementNightService {
         }
 
         long day = dayNumber(world);
+        activeNight = true;
         if (announcedDay != day) {
             announcedDay = day;
             activeJudgementDay = day;
@@ -165,9 +170,20 @@ final class JudgementNightService {
         }
         secondsUntilWave = snapshot.waveIntervalSeconds;
 
-        int spawned = spawnWaves(server, snapshot);
+        spawned = spawnWaves(server, snapshot);
         if (spawned > 0) {
             logger.info("Judgement night spawned hostile mobs: " + spawned);
+        }
+        } finally {
+            MainThreadWatchdog.warnIfSlow(
+                logger,
+                "judgement-night tick",
+                watchdogStart,
+                "activeNight=" + activeNight
+                    + " spawned=" + spawned
+                    + " intervalSeconds=" + snapshot.waveIntervalSeconds
+                    + " mobsPerPlayer=" + snapshot.mobsPerPlayer
+            );
         }
     }
 

@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Logger;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 final class RandomTeleportCommand {
@@ -19,6 +20,7 @@ final class RandomTeleportCommand {
     private static final int MIN_DISTANCE_FROM_SPAWN = 800;
     private static final int MAX_DISTANCE_FROM_SPAWN = 3000;
     private static final int MAX_ATTEMPTS = 48;
+    private static final Logger LOGGER = Logger.getLogger(ForgeAuthServerMod.MOD_NAME);
 
     private RandomTeleportCommand() {
     }
@@ -115,9 +117,11 @@ final class RandomTeleportCommand {
             return;
         }
 
+        long watchdogStart = MainThreadWatchdog.start();
+        SafeLocation location = null;
         try {
             Object world = invokeRequired(server, new Object[] { Integer.valueOf(OVERWORLD_DIMENSION) }, "getWorld", "func_71218_a");
-            SafeLocation location = findLocation(world);
+            location = findLocation(world);
             if (location == null) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "не удалось найти безопасную точку. Попробуйте позже.");
                 return;
@@ -137,6 +141,14 @@ final class RandomTeleportCommand {
             );
         } catch (RuntimeException exception) {
             ServerChat.status(player, ServerChat.Tone.ERROR, SUBJECT, "ошибка: " + exception.getMessage());
+        } finally {
+            MainThreadWatchdog.warnIfSlow(
+                LOGGER,
+                "/rtp",
+                watchdogStart,
+                "player=" + TeleportSupport.playerName(player)
+                    + " result=" + (location == null ? "not_found" : "x=" + location.x + " y=" + location.y + " z=" + location.z)
+            );
         }
     }
 

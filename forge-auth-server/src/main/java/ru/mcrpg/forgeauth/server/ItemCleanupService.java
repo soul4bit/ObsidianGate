@@ -84,6 +84,9 @@ public final class ItemCleanupService {
             return;
         }
 
+        long watchdogStart = MainThreadWatchdog.start();
+        CleanupResult result = null;
+        try {
         ticksUntilSecond--;
         if (ticksUntilSecond > 0) {
             return;
@@ -100,7 +103,7 @@ public final class ItemCleanupService {
         }
 
         if (secondsUntilCleanup <= 0) {
-            CleanupResult result = cleanupDroppedItems(snapshot.minAgeSeconds);
+            result = cleanupDroppedItems(snapshot.minAgeSeconds);
             broadcastStatus("Очистка предметов", cleanupSummary(result));
             logger.info(
                 "Dropped item cleanup finished. worlds=" + result.worlds
@@ -112,6 +115,16 @@ public final class ItemCleanupService {
             );
             secondsUntilCleanup = snapshot.intervalSeconds;
             warnedSeconds.clear();
+        }
+        } finally {
+            MainThreadWatchdog.warnIfSlow(
+                logger,
+                "item-cleanup tick",
+                watchdogStart,
+                result == null
+                    ? "cleanup=false secondsUntilCleanup=" + secondsUntilCleanup
+                    : "cleanup=true worlds=" + result.worlds + " scanned=" + result.scanned + " removed=" + result.removed
+            );
         }
     }
 
