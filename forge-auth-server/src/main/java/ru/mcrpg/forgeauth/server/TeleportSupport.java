@@ -301,6 +301,26 @@ final class TeleportSupport {
         return !Double.isNaN(value) && !Double.isInfinite(value);
     }
 
+    static boolean isChunkLoaded(Object world, int blockX, int blockZ) {
+        int chunkX = blockX >> 4;
+        int chunkZ = blockZ >> 4;
+        Object provider = invokeZeroArgIfPresent(world, "getChunkProvider", "func_72863_F");
+        Object loaded = invokeIfPresent(
+            provider,
+            new Object[] { Integer.valueOf(chunkX), Integer.valueOf(chunkZ) },
+            "isChunkLoaded",
+            "chunkExists",
+            "func_73249_a"
+        );
+        if (loaded instanceof Boolean) {
+            return ((Boolean) loaded).booleanValue();
+        }
+
+        Object position = blockPos(blockX, 0, blockZ);
+        Object blockLoaded = invokeIfPresent(world, new Object[] { position }, "isBlockLoaded", "func_175667_e");
+        return Boolean.TRUE.equals(blockLoaded);
+    }
+
     private static Object world(Object server, int dimension) {
         return invokeIfPresent(server, new Object[] { Integer.valueOf(dimension) }, "getWorld", "func_71218_a");
     }
@@ -321,6 +341,17 @@ final class TeleportSupport {
             return;
         }
         invokeMethodIfPresent(world, new Object[] { Integer.valueOf(chunkX), Integer.valueOf(chunkZ) }, "getChunkFromChunkCoords", "func_72964_e");
+    }
+
+    private static Object blockPos(int x, int y, int z) {
+        try {
+            Class<?> blockPosType = Class.forName("net.minecraft.util.math.BlockPos");
+            return blockPosType
+                .getConstructor(Integer.TYPE, Integer.TYPE, Integer.TYPE)
+                .newInstance(Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z));
+        } catch (ReflectiveOperationException exception) {
+            return null;
+        }
     }
 
     private static Object forgeTeleporter(final double x, final double y, final double z, final float yaw, final float pitch) {

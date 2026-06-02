@@ -40,6 +40,7 @@ if not password:
     raise SystemExit("rcon.password is empty in server.properties")
 
 port = int(port_arg or props.get("rcon.port", "25575"))
+timeout = float(props.get("obsidiangate.rcon.timeout", "5"))
 
 def packet(request_id, packet_type, body):
     encoded = body.encode("utf-8")
@@ -61,7 +62,8 @@ def receive(sock):
     body = data[8:-2].decode("utf-8", "replace")
     return request_id, packet_type, body
 
-with socket.create_connection((host, port), timeout=5) as sock:
+with socket.create_connection((host, port), timeout=timeout) as sock:
+    sock.settimeout(timeout)
     sock.sendall(packet(1, 3, password))
     auth_id, _, _ = receive(sock)
     if auth_id == -1:

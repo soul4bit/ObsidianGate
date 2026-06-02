@@ -675,6 +675,9 @@ final class JudgementNightService {
     }
 
     private static Object topPosition(Object world, int x, int z) {
+        if (!TeleportSupport.isChunkLoaded(world, x, z)) {
+            return null;
+        }
         return invokeIfPresent(world, new Object[] { blockPos(x, 0, z) }, "getTopSolidOrLiquidBlock", "func_175672_r");
     }
 

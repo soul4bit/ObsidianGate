@@ -167,6 +167,10 @@ final class RandomTeleportCommand {
     }
 
     private static SafeLocation safeLocation(Object world, int x, int z) {
+        if (!TeleportSupport.isChunkLoaded(world, x, z)) {
+            return null;
+        }
+
         Object top = invokeIfPresent(world, new Object[] { blockPos(x, 0, z) }, "getTopSolidOrLiquidBlock", "func_175672_r");
         if (top == null) {
             return null;

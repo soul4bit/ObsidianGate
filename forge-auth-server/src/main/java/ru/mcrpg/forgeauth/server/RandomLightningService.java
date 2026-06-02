@@ -207,6 +207,9 @@ final class RandomLightningService {
     }
 
     private static Object topPosition(Object world, int x, int z) {
+        if (!TeleportSupport.isChunkLoaded(world, x, z)) {
+            return null;
+        }
         Object zero = blockPos(x, 0, z);
         return invokeIfPresent(world, new Object[] { zero }, "getTopSolidOrLiquidBlock", "func_175672_r");
     }
