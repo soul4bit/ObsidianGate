@@ -65,14 +65,23 @@ public class JwtService {
 
     private static byte[] resolveSecretBytes(String rawSecret) {
         String secret = rawSecret == null ? "" : rawSecret.trim();
+        if (secret.isEmpty() || "change-me".equalsIgnoreCase(secret)) {
+            throw new IllegalStateException("auth.jwt-secret must be set to a non-default value.");
+        }
+        byte[] secretBytes;
         if (secret.matches("(?i)^[0-9a-f]+$") && secret.length() % 2 == 0) {
             byte[] decoded = new byte[secret.length() / 2];
             for (int index = 0; index < secret.length(); index += 2) {
                 decoded[index / 2] = (byte) Integer.parseInt(secret.substring(index, index + 2), 16);
             }
-            return decoded;
+            secretBytes = decoded;
+        } else {
+            secretBytes = secret.getBytes(StandardCharsets.UTF_8);
         }
-        return secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 32) {
+            throw new IllegalStateException("auth.jwt-secret must be at least 32 bytes for HS256.");
+        }
+        return secretBytes;
     }
 
     public record IssuedAccessToken(String token, Instant expiresAt) {

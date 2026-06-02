@@ -41,6 +41,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>

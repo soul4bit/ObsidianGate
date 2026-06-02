@@ -8,7 +8,7 @@ public class AuthApiProperties {
     private String jwtSecret = "change-me";
     private long accessTokenTtlSeconds = 900L;
     private long refreshTokenTtlDays = 30L;
-    private long gameTicketTtlSeconds = 45L;
+    private long gameTicketTtlSeconds = 900L;
     private String serverId = "obsidiangate-main";
 
     public String getJwtSecret() {
