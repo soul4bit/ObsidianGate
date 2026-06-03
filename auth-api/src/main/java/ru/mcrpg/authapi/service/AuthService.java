@@ -47,12 +47,13 @@ public class AuthService {
         String usernameKey = normalizeLookupKey(normalizedUsername);
         String normalizedEmail = normalizeEmail(email);
 
-        if (accountRepository.existsByUsernameNormalized(usernameKey)) {
-            throw ApiException.conflict("username_taken", "Этот ник уже занят.");
-        }
-        if (accountRepository.existsByEmailNormalized(normalizedEmail)) {
-            throw ApiException.conflict("email_taken", "Этот email уже используется.");
-        }
+        accountRepository.findByUsernameNormalizedOrEmailNormalized(usernameKey, normalizedEmail)
+            .ifPresent(existing -> {
+                if (existing.getUsernameNormalized().equals(usernameKey)) {
+                    throw ApiException.conflict("username_taken", "Этот ник уже занят.");
+                }
+                throw ApiException.conflict("email_taken", "Этот email уже используется.");
+            });
 
         AccountEntity account = new AccountEntity();
         account.setUsername(normalizedUsername);

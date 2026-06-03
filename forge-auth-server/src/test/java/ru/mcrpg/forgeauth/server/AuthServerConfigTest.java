@@ -14,6 +14,7 @@ class AuthServerConfigTest {
 
         assertFalse(config.isReady());
         assertEquals(60, config.getGraceSeconds());
+        assertEquals(2, config.getVerifyThreads());
     }
 
     @Test
@@ -23,5 +24,11 @@ class AuthServerConfigTest {
         assertTrue(config.isReady());
         assertTrue(config.acceptsServerId("obsidiangate-main"));
         assertFalse(config.acceptsServerId("wrong-server"));
+    }
+
+    @Test
+    void clampsVerifyThreads() {
+        assertEquals(1, new AuthServerConfig("http://127.0.0.1:8081", "main", 60, 0).getVerifyThreads());
+        assertEquals(8, new AuthServerConfig("http://127.0.0.1:8081", "main", 60, 99).getVerifyThreads());
     }
 }

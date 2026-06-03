@@ -5,20 +5,31 @@ final class AuthServerConfig {
     static final String AUTH_BASE_URL_PROPERTY = "obsidiangate.authBaseUrl";
     static final String SERVER_ID_PROPERTY = "obsidiangate.serverId";
     static final String AUTH_GRACE_SECONDS_PROPERTY = "obsidiangate.authGraceSeconds";
+    static final String AUTH_VERIFY_THREADS_PROPERTY = "obsidiangate.authVerifyThreads";
 
     private static final String AUTH_BASE_URL_ENV = "OBSIDIANGATE_AUTH_BASE_URL";
     private static final String SERVER_ID_ENV = "OBSIDIANGATE_SERVER_ID";
     private static final String AUTH_GRACE_SECONDS_ENV = "OBSIDIANGATE_AUTH_GRACE_SECONDS";
+    private static final String AUTH_VERIFY_THREADS_ENV = "OBSIDIANGATE_AUTH_VERIFY_THREADS";
     private static final int MIN_GRACE_SECONDS = 60;
+    private static final int DEFAULT_VERIFY_THREADS = 2;
+    private static final int MIN_VERIFY_THREADS = 1;
+    private static final int MAX_VERIFY_THREADS = 8;
 
     private final String authBaseUrl;
     private final String serverId;
     private final int graceSeconds;
+    private final int verifyThreads;
 
     AuthServerConfig(String authBaseUrl, String serverId, int graceSeconds) {
+        this(authBaseUrl, serverId, graceSeconds, DEFAULT_VERIFY_THREADS);
+    }
+
+    AuthServerConfig(String authBaseUrl, String serverId, int graceSeconds, int verifyThreads) {
         this.authBaseUrl = normalize(authBaseUrl);
         this.serverId = normalize(serverId);
         this.graceSeconds = Math.max(MIN_GRACE_SECONDS, graceSeconds);
+        this.verifyThreads = clamp(verifyThreads, MIN_VERIFY_THREADS, MAX_VERIFY_THREADS);
     }
 
     static AuthServerConfig fromSystem() {
@@ -37,7 +48,14 @@ final class AuthServerConfig {
             ),
             MIN_GRACE_SECONDS
         );
-        return new AuthServerConfig(authBaseUrl, serverId, graceSeconds);
+        int verifyThreads = parseInt(
+            firstNonBlank(
+                System.getProperty(AUTH_VERIFY_THREADS_PROPERTY),
+                System.getenv(AUTH_VERIFY_THREADS_ENV)
+            ),
+            DEFAULT_VERIFY_THREADS
+        );
+        return new AuthServerConfig(authBaseUrl, serverId, graceSeconds, verifyThreads);
     }
 
     String getAuthBaseUrl() {
@@ -50,6 +68,10 @@ final class AuthServerConfig {
 
     int getGraceSeconds() {
         return graceSeconds;
+    }
+
+    int getVerifyThreads() {
+        return verifyThreads;
     }
 
     boolean isReady() {
@@ -78,5 +100,9 @@ final class AuthServerConfig {
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

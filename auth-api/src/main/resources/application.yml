@@ -24,4 +24,8 @@ auth:
   access-token-ttl-seconds: ${ACCESS_TOKEN_TTL_SECONDS:900}
   refresh-token-ttl-days: ${REFRESH_TOKEN_TTL_DAYS:30}
   game-ticket-ttl-seconds: ${GAME_TICKET_TTL_SECONDS:900}
+  cleanup-enabled: ${AUTH_CLEANUP_ENABLED:true}
+  cleanup-interval-millis: ${AUTH_CLEANUP_INTERVAL_MILLIS:3600000}
+  used-game-ticket-retention-seconds: ${AUTH_USED_GAME_TICKET_RETENTION_SECONDS:86400}
+  revoked-session-retention-days: ${AUTH_REVOKED_SESSION_RETENTION_DAYS:7}
   server-id: ${SERVER_ID:obsidiangate-main}

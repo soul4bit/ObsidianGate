@@ -6,7 +6,7 @@ After=network.target
 User=minecraft
 Group=minecraft
 WorkingDirectory=/home/minecraft/mc-rpg
-ExecStart=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java -Dfml.queryResult=confirm -Dobsidiangate.authBaseUrl=http://127.0.0.1:8081 -Dobsidiangate.serverId=obsidiangate-main -Dobsidiangate.authGraceSeconds=60 -Xms2G -Xmx4G -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -XX:MaxGCPauseMillis=200 -XX:G1NewSizePercent=20 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:InitiatingHeapOccupancyPercent=15 -jar /home/minecraft/mc-rpg/server.jar nogui
+ExecStart=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java -Dfml.queryResult=confirm -Dobsidiangate.authBaseUrl=http://127.0.0.1:8081 -Dobsidiangate.serverId=obsidiangate-main -Dobsidiangate.authGraceSeconds=60 -Dobsidiangate.authVerifyThreads=4 -Xms2G -Xmx4G -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -XX:MaxGCPauseMillis=200 -XX:G1NewSizePercent=20 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:InitiatingHeapOccupancyPercent=15 -jar /home/minecraft/mc-rpg/server.jar nogui
 ExecStop=/home/minecraft/mc-rpg/scripts/obsidiangate-safe-stop.sh
 Restart=on-failure
 RestartSec=10

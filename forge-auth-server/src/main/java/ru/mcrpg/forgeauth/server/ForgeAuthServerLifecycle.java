@@ -48,12 +48,16 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
     private int serverTickCounter;
 
     ForgeAuthServerLifecycle(Logger logger) {
+        this(logger, AuthServerConfig.fromSystem());
+    }
+
+    private ForgeAuthServerLifecycle(Logger logger, AuthServerConfig config) {
         this(
             logger,
-            AuthServerConfig.fromSystem(),
+            config,
             new MinecraftPlayerBridge(),
             new TicketVerificationClient(),
-            newSingleThreadExecutor(),
+            newVerificationExecutor(config.getVerifyThreads()),
             new ConcurrentHashMap<String, PlayerAuthState>(),
             new ConcurrentLinkedQueue<Runnable>()
         );
@@ -374,14 +378,14 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         return value == null ? "" : value.trim().replace("-", "").toLowerCase();
     }
 
-    private static ExecutorService newSingleThreadExecutor() {
+    private static ExecutorService newVerificationExecutor(int threadCount) {
         AtomicInteger counter = new AtomicInteger(1);
         ThreadFactory factory = runnable -> {
             Thread thread = new Thread(runnable, "obsidiangate-auth-verify-" + counter.getAndIncrement());
             thread.setDaemon(true);
             return thread;
         };
-        return Executors.newSingleThreadExecutor(factory);
+        return Executors.newFixedThreadPool(threadCount, factory);
     }
 
     interface PlayerView {
