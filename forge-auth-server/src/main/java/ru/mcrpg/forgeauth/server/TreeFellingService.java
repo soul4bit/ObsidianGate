@@ -16,12 +16,10 @@ final class TreeFellingService {
     private static final int MAX_SEARCH_NODES = 96;
 
     private final Logger logger;
-    private final PlayerRegionProtectionService protection;
     private boolean felling;
 
-    TreeFellingService(Logger logger, PlayerRegionProtectionService protection) {
+    TreeFellingService(Logger logger) {
         this.logger = logger;
-        this.protection = protection;
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -39,10 +37,6 @@ final class TreeFellingService {
         if (!Boolean.TRUE.equals(invokeZeroArgIfPresent(player, "isSneaking", "func_70093_af")) || isCreative(player)) {
             return;
         }
-        if (protection != null && protection.isProtectedFrom(world, origin, player)) {
-            return;
-        }
-
         Object tool = invokeZeroArgIfPresent(player, "getHeldItemMainhand", "func_184614_ca");
         if (!isUsableAxe(tool) || !isLog(world, origin)) {
             return;
@@ -75,7 +69,7 @@ final class TreeFellingService {
                     break;
                 }
                 Object pos = position.pos;
-                if (pos == null || protection != null && protection.isProtectedFrom(world, pos, player)) {
+                if (pos == null) {
                     continue;
                 }
                 if (!isLog(world, pos)) {

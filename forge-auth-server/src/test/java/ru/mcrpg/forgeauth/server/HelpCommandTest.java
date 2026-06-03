@@ -14,7 +14,7 @@ class HelpCommandTest {
 
         assertTrue(containsCommand(sections, "/spawn"));
         assertTrue(containsCommand(sections, "/rtp"));
-        assertTrue(containsCommand(sections, "/claim create <название> <радиус>"));
+        assertFalse(containsCommandPrefix(sections, "/claim"));
         assertFalse(containsCommand(sections, "/spawnprotect info"));
     }
 
@@ -22,6 +22,7 @@ class HelpCommandTest {
     void adminHelpIncludesSpawnProtectionCommands() {
         List<HelpCommand.HelpSection> sections = HelpCommand.visibleSections(true);
 
+        assertFalse(containsCommandPrefix(sections, "/claim"));
         assertTrue(containsCommand(sections, "/spawnprotect info"));
         assertTrue(containsCommand(sections, "/spawnprotect reload"));
     }
@@ -30,6 +31,17 @@ class HelpCommandTest {
         for (HelpCommand.HelpSection section : sections) {
             for (HelpCommand.HelpEntry entry : section.entries) {
                 if (command.equals(entry.command)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsCommandPrefix(List<HelpCommand.HelpSection> sections, String prefix) {
+        for (HelpCommand.HelpSection section : sections) {
+            for (HelpCommand.HelpEntry entry : section.entries) {
+                if (entry.command.startsWith(prefix)) {
                     return true;
                 }
             }

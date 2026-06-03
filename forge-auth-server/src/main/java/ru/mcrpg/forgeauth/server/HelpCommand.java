@@ -47,16 +47,6 @@ final class HelpCommand {
             entry("/call cancel [игрок]", "/call cancel ", "отменить свой запрос"),
             entry("/back", "/back", "вернуться к месту последней смерти, перезарядка зависит от роли"),
             entry("/wptp <x> <y> <z>", "/wptp ", "телепорт по координатам метки")
-        ),
-        section(
-            "Приват",
-            "claim", "region", "rg", "приват", "регион",
-            entry("/claim create <название> <радиус>", "/claim create ", "создать регион, лимит зависит от роли"),
-            entry("/claim list", "/claim list", "ваши регионы"),
-            entry("/claim info [название]", "/claim info ", "информация о регионе"),
-            entry("/claim trust <регион> <игрок>", "/claim trust ", "дать доступ другу"),
-            entry("/claim untrust <регион> <игрок>", "/claim untrust ", "убрать доступ"),
-            entry("/claim remove <название>", "/claim remove ", "удалить регион")
         )
     ));
 

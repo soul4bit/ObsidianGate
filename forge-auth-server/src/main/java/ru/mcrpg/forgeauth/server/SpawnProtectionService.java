@@ -85,18 +85,8 @@ public final class SpawnProtectionService {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onPlayerBreakSpeed(PlayerEvent.BreakSpeed event) {
-        Config snapshot = config();
-        Object player = invokeZeroArgIfPresent(event, "getEntityPlayer", "getEntity");
-        Object world = readFieldIfPresent(player, "world", "field_70170_p", "l");
-        BlockPosition position = blockPosition(invokeZeroArgIfPresent(event, "getPos"));
-        if (!snapshot.enabled || !snapshot.protectBlocks || !isProtectedPosition(world, position, player, snapshot)) {
-            return;
-        }
-        if (canBypass(player, snapshot)) {
-            return;
-        }
-        invokeIfPresent(event, new Object[] { Float.valueOf(0.0F) }, "setNewSpeed");
-        cancel(event);
+        // BreakSpeed is a very hot mining path. Spawn protection is still
+        // enforced by left-click, break, place, explosion, and spawn events.
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

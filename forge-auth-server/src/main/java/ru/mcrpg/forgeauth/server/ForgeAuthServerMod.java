@@ -42,10 +42,7 @@ public final class ForgeAuthServerMod {
     private static final HomeRespawnService HOME_RESPAWN = new HomeRespawnService(LOGGER, HOME_SERVICE);
     private static final TeleportGuardService TELEPORT_GUARD = new TeleportGuardService();
     private static final BackLocationService BACK_LOCATIONS = new BackLocationService(LOGGER);
-    private static final PlayerRegionService PLAYER_REGIONS = new PlayerRegionService(LOGGER);
-    private static final PlayerRegionProtectionService PLAYER_REGION_PROTECTION =
-        new PlayerRegionProtectionService(LOGGER, PLAYER_REGIONS);
-    private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER, PLAYER_REGION_PROTECTION);
+    private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER);
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -68,11 +65,9 @@ public final class ForgeAuthServerMod {
         FIRST_JOIN_WELCOME.load();
         HOME_SERVICE.load();
         BACK_LOCATIONS.load();
-        PLAYER_REGIONS.load();
         MinecraftForge.EVENT_BUS.register(LIFECYCLE);
         MinecraftForge.EVENT_BUS.register(FIRST_JOIN_WELCOME);
         MinecraftForge.EVENT_BUS.register(SPAWN_PROTECTION);
-        MinecraftForge.EVENT_BUS.register(PLAYER_REGION_PROTECTION);
         MinecraftForge.EVENT_BUS.register(TREE_FELLING);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
         MinecraftForge.EVENT_BUS.register(RANDOM_LIGHTNING);
@@ -106,7 +101,6 @@ public final class ForgeAuthServerMod {
         HomeCommand.register(event, HOME_SERVICE, TELEPORT_GUARD, LIFECYCLE);
         BackCommand.register(event, BACK_LOCATIONS, TELEPORT_GUARD, LIFECYCLE);
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
-        PlayerRegionCommand.register(event, PLAYER_REGIONS, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
         HelpCommand.register(event);
     }

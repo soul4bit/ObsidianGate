@@ -330,17 +330,20 @@ final class TeleportSupport {
         return onlinePlayer == null ? fallback : onlinePlayer;
     }
 
-    private static void prepareDestinationChunk(Object world, double x, double z) {
+    static boolean prepareDestinationChunk(Object world, double x, double z) {
         if (world == null) {
-            return;
+            return false;
+        }
+        if (isChunkLoaded(world, (int) Math.floor(x), (int) Math.floor(z))) {
+            return true;
         }
         int chunkX = ((int) Math.floor(x)) >> 4;
         int chunkZ = ((int) Math.floor(z)) >> 4;
         Object provider = invokeZeroArgIfPresent(world, "getChunkProvider", "func_72863_F");
         if (invokeMethodIfPresent(provider, new Object[] { Integer.valueOf(chunkX), Integer.valueOf(chunkZ) }, "loadChunk", "func_186025_d")) {
-            return;
+            return true;
         }
-        invokeMethodIfPresent(world, new Object[] { Integer.valueOf(chunkX), Integer.valueOf(chunkZ) }, "getChunkFromChunkCoords", "func_72964_e");
+        return invokeMethodIfPresent(world, new Object[] { Integer.valueOf(chunkX), Integer.valueOf(chunkZ) }, "getChunkFromChunkCoords", "func_72964_e");
     }
 
     private static Object blockPos(int x, int y, int z) {

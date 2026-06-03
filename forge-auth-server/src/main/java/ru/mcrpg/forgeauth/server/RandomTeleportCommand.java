@@ -20,6 +20,7 @@ final class RandomTeleportCommand {
     private static final int MIN_DISTANCE_FROM_SPAWN = 800;
     private static final int MAX_DISTANCE_FROM_SPAWN = 3000;
     private static final int MAX_ATTEMPTS = 48;
+    private static final int MAX_CHUNK_LOAD_ATTEMPTS = 4;
     private static final Logger LOGGER = Logger.getLogger(ForgeAuthServerMod.MOD_NAME);
 
     private RandomTeleportCommand() {
@@ -170,7 +171,25 @@ final class RandomTeleportCommand {
                 continue;
             }
 
-            SafeLocation location = safeLocation(world, x, z);
+            SafeLocation location = safeLocation(world, x, z, false);
+            if (location != null) {
+                return location;
+            }
+        }
+
+        for (int attempt = 0; attempt < MAX_CHUNK_LOAD_ATTEMPTS; attempt++) {
+            double angle = random.nextDouble(0.0D, Math.PI * 2.0D);
+            double distance = Math.sqrt(random.nextDouble(
+                (double) MIN_DISTANCE_FROM_SPAWN * (double) MIN_DISTANCE_FROM_SPAWN,
+                (double) MAX_DISTANCE_FROM_SPAWN * (double) MAX_DISTANCE_FROM_SPAWN
+            ));
+            int x = (int) Math.floor(spawnX + Math.cos(angle) * distance);
+            int z = (int) Math.floor(spawnZ + Math.sin(angle) * distance);
+            if (Math.abs(x) > TeleportSupport.WORLD_BORDER_LIMIT || Math.abs(z) > TeleportSupport.WORLD_BORDER_LIMIT) {
+                continue;
+            }
+
+            SafeLocation location = safeLocation(world, x, z, true);
             if (location != null) {
                 return location;
             }
@@ -178,9 +197,11 @@ final class RandomTeleportCommand {
         return null;
     }
 
-    private static SafeLocation safeLocation(Object world, int x, int z) {
+    private static SafeLocation safeLocation(Object world, int x, int z, boolean allowChunkLoad) {
         if (!TeleportSupport.isChunkLoaded(world, x, z)) {
-            return null;
+            if (!allowChunkLoad || !TeleportSupport.prepareDestinationChunk(world, x + 0.5D, z + 0.5D)) {
+                return null;
+            }
         }
 
         Object top = invokeIfPresent(world, new Object[] { blockPos(x, 0, z) }, "getTopSolidOrLiquidBlock", "func_175672_r");

@@ -61,7 +61,7 @@ class TeleportSupportTest {
         assertSame(player, moved);
         assertEquals(2, server.world.provider.loadedChunkX);
         assertEquals(-2, server.world.provider.loadedChunkZ);
-        assertTrue(server.world.provider.loadCount >= 1);
+        assertEquals(1, server.world.provider.loadCount);
         assertEquals(33.5D, player.x);
         assertEquals(72.0D, player.y);
         assertEquals(-17.5D, player.z);
@@ -127,6 +127,10 @@ class TeleportSupportTest {
             this.loadedChunkZ = z;
             this.loadCount++;
             return new Object();
+        }
+
+        public boolean isChunkLoaded(int x, int z) {
+            return loadCount > 0 && loadedChunkX == x && loadedChunkZ == z;
         }
     }
 
