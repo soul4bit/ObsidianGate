@@ -24,9 +24,18 @@ final class ChatAppearanceService {
     private final Logger logger;
     private final Map<String, ? extends ForgeAuthServerLifecycle.PlayerView> players;
     private final TextComponentFactory textComponentFactory;
+    private final PlayerAchievementService achievements;
 
     ChatAppearanceService(Logger logger, Map<String, ? extends ForgeAuthServerLifecycle.PlayerView> players) {
-        this(logger, players, new ReflectiveTextComponentFactory());
+        this(logger, players, new ReflectiveTextComponentFactory(), null);
+    }
+
+    ChatAppearanceService(
+        Logger logger,
+        Map<String, ? extends ForgeAuthServerLifecycle.PlayerView> players,
+        PlayerAchievementService achievements
+    ) {
+        this(logger, players, new ReflectiveTextComponentFactory(), achievements);
     }
 
     ChatAppearanceService(
@@ -34,9 +43,19 @@ final class ChatAppearanceService {
         Map<String, ? extends ForgeAuthServerLifecycle.PlayerView> players,
         TextComponentFactory textComponentFactory
     ) {
+        this(logger, players, textComponentFactory, null);
+    }
+
+    ChatAppearanceService(
+        Logger logger,
+        Map<String, ? extends ForgeAuthServerLifecycle.PlayerView> players,
+        TextComponentFactory textComponentFactory,
+        PlayerAchievementService achievements
+    ) {
         this.logger = Objects.requireNonNull(logger, "logger");
         this.players = Objects.requireNonNull(players, "players");
         this.textComponentFactory = Objects.requireNonNull(textComponentFactory, "textComponentFactory");
+        this.achievements = achievements;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -50,7 +69,7 @@ final class ChatAppearanceService {
             }
 
             RoleStyle style = styleFor(roleFor(username));
-            setComponent(event, textComponentFactory.create(formatChatLine(style, username, message)));
+            setComponent(event, textComponentFactory.create(formatChatLine(style, titleFor(player), username, message)));
         } catch (RuntimeException exception) {
             logger.log(Level.FINE, "Не удалось применить оформление чата.", exception);
         }
@@ -77,7 +96,11 @@ final class ChatAppearanceService {
     }
 
     static String formatChatLine(String role, String username, String message) {
-        return formatChatLine(styleFor(role), username, sanitizeChatMessage(message));
+        return formatChatLine(styleFor(role), "", username, sanitizeChatMessage(message));
+    }
+
+    static String formatChatLine(String role, String title, String username, String message) {
+        return formatChatLine(styleFor(role), title, username, sanitizeChatMessage(message));
     }
 
     static String formatTabName(String role, String username) {
@@ -89,8 +112,14 @@ final class ChatAppearanceService {
         return view == null ? "" : view.getRole();
     }
 
-    private static String formatChatLine(RoleStyle style, String username, String message) {
+    private String titleFor(Object player) {
+        return achievements == null ? "" : achievements.activeTitleLabelFor(player);
+    }
+
+    private static String formatChatLine(RoleStyle style, String title, String username, String message) {
+        String normalizedTitle = title == null ? "" : title.trim();
         return DARK_GRAY + "[" + style.roleColor + style.label + DARK_GRAY + "]"
+            + (normalizedTitle.isEmpty() ? "" : DARK_GRAY + "[" + normalizedTitle + DARK_GRAY + "]")
             + " "
             + style.nameColor + username
             + " " + DARK_GRAY + "\u00BB" + " "

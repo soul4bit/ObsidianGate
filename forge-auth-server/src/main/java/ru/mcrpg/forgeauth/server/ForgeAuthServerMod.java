@@ -31,7 +31,8 @@ public final class ForgeAuthServerMod {
     }
 
     private static final Logger LOGGER = Logger.getLogger(MOD_NAME);
-    private static final ForgeAuthServerLifecycle LIFECYCLE = new ForgeAuthServerLifecycle(LOGGER);
+    private static final PlayerAchievementService ACHIEVEMENTS = new PlayerAchievementService(LOGGER);
+    private static final ForgeAuthServerLifecycle LIFECYCLE = new ForgeAuthServerLifecycle(LOGGER, ACHIEVEMENTS);
     private static final SpawnProtectionService SPAWN_PROTECTION = new SpawnProtectionService(LOGGER);
     private static final ItemCleanupService ITEM_CLEANUP = new ItemCleanupService(LOGGER);
     private static final RandomLightningService RANDOM_LIGHTNING = new RandomLightningService(LOGGER);
@@ -65,8 +66,10 @@ public final class ForgeAuthServerMod {
         FIRST_JOIN_WELCOME.load();
         HOME_SERVICE.load();
         BACK_LOCATIONS.load();
+        ACHIEVEMENTS.load();
         MinecraftForge.EVENT_BUS.register(LIFECYCLE);
         MinecraftForge.EVENT_BUS.register(FIRST_JOIN_WELCOME);
+        MinecraftForge.EVENT_BUS.register(ACHIEVEMENTS);
         MinecraftForge.EVENT_BUS.register(SPAWN_PROTECTION);
         MinecraftForge.EVENT_BUS.register(TREE_FELLING);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
@@ -102,11 +105,13 @@ public final class ForgeAuthServerMod {
         BackCommand.register(event, BACK_LOCATIONS, TELEPORT_GUARD, LIFECYCLE);
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
+        AchievementCommand.register(event, ACHIEVEMENTS);
         HelpCommand.register(event);
     }
 
     @EventHandler
     public void onServerStopping(FMLServerStoppingEvent event) {
+        ACHIEVEMENTS.shutdown();
         LIFECYCLE.shutdown();
     }
 }

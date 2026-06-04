@@ -22,6 +22,16 @@ class ChatAppearanceServiceTest {
     }
 
     @Test
+    void formatsChatLineWithActiveAchievementTitle() {
+        String line = ChatAppearanceService.formatChatLine("player", "\u00A76Рудокоп\u00A7r", "soul4bit", "нашел жилу");
+
+        assertEquals(
+            "\u00A78[\u00A77Игрок\u00A78]\u00A78[\u00A76Рудокоп\u00A7r\u00A78] \u00A77soul4bit \u00A78\u00BB \u00A7fнашел жилу",
+            line
+        );
+    }
+
+    @Test
     void appliesTabNameAndScoreboardTeam() {
         FakePlayer player = new FakePlayer("romik71ya");
         ChatAppearanceService service = new ChatAppearanceService(

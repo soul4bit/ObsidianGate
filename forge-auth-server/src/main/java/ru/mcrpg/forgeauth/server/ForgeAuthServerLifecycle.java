@@ -48,10 +48,14 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
     private int serverTickCounter;
 
     ForgeAuthServerLifecycle(Logger logger) {
-        this(logger, AuthServerConfig.fromSystem());
+        this(logger, AuthServerConfig.fromSystem(), null);
     }
 
-    private ForgeAuthServerLifecycle(Logger logger, AuthServerConfig config) {
+    ForgeAuthServerLifecycle(Logger logger, PlayerAchievementService achievements) {
+        this(logger, AuthServerConfig.fromSystem(), achievements);
+    }
+
+    private ForgeAuthServerLifecycle(Logger logger, AuthServerConfig config, PlayerAchievementService achievements) {
         this(
             logger,
             config,
@@ -59,7 +63,8 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
             new TicketVerificationClient(),
             newVerificationExecutor(config.getVerifyThreads()),
             new ConcurrentHashMap<String, PlayerAuthState>(),
-            new ConcurrentLinkedQueue<Runnable>()
+            new ConcurrentLinkedQueue<Runnable>(),
+            achievements
         );
     }
 
@@ -72,6 +77,19 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         Map<String, PlayerAuthState> authStates,
         Queue<Runnable> mainThreadActions
     ) {
+        this(logger, config, playerBridge, verificationClient, verificationExecutor, authStates, mainThreadActions, null);
+    }
+
+    ForgeAuthServerLifecycle(
+        Logger logger,
+        AuthServerConfig config,
+        MinecraftPlayerBridge playerBridge,
+        TicketVerificationClient verificationClient,
+        ExecutorService verificationExecutor,
+        Map<String, PlayerAuthState> authStates,
+        Queue<Runnable> mainThreadActions,
+        PlayerAchievementService achievements
+    ) {
         this.logger = Objects.requireNonNull(logger, "logger");
         this.config = Objects.requireNonNull(config, "config");
         this.playerBridge = Objects.requireNonNull(playerBridge, "playerBridge");
@@ -79,7 +97,7 @@ final class ForgeAuthServerLifecycle implements PlayerRoleLookup {
         this.verificationExecutor = Objects.requireNonNull(verificationExecutor, "verificationExecutor");
         this.authStates = Objects.requireNonNull(authStates, "authStates");
         this.mainThreadActions = Objects.requireNonNull(mainThreadActions, "mainThreadActions");
-        this.chatAppearance = new ChatAppearanceService(logger, this.authStates);
+        this.chatAppearance = new ChatAppearanceService(logger, this.authStates, achievements);
     }
 
     @SubscribeEvent
