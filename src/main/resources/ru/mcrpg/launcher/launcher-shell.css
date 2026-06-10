@@ -1177,6 +1177,145 @@
     -fx-background-color: rgba(15, 23, 42, 0.70);
 }
 
+.modpack-preview-overlay {
+    -fx-padding: 18px;
+    -fx-alignment: center;
+    -fx-background-color: rgba(2, 6, 23, 0.62);
+}
+
+.modpack-preview-panel {
+    -fx-padding: 16px;
+    -fx-background-color:
+        linear-gradient(to bottom, rgba(24, 36, 52, 0.96), rgba(8, 18, 31, 0.98)),
+        radial-gradient(center 100% 0%, radius 78%, rgba(34, 197, 94, 0.14), transparent),
+        radial-gradient(center 0% 0%, radius 72%, rgba(139, 92, 246, 0.16), transparent);
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(203, 213, 225, 0.20);
+    -fx-border-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.46), 42, 0.30, 0, 18);
+}
+
+.modpack-preview-title {
+    -fx-font-family: "Manrope", "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+}
+
+.modpack-preview-summary {
+    -fx-text-fill: #dbe7f5;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 3px;
+}
+
+.modpack-preview-details {
+    -fx-background-color: rgba(3, 7, 18, 0.82);
+    -fx-background-radius: 7px;
+    -fx-border-color: rgba(148, 163, 184, 0.20);
+    -fx-border-radius: 7px;
+    -fx-pref-height: 124px;
+    -fx-padding: 0;
+}
+
+.modpack-preview-details > .viewport {
+    -fx-background-color: rgba(3, 7, 18, 0.82);
+    -fx-background-radius: 7px;
+}
+
+.modpack-preview-list {
+    -fx-padding: 7px;
+}
+
+.modpack-preview-file-row {
+    -fx-min-height: 36px;
+    -fx-padding: 6px 8px;
+    -fx-background-color: rgba(15, 23, 42, 0.62);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(148, 163, 184, 0.14);
+    -fx-border-radius: 6px;
+}
+
+.modpack-preview-file-type {
+    -fx-min-width: 54px;
+    -fx-pref-width: 54px;
+    -fx-alignment: center;
+    -fx-padding: 4px 7px;
+    -fx-background-color: rgba(34, 197, 94, 0.14);
+    -fx-background-radius: 999px;
+    -fx-border-color: rgba(34, 197, 94, 0.28);
+    -fx-border-radius: 999px;
+    -fx-text-fill: #bbf7d0;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+}
+
+.modpack-preview-file-name {
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+}
+
+.modpack-preview-file-reason {
+    -fx-text-fill: #9fb0c7;
+    -fx-font-size: 11px;
+}
+
+.modpack-preview-file-size {
+    -fx-min-width: 74px;
+    -fx-alignment: center-right;
+    -fx-text-fill: #d8b4fe;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+}
+
+.modpack-preview-more {
+    -fx-padding: 8px 10px;
+    -fx-text-fill: #cbd5e1;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.modpack-preview-actions {
+    -fx-padding: 0;
+}
+
+.button.modpack-preview-primary-button {
+    -fx-min-width: 126px;
+    -fx-pref-height: 38px;
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #22c55e, #7c3aed);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(216, 180, 254, 0.40);
+    -fx-border-radius: 6px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-graphic-text-gap: 8px;
+}
+
+.button.modpack-preview-primary-button:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #34d399, #8b5cf6);
+    -fx-border-color: rgba(220, 252, 231, 0.48);
+}
+
+.button.modpack-preview-secondary-button {
+    -fx-min-width: 108px;
+    -fx-pref-height: 38px;
+    -fx-background-color: rgba(15, 23, 42, 0.64);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(203, 213, 225, 0.18);
+    -fx-border-radius: 6px;
+    -fx-text-fill: #dbe7f5;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-graphic-text-gap: 8px;
+}
+
+.button.modpack-preview-secondary-button:hover {
+    -fx-background-color: rgba(30, 41, 59, 0.78);
+    -fx-border-color: rgba(216, 180, 254, 0.30);
+    -fx-text-fill: #ffffff;
+}
+
 .footer {
     -fx-alignment: center-left;
     -fx-text-fill: #94a3b8;

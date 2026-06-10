@@ -31,13 +31,10 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
@@ -560,7 +557,7 @@ public final class LauncherShellController extends AbstractScreenController {
         CompletableFuture<Boolean> answer = new CompletableFuture<Boolean>();
         Platform.runLater(() -> {
             try {
-                answer.complete(showModpackSyncPreviewDialog(previewResult));
+                showModpackSyncPreviewOverlay(previewResult, answer);
             } catch (RuntimeException exception) {
                 answer.completeExceptionally(exception);
             }
@@ -568,56 +565,171 @@ public final class LauncherShellController extends AbstractScreenController {
         return answer.get().booleanValue();
     }
 
-    private boolean showModpackSyncPreviewDialog(ModpackSyncPreviewResult previewResult) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.initOwner(stage());
-        alert.setTitle(LauncherBrand.APP_NAME);
-        alert.setHeaderText("Нужно обновить файлы модпака");
-        alert.setContentText(
+    private void showModpackSyncPreviewOverlay(
+        ModpackSyncPreviewResult previewResult,
+        CompletableFuture<Boolean> answer
+    ) {
+        if (launcherShellRoot == null) {
+            answer.complete(true);
+            return;
+        }
+
+        Label titleLabel = new Label("Нужно обновить файлы модпака");
+        titleLabel.getStyleClass().add("modpack-preview-title");
+
+        Label summaryLabel = new Label(
             "Будет скачано: " + formatFileCount(previewResult.getDownloadFiles())
                 + " · " + formatBytes(previewResult.getDownloadBytes())
                 + "\nУже актуально: " + formatFileCount(previewResult.getReusedFiles())
         );
+        summaryLabel.setWrapText(true);
+        summaryLabel.getStyleClass().add("modpack-preview-summary");
 
-        TextArea detailsArea = new TextArea(describePreviewEntries(previewResult));
-        detailsArea.setEditable(false);
-        detailsArea.setWrapText(false);
-        detailsArea.setPrefRowCount(12);
-        detailsArea.setPrefColumnCount(72);
-        alert.getDialogPane().setExpandableContent(detailsArea);
-        alert.getDialogPane().setExpanded(true);
+        ScrollPane detailsArea = createModpackPreviewDetails(previewResult);
 
-        return alert.showAndWait().filter(ButtonType.OK::equals).isPresent();
+        Button detailsButton = new Button("Свернуть детали");
+        detailsButton.setMnemonicParsing(false);
+        detailsButton.getStyleClass().add("modpack-preview-secondary-button");
+        detailsButton.setGraphic(LauncherIcons.icon("chevron-up", 15.0d, "#d8b4fe"));
+        detailsButton.setOnAction(event -> {
+            boolean visible = detailsArea.isVisible();
+            detailsArea.setVisible(!visible);
+            detailsArea.setManaged(!visible);
+            detailsButton.setText(visible ? "Развернуть детали" : "Свернуть детали");
+            detailsButton.setGraphic(LauncherIcons.icon(visible ? "chevron-down" : "chevron-up", 15.0d, "#d8b4fe"));
+        });
+
+        Button continueButton = new Button("Продолжить");
+        continueButton.setMnemonicParsing(false);
+        continueButton.getStyleClass().add("modpack-preview-primary-button");
+        continueButton.setGraphic(LauncherIcons.icon("download", 15.0d, "#ffffff"));
+
+        Button cancelButton = new Button("Отмена");
+        cancelButton.setMnemonicParsing(false);
+        cancelButton.getStyleClass().add("modpack-preview-secondary-button");
+
+        HBox actions = new HBox(10.0d, detailsButton, new Region(), cancelButton, continueButton);
+        HBox.setHgrow(actions.getChildren().get(1), Priority.ALWAYS);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        actions.getStyleClass().add("modpack-preview-actions");
+
+        VBox panel = new VBox(12.0d, titleLabel, summaryLabel, detailsArea, actions);
+        panel.getStyleClass().add("modpack-preview-panel");
+        panel.setMaxWidth(460.0d);
+        panel.setMaxHeight(Region.USE_PREF_SIZE);
+
+        StackPane overlay = new StackPane(panel);
+        overlay.getStyleClass().add("modpack-preview-overlay");
+        overlay.setFocusTraversable(true);
+        overlay.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                event.consume();
+                completeModpackPreview(answer, overlay, false);
+            }
+        });
+
+        cancelButton.setOnAction(event -> completeModpackPreview(answer, overlay, false));
+        continueButton.setOnAction(event -> completeModpackPreview(answer, overlay, true));
+
+        launcherShellRoot.getChildren().add(overlay);
+        Platform.runLater(overlay::requestFocus);
     }
 
-    private static String describePreviewEntries(ModpackSyncPreviewResult previewResult) {
-        StringBuilder builder = new StringBuilder();
-        int shown = 0;
+    private void completeModpackPreview(CompletableFuture<Boolean> answer, StackPane overlay, boolean confirmed) {
+        if (overlay != null && launcherShellRoot != null) {
+            launcherShellRoot.getChildren().remove(overlay);
+        }
+        answer.complete(Boolean.valueOf(confirmed));
+    }
+
+    private static ScrollPane createModpackPreviewDetails(ModpackSyncPreviewResult previewResult) {
+        VBox list = new VBox(8.0d);
+        list.getStyleClass().add("modpack-preview-list");
+
         for (ModpackSyncPreviewEntry entry : previewResult.getEntries()) {
             if (entry.getState() != ModpackSyncPreviewEntry.State.DOWNLOAD) {
                 continue;
             }
-            if (shown >= 25) {
-                int remaining = previewResult.getDownloadFiles() - shown;
-                if (remaining > 0) {
-                    builder.append("...и еще ").append(formatFileCount(remaining)).append('\n');
-                }
-                break;
-            }
-            builder.append(entry.getPath());
-            if (entry.getSize() != null && entry.getSize().longValue() > 0L) {
-                builder.append(" · ").append(formatBytes(entry.getSize().longValue()));
-            }
-            if (hasText(entry.getReason())) {
-                builder.append(" · ").append(entry.getReason());
-            }
-            builder.append('\n');
-            shown++;
+            list.getChildren().add(createModpackPreviewFileRow(entry));
         }
-        if (builder.length() == 0) {
-            return "Список файлов пуст.";
+
+        if (list.getChildren().isEmpty()) {
+            Label emptyLabel = new Label("Список файлов пуст.");
+            emptyLabel.getStyleClass().add("modpack-preview-more");
+            list.getChildren().add(emptyLabel);
         }
-        return builder.toString();
+
+        ScrollPane scrollPane = new ScrollPane(list);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.getStyleClass().add("modpack-preview-details");
+        return scrollPane;
+    }
+
+    private static HBox createModpackPreviewFileRow(ModpackSyncPreviewEntry entry) {
+        Label typeLabel = new Label(fileTypeLabel(entry.getPath()));
+        typeLabel.getStyleClass().add("modpack-preview-file-type");
+
+        Label nameLabel = new Label(fileDisplayName(entry.getPath()));
+        nameLabel.getStyleClass().add("modpack-preview-file-name");
+        nameLabel.setMaxWidth(Double.MAX_VALUE);
+
+        Label reasonLabel = new Label(reasonLabel(entry.getReason()));
+        reasonLabel.getStyleClass().add("modpack-preview-file-reason");
+
+        Label sizeLabel = new Label(entry.getSize() == null || entry.getSize().longValue() <= 0L
+            ? "размер неизвестен"
+            : formatBytes(entry.getSize().longValue()));
+        sizeLabel.getStyleClass().add("modpack-preview-file-size");
+
+        VBox textBox = new VBox(2.0d, nameLabel, reasonLabel);
+        HBox.setHgrow(textBox, Priority.ALWAYS);
+
+        HBox row = new HBox(10.0d, typeLabel, textBox, sizeLabel);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("modpack-preview-file-row");
+        return row;
+    }
+
+    private static String fileTypeLabel(String path) {
+        String normalized = path == null ? "" : path.replace('\\', '/').toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("mods/") || normalized.endsWith(".jar")) {
+            return "Мод";
+        }
+        if (normalized.startsWith("config/") || normalized.endsWith(".cfg") || normalized.endsWith(".properties")) {
+            return "Конфиг";
+        }
+        if (normalized.startsWith("resourcepacks/")) {
+            return "Ресурсы";
+        }
+        if (normalized.startsWith("scripts/")) {
+            return "Скрипт";
+        }
+        return "Файл";
+    }
+
+    private static String fileDisplayName(String path) {
+        if (!hasText(path)) {
+            return "Без имени";
+        }
+        String normalized = path.replace('\\', '/');
+        int slashIndex = normalized.lastIndexOf('/');
+        return slashIndex >= 0 ? normalized.substring(slashIndex + 1) : normalized;
+    }
+
+    private static String reasonLabel(String reason) {
+        if (!hasText(reason)) {
+            return "требуется обновление";
+        }
+        String normalized = reason.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "missing" -> "файла нет локально";
+            case "size-mismatch" -> "не совпал размер";
+            case "sha256-mismatch" -> "изменилась контрольная сумма";
+            case "changed-during-check" -> "файл изменился во время проверки";
+            default -> "требуется обновление";
+        };
     }
 
     private void finishSuccessfulLaunch(LaunchStartResult result) {

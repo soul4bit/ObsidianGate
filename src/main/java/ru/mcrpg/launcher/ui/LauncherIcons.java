@@ -131,6 +131,8 @@ public final class LauncherIcons {
             case "logout" -> stroke("M10 17l5-5-5-5M15 12H3M21 4v16h-8");
             case "chevron-left" -> stroke("M15 18l-6-6 6-6");
             case "chevron-right" -> stroke("M9 6l6 6-6 6");
+            case "chevron-up" -> stroke("M18 15l-6-6-6 6");
+            case "chevron-down" -> stroke("M6 9l6 6 6-6");
             case "x" -> stroke("M7 7l10 10M17 7 7 17");
             case "window-minimize" -> stroke("M6 12h12");
             case "window-close" -> stroke("M7 7l10 10M17 7 7 17");
