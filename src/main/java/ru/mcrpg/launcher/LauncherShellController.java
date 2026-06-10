@@ -915,6 +915,9 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private LauncherUpdateCandidate findLauncherUpdate(LoadedManifest loadedManifest) throws IOException {
+        if (!launcherUpdatesEnabled()) {
+            return null;
+        }
         if (loadedManifest == null || loadedManifest.getManifest() == null) {
             return null;
         }
@@ -923,6 +926,11 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private void applyLauncherUpdateState(LauncherUpdateCandidate update, boolean checkSucceeded) {
+        if (!launcherUpdatesEnabled()) {
+            availableLauncherUpdate = null;
+            applyPlayButtonState();
+            return;
+        }
         if (!checkSucceeded) {
             if (!hasLauncherUpdate()) {
                 applyPlayButtonState();
@@ -935,6 +943,11 @@ public final class LauncherShellController extends AbstractScreenController {
         if (!syncInProgress && !launchInProgress && !launcherUpdateInProgress && hasLauncherUpdate()) {
             setSyncStatus("Обновите лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
         }
+    }
+
+    private boolean launcherUpdatesEnabled() {
+        LauncherConfig config = context() == null ? null : state().getConfig();
+        return config == null || config.isLauncherUpdatesEnabled();
     }
 
     private void applyManifestSummary(ModpackManifest manifest) {

@@ -24,6 +24,7 @@ public final class LauncherConfigStore {
     private static final String KEY_MEMORY_MAX_MB = "memory.max.mb";
     private static final String KEY_UPDATE_FILES_BEFORE_LAUNCH = "update.files.before.launch";
     private static final String KEY_LAUNCHER_UPDATE_ENABLED = "launcher.update.enabled";
+    private static final String KEY_LAUNCHER_UPDATES_ENABLED = "launcher.updates.enabled";
 
     private final Path configFile;
 
@@ -77,7 +78,10 @@ public final class LauncherConfigStore {
             defaults.isUpdateFilesBeforeLaunch()
         ));
         defaults.setLauncherUpdatesEnabled(parseBoolean(
-            properties.getProperty(KEY_LAUNCHER_UPDATE_ENABLED),
+            properties.getProperty(
+                KEY_LAUNCHER_UPDATE_ENABLED,
+                properties.getProperty(KEY_LAUNCHER_UPDATES_ENABLED)
+            ),
             defaults.isLauncherUpdatesEnabled()
         ));
         return LauncherDefaults.applyMissingValues(defaults);

@@ -3,6 +3,8 @@ package ru.mcrpg.launcher;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -65,5 +67,16 @@ class LauncherConfigStoreTest {
         LauncherConfig restored = store.load();
 
         assertEquals("http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8080/manifest.json", restored.getManifestUrl());
+    }
+
+    @Test
+    void loadAcceptsPluralLauncherUpdatesEnabledKey() throws IOException {
+        Path configFile = tempDirectory.resolve("launcher.properties");
+        Files.writeString(configFile, "launcher.updates.enabled=false\n", StandardCharsets.ISO_8859_1);
+        LauncherConfigStore store = new LauncherConfigStore(configFile);
+
+        LauncherConfig restored = store.load();
+
+        assertEquals(false, restored.isLauncherUpdatesEnabled());
     }
 }
