@@ -8,11 +8,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,10 +31,13 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
@@ -447,11 +452,14 @@ public final class LauncherShellController extends AbstractScreenController {
         launchConfig.setUsername(session.getAccount().getUsername());
 
         long requestId = syncRequestSequence.incrementAndGet();
-        launchConfig.setUpdateFilesBeforeLaunch(true);
         launchInProgress = true;
-        syncInProgress = true;
+        syncInProgress = launchConfig.isUpdateFilesBeforeLaunch();
         setPlayButtonBusy(true);
-        applySyncPreparingState();
+        if (syncInProgress) {
+            applySyncPreparingState();
+        } else {
+            applyLaunchStep("Запускаем Minecraft", "Проверка файлов модпака отключена в настройках", "play", "#fbbf24");
+        }
 
         Task<LaunchStartResult> task = new Task<LaunchStartResult>() {
             @Override
@@ -470,25 +478,36 @@ public final class LauncherShellController extends AbstractScreenController {
 
     private LaunchStartResult startGame(LauncherConfig baseConfig, AuthSession session, long syncRequestId) throws Exception {
         LauncherConfig launchConfig = baseConfig.copy();
-        launchConfig.setUpdateFilesBeforeLaunch(true);
+        ModpackSyncResult syncResult = null;
+        if (launchConfig.isUpdateFilesBeforeLaunch()) {
+            ModpackSyncPreviewResult previewResult = previewModpackSync(launchConfig, syncRequestId);
+            if (!confirmModpackSync(previewResult)) {
+                throw new LaunchCancelledException();
+            }
+            if (previewResult != null && previewResult.getResolvedConfig() != null) {
+                launchConfig = previewResult.getResolvedConfig().copy();
+                launchConfig.setUsername(session.getAccount().getUsername());
+                launchConfig.setUpdateFilesBeforeLaunch(true);
+            }
 
-        ModpackSyncResult syncResult = modpackSyncService.sync(
-            launchConfig,
-            message -> {
-            },
-            progress -> Platform.runLater(() -> applySyncProgress(syncRequestId, progress))
-        );
-        if (syncResult != null && syncResult.getResolvedConfig() != null) {
-            launchConfig = syncResult.getResolvedConfig().copy();
-            launchConfig.setUsername(session.getAccount().getUsername());
-            launchConfig.setUpdateFilesBeforeLaunch(true);
-            context().saveConfig(launchConfig);
-            LauncherConfig savedConfig = launchConfig.copy();
-            ModpackManifest syncedManifest = syncResult.getManifest();
-            Platform.runLater(() -> {
-                applyServerEndpointFromConfig(savedConfig);
-                applyManifestSummary(syncedManifest);
-            });
+            syncResult = modpackSyncService.sync(
+                launchConfig,
+                message -> {
+                },
+                progress -> Platform.runLater(() -> applySyncProgress(syncRequestId, progress))
+            );
+            if (syncResult != null && syncResult.getResolvedConfig() != null) {
+                launchConfig = syncResult.getResolvedConfig().copy();
+                launchConfig.setUsername(session.getAccount().getUsername());
+                launchConfig.setUpdateFilesBeforeLaunch(true);
+                context().saveConfig(launchConfig);
+                LauncherConfig savedConfig = launchConfig.copy();
+                ModpackManifest syncedManifest = syncResult.getManifest();
+                Platform.runLater(() -> {
+                    applyServerEndpointFromConfig(savedConfig);
+                    applyManifestSummary(syncedManifest);
+                });
+            }
         }
 
         Platform.runLater(() -> applyLaunchStep("Проверяем сессию", "Обновляем вход в аккаунт", "profile", "#fbbf24"));
@@ -510,8 +529,95 @@ public final class LauncherShellController extends AbstractScreenController {
             sessionFile
         );
         List<String> command = launchCommandBuilder.build(launchConfig, identity);
-        Process process = startGameProcess(launchConfig, command);
-        return new LaunchStartResult(process.pid(), gameLogFile(launchConfig), syncResult);
+        Path logFile = gameLogFile(launchConfig);
+        Process process;
+        try {
+            process = startGameProcess(launchConfig, command);
+        } catch (IOException exception) {
+            throw new LaunchFailureException(exception.getMessage(), logFile, exception);
+        }
+        if (process.waitFor(3L, TimeUnit.SECONDS)) {
+            throw new LaunchFailureException("Minecraft завершился сразу с кодом " + process.exitValue() + ".", logFile, null);
+        }
+        return new LaunchStartResult(process.pid(), logFile, syncResult);
+    }
+
+    private ModpackSyncPreviewResult previewModpackSync(LauncherConfig launchConfig, long syncRequestId) throws IOException {
+        Platform.runLater(() -> applyLaunchStep("Проверяем файлы", "Смотрим, что изменилось в модпаке", "sync", "#fbbf24"));
+        return modpackSyncService.preview(
+            launchConfig,
+            message -> {
+            },
+            progress -> Platform.runLater(() -> applySyncProgress(syncRequestId, progress))
+        );
+    }
+
+    private boolean confirmModpackSync(ModpackSyncPreviewResult previewResult) throws Exception {
+        if (previewResult == null || previewResult.getDownloadFiles() <= 0) {
+            return true;
+        }
+
+        CompletableFuture<Boolean> answer = new CompletableFuture<Boolean>();
+        Platform.runLater(() -> {
+            try {
+                answer.complete(showModpackSyncPreviewDialog(previewResult));
+            } catch (RuntimeException exception) {
+                answer.completeExceptionally(exception);
+            }
+        });
+        return answer.get().booleanValue();
+    }
+
+    private boolean showModpackSyncPreviewDialog(ModpackSyncPreviewResult previewResult) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.initOwner(stage());
+        alert.setTitle(LauncherBrand.APP_NAME);
+        alert.setHeaderText("Нужно обновить файлы модпака");
+        alert.setContentText(
+            "Будет скачано: " + formatFileCount(previewResult.getDownloadFiles())
+                + " · " + formatBytes(previewResult.getDownloadBytes())
+                + "\nУже актуально: " + formatFileCount(previewResult.getReusedFiles())
+        );
+
+        TextArea detailsArea = new TextArea(describePreviewEntries(previewResult));
+        detailsArea.setEditable(false);
+        detailsArea.setWrapText(false);
+        detailsArea.setPrefRowCount(12);
+        detailsArea.setPrefColumnCount(72);
+        alert.getDialogPane().setExpandableContent(detailsArea);
+        alert.getDialogPane().setExpanded(true);
+
+        return alert.showAndWait().filter(ButtonType.OK::equals).isPresent();
+    }
+
+    private static String describePreviewEntries(ModpackSyncPreviewResult previewResult) {
+        StringBuilder builder = new StringBuilder();
+        int shown = 0;
+        for (ModpackSyncPreviewEntry entry : previewResult.getEntries()) {
+            if (entry.getState() != ModpackSyncPreviewEntry.State.DOWNLOAD) {
+                continue;
+            }
+            if (shown >= 25) {
+                int remaining = previewResult.getDownloadFiles() - shown;
+                if (remaining > 0) {
+                    builder.append("...и еще ").append(formatFileCount(remaining)).append('\n');
+                }
+                break;
+            }
+            builder.append(entry.getPath());
+            if (entry.getSize() != null && entry.getSize().longValue() > 0L) {
+                builder.append(" · ").append(formatBytes(entry.getSize().longValue()));
+            }
+            if (hasText(entry.getReason())) {
+                builder.append(" · ").append(entry.getReason());
+            }
+            builder.append('\n');
+            shown++;
+        }
+        if (builder.length() == 0) {
+            return "Список файлов пуст.";
+        }
+        return builder.toString();
     }
 
     private void finishSuccessfulLaunch(LaunchStartResult result) {
@@ -529,6 +635,10 @@ public final class LauncherShellController extends AbstractScreenController {
         launchInProgress = false;
         syncInProgress = false;
         setPlayButtonBusy(false);
+        if (isLaunchCancelled(exception)) {
+            applySyncIdleState();
+            return;
+        }
         lastSyncProgress = 0.0d;
         setSyncProgress(0.0d);
         setText(syncProgressLabel, "!");
@@ -541,7 +651,7 @@ public final class LauncherShellController extends AbstractScreenController {
             router().open(ScreenRouter.Screen.AUTH);
             return;
         }
-        showError("Не удалось запустить игру: " + errorMessage(exception));
+        showError(launchFailureMessage(exception));
     }
 
     private void setPlayButtonBusy(boolean busy) {
@@ -580,8 +690,14 @@ public final class LauncherShellController extends AbstractScreenController {
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
-                launcherUpdateService.installAndRestart(update, message -> {
-                });
+                launcherUpdateService.installAndRestart(
+                    update,
+                    message -> {
+                    },
+                    (downloadedBytes, totalBytes, elapsedMillis) -> Platform.runLater(
+                        () -> applyLauncherUpdateProgress(downloadedBytes, totalBytes, elapsedMillis)
+                    )
+                );
                 return null;
             }
         };
@@ -601,6 +717,22 @@ public final class LauncherShellController extends AbstractScreenController {
         Thread thread = new Thread(task, "launcher-self-update");
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void applyLauncherUpdateProgress(long downloadedBytes, long totalBytes, long elapsedMillis) {
+        long safeDownloaded = Math.max(0L, downloadedBytes);
+        long safeTotal = Math.max(0L, totalBytes);
+        if (safeTotal > 0L) {
+            double progress = clamp(safeDownloaded / (double) safeTotal);
+            setSyncProgress(progress);
+            setText(syncProgressLabel, Math.round(progress * 100.0d) + "%");
+            setSyncStatus("Скачиваем лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
+            setSyncDetail(formatBytes(safeDownloaded) + " / " + formatBytes(safeTotal) + " · " + formatSpeed(safeDownloaded, elapsedMillis));
+            return;
+        }
+
+        setSyncStatus("Скачиваем лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
+        setSyncDetail(formatBytes(safeDownloaded) + " · " + formatSpeed(safeDownloaded, elapsedMillis));
     }
 
     private void applyPlayButtonState() {
@@ -1606,7 +1738,7 @@ public final class LauncherShellController extends AbstractScreenController {
 
     private static String describeSyncResult(ModpackSyncResult result) {
         if (result == null) {
-            return "Изменений: -";
+            return "Проверка файлов отключена";
         }
         int changedFiles = Math.max(0, result.getDownloadedFiles()) + Math.max(0, result.getRemovedFiles());
         if (changedFiles == 0) {
@@ -1649,6 +1781,12 @@ public final class LauncherShellController extends AbstractScreenController {
         return String.format(Locale.US, "%.1f %s", value, unit);
     }
 
+    private static String formatSpeed(long bytes, long elapsedMillis) {
+        long safeElapsed = Math.max(1L, elapsedMillis);
+        long bytesPerSecond = Math.round(bytes * 1000.0d / safeElapsed);
+        return formatBytes(bytesPerSecond) + "/с";
+    }
+
     private static double clamp(double value) {
         if (Double.isNaN(value) || value < 0.0d) {
             return 0.0d;
@@ -1676,6 +1814,45 @@ public final class LauncherShellController extends AbstractScreenController {
         return "Не удалось обновить лаунчер: " + message;
     }
 
+    private static String launchFailureMessage(Throwable exception) {
+        StringBuilder message = new StringBuilder("Не удалось запустить игру: ").append(errorMessage(exception));
+        Path logFile = gameLogFileFromFailure(exception);
+        String logTail = tailLog(logFile, 40);
+        if (hasText(logTail)) {
+            message.append("\n\nПоследние строки game.log:\n").append(logTail);
+        }
+        return message.toString();
+    }
+
+    private static Path gameLogFileFromFailure(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof LaunchFailureException launchFailureException) {
+                return launchFailureException.getLogFile();
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private static String tailLog(Path logFile, int maxLines) {
+        if (logFile == null || !Files.isRegularFile(logFile)) {
+            return "";
+        }
+        ArrayDeque<String> lines = new ArrayDeque<String>(Math.max(1, maxLines));
+        try (java.util.stream.Stream<String> stream = Files.lines(logFile)) {
+            stream.forEach(line -> {
+                if (lines.size() >= maxLines) {
+                    lines.removeFirst();
+                }
+                lines.addLast(line);
+            });
+        } catch (IOException exception) {
+            return "";
+        }
+        return String.join("\n", lines);
+    }
+
     private static String errorMessage(Throwable throwable) {
         if (throwable == null) {
             return "неизвестная ошибка.";
@@ -1701,6 +1878,17 @@ public final class LauncherShellController extends AbstractScreenController {
         return false;
     }
 
+    private static boolean isLaunchCancelled(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof LaunchCancelledException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
     private static boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
@@ -1713,6 +1901,22 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private record LaunchStartResult(long pid, Path logFile, ModpackSyncResult syncResult) {
+    }
+
+    private static final class LaunchCancelledException extends Exception {
+    }
+
+    private static final class LaunchFailureException extends Exception {
+        private final Path logFile;
+
+        private LaunchFailureException(String message, Path logFile, Throwable cause) {
+            super(message, cause);
+            this.logFile = logFile;
+        }
+
+        private Path getLogFile() {
+            return logFile;
+        }
     }
 
     private record NewsItem(

@@ -293,6 +293,8 @@
                                                                             <children>
                                                                                 <CheckBox fx:id="launcherUpdatesEnabledCheck"
                                                                                           text="Обновления лаунчера проверяются всегда"/>
+                                                                                <CheckBox fx:id="updateFilesBeforeLaunchCheck"
+                                                                                          text="Проверять файлы модпака перед запуском"/>
                                                                             </children>
                                                                         </VBox>
                                                                     </children>

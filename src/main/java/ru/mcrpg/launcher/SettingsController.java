@@ -136,6 +136,9 @@ public final class SettingsController extends AbstractScreenController {
     private CheckBox launcherUpdatesEnabledCheck;
 
     @FXML
+    private CheckBox updateFilesBeforeLaunchCheck;
+
+    @FXML
     private Label statusLabel;
 
     @FXML
@@ -348,7 +351,7 @@ public final class SettingsController extends AbstractScreenController {
         config.setAuthBaseUrl(requireText(authBaseUrlField.getText(), "Укажите URL Auth API."));
         config.setServerId(requireText(serverIdField.getText(), "Укажите server id."));
         config.setLaunchTemplate(requireText(launchTemplateArea.getText(), "Укажите шаблон запуска."));
-        config.setUpdateFilesBeforeLaunch(true);
+        config.setUpdateFilesBeforeLaunch(updateFilesBeforeLaunchCheck.isSelected());
         config.setLauncherUpdatesEnabled(launcherUpdatesEnabledCheck.isSelected());
 
         if (state().isAuthenticated() && state().getSession().getAccount() != null) {
@@ -375,6 +378,7 @@ public final class SettingsController extends AbstractScreenController {
             serverIdField.setText(resolved.getServerId());
             launchTemplateArea.setText(resolved.getLaunchTemplate());
             launcherUpdatesEnabledCheck.setSelected(resolved.isLauncherUpdatesEnabled());
+            updateFilesBeforeLaunchCheck.setSelected(resolved.isUpdateFilesBeforeLaunch());
         } finally {
             applyingConfigToFields = false;
         }
@@ -414,6 +418,7 @@ public final class SettingsController extends AbstractScreenController {
         addDirtyListener(serverIdField);
         addDirtyListener(launchTemplateArea);
         launcherUpdatesEnabledCheck.selectedProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
+        updateFilesBeforeLaunchCheck.selectedProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
         memoryToggleGroup.selectedToggleProperty().addListener((observable, oldToggle, selectedToggle) -> markSettingsDirty());
     }
 

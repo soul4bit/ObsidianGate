@@ -16,6 +16,10 @@ final class LauncherUpdateService {
         void log(String message);
     }
 
+    interface ProgressSink {
+        void progress(long downloadedBytes, long totalBytes, long elapsedMillis);
+    }
+
     private final Path currentLauncherPath;
 
     LauncherUpdateService() {
@@ -45,6 +49,10 @@ final class LauncherUpdateService {
     }
 
     void installAndRestart(LauncherUpdateCandidate candidate, LogSink logSink) throws IOException {
+        installAndRestart(candidate, logSink, null);
+    }
+
+    void installAndRestart(LauncherUpdateCandidate candidate, LogSink logSink, ProgressSink progressSink) throws IOException {
         if (candidate == null) {
             throw new IllegalArgumentException("Обновление лаунчера недоступно.");
         }
@@ -52,13 +60,13 @@ final class LauncherUpdateService {
             throw new IOException("Автообновление доступно только при запуске лаунчера из jar-файла.");
         }
 
-        Path updateFile = downloadUpdate(candidate, logSink);
+        Path updateFile = downloadUpdate(candidate, logSink, progressSink);
         Path script = createRestartScript(updateFile, candidate.getCurrentLauncherPath());
         log(logSink, "Запускаем скрипт обновления лаунчера: " + script);
         startUpdaterScript(script);
     }
 
-    private Path downloadUpdate(LauncherUpdateCandidate candidate, LogSink logSink) throws IOException {
+    private Path downloadUpdate(LauncherUpdateCandidate candidate, LogSink logSink, ProgressSink progressSink) throws IOException {
         Path updatesDirectory = Paths.get(
             System.getProperty("user.home"),
             ".obsidian-gate-launcher",
@@ -69,7 +77,14 @@ final class LauncherUpdateService {
         Path fileName = Paths.get(candidate.getCurrentLauncherPath().getFileName().toString());
         Path target = updatesDirectory.resolve(fileName).normalize();
         log(logSink, "Скачиваем обновление лаунчера " + candidate.getVersion() + " из " + candidate.getDownloadUrl());
-        DownloadUtils.download(candidate.getDownloadUrl(), target, LAUNCHER_DOWNLOAD_READ_TIMEOUT_MS);
+        long startedAt = System.nanoTime();
+        long totalBytes = candidate.getSize() == null ? -1L : candidate.getSize().longValue();
+        final long[] downloadedBytes = {0L};
+        DownloadUtils.download(candidate.getDownloadUrl(), target, LAUNCHER_DOWNLOAD_READ_TIMEOUT_MS, bytes -> {
+            downloadedBytes[0] += bytes;
+            reportProgress(progressSink, downloadedBytes[0], totalBytes, startedAt);
+        });
+        reportProgress(progressSink, downloadedBytes[0], totalBytes, startedAt);
         verifyUpdateFile(target, candidate);
         return target;
     }
@@ -241,6 +256,14 @@ final class LauncherUpdateService {
         if (logSink != null) {
             logSink.log(message);
         }
+    }
+
+    private static void reportProgress(ProgressSink progressSink, long downloadedBytes, long totalBytes, long startedAt) {
+        if (progressSink == null) {
+            return;
+        }
+        long elapsedMillis = Math.max(1L, (System.nanoTime() - startedAt) / 1_000_000L);
+        progressSink.progress(downloadedBytes, totalBytes, elapsedMillis);
     }
 
     private static boolean hasText(String value) {
