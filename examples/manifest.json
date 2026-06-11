@@ -1186,7 +1186,7 @@
                   },
                   {
                       "path":  "config/biomesoplenty/misc.cfg",
-                      "sha256":  "a165561d9cb43bb24a5d622d77a3893f4abfa74a73d4f59b8be54611a5771ba1",
+                      "sha256":  "b3f75313f36a539c286f356c91f711cb17bd2f923629db9b2eff1460a31a658c",
                       "size":  459,
                       "executable":  false
                   },
@@ -1300,14 +1300,14 @@
                   },
                   {
                       "path":  "config/quark.cfg",
-                      "sha256":  "7ec75d9227c6c3e93a2151f6ff94fe362d0c7841263e0053398f2a6ad736c982",
-                      "size":  100717,
+                      "sha256":  "3b0bdcc506c052eab0b3127547f7ca7ae6f00cf20edf4da43fa15ed10e844738",
+                      "size":  100869,
                       "executable":  false
                   },
                   {
                       "path":  "config/randompatches.cfg",
-                      "sha256":  "addc007e9292e343e9767fdfe874bba0b5de5825a15d27ec2d7ce6f9fb0741e7",
-                      "size":  9417,
+                      "sha256":  "9af30b5d6aef0cdc3848e4a32da60865254e96cdf9c7cd3346a0d258550e076d",
+                      "size":  9419,
                       "executable":  false
                   },
                   {
@@ -1842,6 +1842,60 @@
                       "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/mcopts/lang/ru_ru.lang",
                       "sha256":  "89648c8b9593a83a6a093c163560bc9bfece49ff2cdcf57492c6a30aceb5e29a",
                       "size":  1196,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/texts/splashes.txt",
+                      "sha256":  "7232bf66cbe097579d2a4c50b1ae8485c06c70d2681017fb1a0934368b4e867f",
+                      "size":  174,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/background/panorama_0.png",
+                      "sha256":  "8fd86a452c972c8fd029ebc4ffe27e008906f408cbb34313f8a42bb3580e12e5",
+                      "size":  134704,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/background/panorama_1.png",
+                      "sha256":  "ba271e1e61b952ac4caa9bd7771ae785499bf4b139b105946f88a76d079e85d2",
+                      "size":  132118,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/background/panorama_2.png",
+                      "sha256":  "5da65777f139d332fae139b951cea878df20e0e2198c04cffec615d5322fc176",
+                      "size":  130897,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/background/panorama_3.png",
+                      "sha256":  "6b2ae3db0fe3a80d63c3bc1c4897dbe01908725c2f2c61cd9e6d3dd8c40b4ac9",
+                      "size":  129865,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/background/panorama_4.png",
+                      "sha256":  "c67d1df4b17327577c2fe40cc246f120c8ca01e399c8bb7f92bef60806da0b42",
+                      "size":  129950,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/background/panorama_5.png",
+                      "sha256":  "be7c2bc4e803acce1c1edd40f3093d8c70fc39f01463ce5c4ab7972cd7a10869",
+                      "size":  131673,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/edition.png",
+                      "sha256":  "1dc64802b19d2de5e873de1b2345110e0ffc629f7b6171cefa8ef2b2ac4b9b77",
+                      "size":  551,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "resourcepacks/ObsidianGate-Fixes-1.12.2/assets/minecraft/textures/gui/title/minecraft.png",
+                      "sha256":  "21d5f82c5032c9ca774c4d86f0b9f69d409797ca8b0cda09e227a50ed4ebe69d",
+                      "size":  9338,
                       "executable":  false
                   },
                   {
