@@ -477,7 +477,8 @@ public final class LauncherShellController extends AbstractScreenController {
         LauncherConfig launchConfig = baseConfig.copy();
         ModpackSyncResult syncResult = null;
         if (launchConfig.isUpdateFilesBeforeLaunch()) {
-            ModpackSyncPreviewResult previewResult = previewModpackSync(launchConfig, syncRequestId);
+            ModpackSyncService.LaunchModpackSyncPreview launchPreview = previewModpackSync(launchConfig, syncRequestId);
+            ModpackSyncPreviewResult previewResult = launchPreview.getPreviewResult();
             if (!confirmModpackSync(previewResult)) {
                 throw new LaunchCancelledException();
             }
@@ -488,7 +489,7 @@ public final class LauncherShellController extends AbstractScreenController {
             }
 
             syncResult = modpackSyncService.sync(
-                launchConfig,
+                launchPreview,
                 message -> {
                 },
                 progress -> Platform.runLater(() -> applySyncProgress(syncRequestId, progress))
@@ -539,9 +540,12 @@ public final class LauncherShellController extends AbstractScreenController {
         return new LaunchStartResult(process.pid(), logFile, syncResult);
     }
 
-    private ModpackSyncPreviewResult previewModpackSync(LauncherConfig launchConfig, long syncRequestId) throws IOException {
+    private ModpackSyncService.LaunchModpackSyncPreview previewModpackSync(
+        LauncherConfig launchConfig,
+        long syncRequestId
+    ) throws IOException {
         Platform.runLater(() -> applyLaunchStep("Проверяем файлы", "Смотрим, что изменилось в модпаке", "sync", "#fbbf24"));
-        return modpackSyncService.preview(
+        return modpackSyncService.previewForLaunch(
             launchConfig,
             message -> {
             },

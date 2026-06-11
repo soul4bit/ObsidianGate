@@ -62,6 +62,11 @@ public final class ModpackSyncService {
 
     public ModpackSyncPreviewResult preview(LauncherConfig baseConfig, LogSink logSink, ProgressSink progressSink)
         throws IOException {
+        return previewForLaunch(baseConfig, logSink, progressSink).getPreviewResult();
+    }
+
+    LaunchModpackSyncPreview previewForLaunch(LauncherConfig baseConfig, LogSink logSink, ProgressSink progressSink)
+        throws IOException {
         SyncProgressTracker progressTracker = SyncProgressTracker.start(progressSink);
         progressTracker.phase(ModpackSyncProgress.Phase.PREPARING, "Загружаем manifest для предпросмотра", true);
         PreparedSyncContext prepared = prepareSync(baseConfig, logSink, "Предпросмотр manifest");
@@ -108,7 +113,7 @@ public final class ModpackSyncService {
                 + ", байт к скачиванию: " + downloadBytes
         );
 
-        return new ModpackSyncPreviewResult(
+        ModpackSyncPreviewResult previewResult = new ModpackSyncPreviewResult(
             prepared.resolvedConfig,
             prepared.manifest,
             entries,
@@ -116,6 +121,7 @@ public final class ModpackSyncService {
             reusedFiles,
             downloadBytes
         );
+        return new LaunchModpackSyncPreview(previewResult, prepared);
     }
 
     public ModpackSyncResult sync(LauncherConfig baseConfig, LogSink logSink) throws IOException {
@@ -127,6 +133,24 @@ public final class ModpackSyncService {
         SyncProgressTracker progressTracker = SyncProgressTracker.start(progressSink);
         progressTracker.phase(ModpackSyncProgress.Phase.PREPARING, "Загружаем manifest", true);
         PreparedSyncContext prepared = prepareSync(baseConfig, logSink, "Загружаем manifest");
+        return syncPrepared(prepared, logSink, progressTracker);
+    }
+
+    ModpackSyncResult sync(LaunchModpackSyncPreview preview, LogSink logSink, ProgressSink progressSink)
+        throws IOException {
+        if (preview == null) {
+            throw new IllegalArgumentException("Предпросмотр синхронизации не подготовлен.");
+        }
+        SyncProgressTracker progressTracker = SyncProgressTracker.start(progressSink);
+        progressTracker.phase(ModpackSyncProgress.Phase.PREPARING, "Используем загруженный manifest", true);
+        return syncPrepared(preview.getPrepared(), logSink, progressTracker);
+    }
+
+    private ModpackSyncResult syncPrepared(
+        PreparedSyncContext prepared,
+        LogSink logSink,
+        SyncProgressTracker progressTracker
+    ) throws IOException {
         LauncherConfig resolvedConfig = prepared.resolvedConfig;
         LoadedManifest loadedManifest = prepared.loadedManifest;
         ModpackManifest manifest = prepared.manifest;
@@ -881,6 +905,25 @@ public final class ModpackSyncService {
             }
             long remainingBytes = Math.max(0L, totalBytes - downloadedBytes.get());
             return remainingBytes * 1000L / bytesPerSecond;
+        }
+    }
+
+    static final class LaunchModpackSyncPreview {
+
+        private final ModpackSyncPreviewResult previewResult;
+        private final PreparedSyncContext prepared;
+
+        private LaunchModpackSyncPreview(ModpackSyncPreviewResult previewResult, PreparedSyncContext prepared) {
+            this.previewResult = previewResult;
+            this.prepared = prepared;
+        }
+
+        ModpackSyncPreviewResult getPreviewResult() {
+            return previewResult;
+        }
+
+        private PreparedSyncContext getPrepared() {
+            return prepared;
         }
     }
 
