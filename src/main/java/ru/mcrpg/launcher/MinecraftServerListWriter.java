@@ -27,6 +27,8 @@ public final class MinecraftServerListWriter {
     private static final String ACCEPT_TEXTURES_TAG = "acceptTextures";
     private static final String SERVER_ICON_RESOURCE = "/ru/mcrpg/launcher/assets/minecraft-server-icon.png";
     private static final String DEFAULT_SERVER_NAME = LauncherBrand.APP_TITLE;
+    private static final String VANILLA_SERVER_NAME = "Minecraft Server";
+    private static final String VANILLA_SERVER_NAME_RU = "\u0421\u0435\u0440\u0432\u0435\u0440 Minecraft";
 
     private static final byte TAG_END = 0;
     private static final byte TAG_BYTE = 1;
@@ -68,7 +70,7 @@ public final class MinecraftServerListWriter {
 
         CompoundTag entryByAddress = findServerByAddress(servers, address);
         if (entryByAddress != null) {
-            if (!hasText(entryByAddress.getString(SERVER_NAME_TAG))) {
+            if (!hasText(entryByAddress.getString(SERVER_NAME_TAG)) || isDefaultMinecraftServerName(entryByAddress.getString(SERVER_NAME_TAG))) {
                 entryByAddress.putString(SERVER_NAME_TAG, managedName);
             }
             applyManagedServerEntry(entryByAddress, entryByAddress.getString(SERVER_NAME_TAG), address);
@@ -172,6 +174,14 @@ public final class MinecraftServerListWriter {
             }
         }
         return null;
+    }
+
+    private static boolean isDefaultMinecraftServerName(String value) {
+        if (!hasText(value)) {
+            return true;
+        }
+        String normalized = value.trim();
+        return VANILLA_SERVER_NAME.equalsIgnoreCase(normalized) || VANILLA_SERVER_NAME_RU.equals(normalized);
     }
 
     private static CompoundTag readRoot(Path path) throws IOException {

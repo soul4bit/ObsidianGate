@@ -89,6 +89,42 @@ class MinecraftServerListWriterTest {
     }
 
     @Test
+    void upsertRenamesDefaultMinecraftServerNameWhenRouteAlreadyExists() throws IOException {
+        Path gameDirectory = tempDirectory.resolve("client");
+        Path serversFile = gameDirectory.resolve("servers.dat");
+        writeServersDat(serversFile, new ServerFixture("\u0421\u0435\u0440\u0432\u0435\u0440 Minecraft", "play.example.com:25565", null));
+
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setGameDirectory(gameDirectory.toString());
+        config.setServerHost("play.example.com");
+        config.setServerPort(25565);
+
+        writer.upsert(config);
+
+        List<Map<String, Object>> servers = readServersDat(serversFile);
+        assertEquals(1, servers.size());
+        assertManagedServer(servers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25565");
+    }
+
+    @Test
+    void upsertRenamesEnglishDefaultMinecraftServerNameWhenRouteAlreadyExists() throws IOException {
+        Path gameDirectory = tempDirectory.resolve("client");
+        Path serversFile = gameDirectory.resolve("servers.dat");
+        writeServersDat(serversFile, new ServerFixture("Minecraft Server", "play.example.com:25565", null));
+
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setGameDirectory(gameDirectory.toString());
+        config.setServerHost("play.example.com");
+        config.setServerPort(25565);
+
+        writer.upsert(config);
+
+        List<Map<String, Object>> servers = readServersDat(serversFile);
+        assertEquals(1, servers.size());
+        assertManagedServer(servers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25565");
+    }
+
+    @Test
     void upsertReadsLegacyGzipServerList() throws IOException {
         Path gameDirectory = tempDirectory.resolve("client");
         Path serversFile = gameDirectory.resolve("servers.dat");
