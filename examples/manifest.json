@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.10.3",
+    "version":  "2026.06.11",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Компактное окно обновления модпака",
@@ -500,10 +500,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.06.10.3",
+                           "version":  "2026.06.11",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "a17d5754ac02cc226ec7d87786d39affeb48dfe9390ee0e93f67e674399f30ef",
-                           "size":  18112652,
+                           "sha256":  "465ad3a17635f62c48ef7b65d333d606e87e46f9a7a52bf33393266435b50519",
+                           "size":  18114379,
                            "required":  true,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
