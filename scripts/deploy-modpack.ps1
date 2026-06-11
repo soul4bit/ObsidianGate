@@ -230,7 +230,7 @@ if ($LegacyPromptSudo) {
     $remoteScript = $remoteCommands -join "`n"
 } else {
     $skipRestartFlag = if ($SkipRestart) { "1" } else { "0" }
-    $remoteScript = "sudo -n '$RemoteDeployCommand' '$RemoteStageDir' '$serverFileName' '$RemoteServerModsDir' '$RemoteWebRoot' '$ServiceName' '$skipRestartFlag' '$RemoteServerRoot'"
+    $remoteScript = "if [ -f '$RemoteStageDir/server/server-icon.png' ]; then install -m 644 '$RemoteStageDir/server/server-icon.png' '$RemoteServerRoot/server-icon.png'; fi; sudo -n '$RemoteDeployCommand' '$RemoteStageDir' '$serverFileName' '$RemoteServerModsDir' '$RemoteWebRoot' '$ServiceName' '$skipRestartFlag' '$RemoteServerRoot'"
 }
 
 Invoke-External -Command "ssh" -Arguments @(
