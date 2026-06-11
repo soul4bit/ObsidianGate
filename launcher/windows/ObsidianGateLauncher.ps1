@@ -2,7 +2,7 @@
 param(
     [string]$LauncherJar = "obsidian-gate-launcher.jar",
     [string]$LauncherUrl = "http://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
-    [string]$LauncherSha256 = "e90be0c428d67d97f8195788e1b2eb9816bae22de18f6689bf420376f25d969d",
+    [string]$LauncherSha256 = "0722f29223444a171f77a36f127d6cb5c6317a58b7b96ef3159a208ba12e0245",
     [int]$MinimumJavaMajor = 17,
     [string]$RuntimeUrl = "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse"
 )
