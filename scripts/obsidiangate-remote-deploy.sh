@@ -87,6 +87,10 @@ if [ -d "$STAGE_DIR/server/config" ]; then
     cp -a "$STAGE_DIR/server/config/." "$SERVER_ROOT/config/"
 fi
 
+if [ -f "$STAGE_DIR/server/server-icon.png" ]; then
+    install -m 644 "$STAGE_DIR/server/server-icon.png" "$SERVER_ROOT/server-icon.png"
+fi
+
 if [ -d "$STAGE_DIR/server/scripts" ]; then
     rm -rf "$SERVER_ROOT/scripts"
     install -d "$SERVER_ROOT/scripts"

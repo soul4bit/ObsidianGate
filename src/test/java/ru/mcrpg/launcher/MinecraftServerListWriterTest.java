@@ -42,7 +42,7 @@ class MinecraftServerListWriterTest {
 
         List<Map<String, Object>> servers = readServersDat(gameDirectory.resolve("servers.dat"));
         assertEquals(1, servers.size());
-        assertServer(servers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25570");
+        assertManagedServer(servers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25570");
         assertTrue(Files.isRegularFile(gameDirectory.resolve("servers.dat")));
     }
 
@@ -65,7 +65,7 @@ class MinecraftServerListWriterTest {
 
         List<Map<String, Object>> rawServers = readServersDat(serversFile);
         assertEquals(2, rawServers.size());
-        assertServer(rawServers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25580");
+        assertManagedServer(rawServers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25580");
         assertServer(rawServers.get(1), "Other Realm", "other.example.com:25565");
         assertEquals(Byte.valueOf((byte) 1), rawServers.get(0).get("acceptTextures"));
     }
@@ -85,7 +85,7 @@ class MinecraftServerListWriterTest {
 
         List<Map<String, Object>> servers = readServersDat(serversFile);
         assertEquals(1, servers.size());
-        assertServer(servers.get(0), "My RPG Server", "play.example.com:25565");
+        assertManagedServer(servers.get(0), "My RPG Server", "play.example.com:25565");
     }
 
     @Test
@@ -103,8 +103,31 @@ class MinecraftServerListWriterTest {
 
         List<Map<String, Object>> servers = readServersDat(serversFile);
         assertEquals(2, servers.size());
-        assertServer(servers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25565");
+        assertManagedServer(servers.get(0), LauncherBrand.APP_TITLE, "play.example.com:25565");
         assertServer(servers.get(1), "Old Entry", "old.example.com:25565");
+    }
+
+    @Test
+    void upsertMovesExistingRouteToTop() throws IOException {
+        Path gameDirectory = tempDirectory.resolve("client");
+        Path serversFile = gameDirectory.resolve("servers.dat");
+        writeServersDat(
+            serversFile,
+            new ServerFixture("Other Realm", "other.example.com:25565", null),
+            new ServerFixture("My RPG Server", "play.example.com:25565", null)
+        );
+
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setGameDirectory(gameDirectory.toString());
+        config.setServerHost("play.example.com");
+        config.setServerPort(25565);
+
+        writer.upsert(config);
+
+        List<Map<String, Object>> servers = readServersDat(serversFile);
+        assertEquals(2, servers.size());
+        assertManagedServer(servers.get(0), "My RPG Server", "play.example.com:25565");
+        assertServer(servers.get(1), "Other Realm", "other.example.com:25565");
     }
 
     private static void writeServersDat(Path path, ServerFixture... servers) throws IOException {
@@ -226,6 +249,14 @@ class MinecraftServerListWriterTest {
     private static void assertServer(Map<String, Object> server, String name, String address) {
         assertEquals(name, server.get("name"));
         assertEquals(address, server.get("ip"));
+    }
+
+    private static void assertManagedServer(Map<String, Object> server, String name, String address) {
+        assertServer(server, name, address);
+        assertEquals(Byte.valueOf((byte) 1), server.get("acceptTextures"));
+        Object icon = server.get("icon");
+        assertTrue(icon instanceof String);
+        assertTrue(((String) icon).startsWith("data:image/png;base64,"));
     }
 
     private static final class ServerFixture {

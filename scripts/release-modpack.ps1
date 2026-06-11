@@ -517,6 +517,13 @@ if (Test-Path -LiteralPath $serverSourceFullPath -PathType Container) {
                 $serverFiles.Add((Get-FileRecord -File (Get-Item -LiteralPath $destinationPath) -RelativePath $relativePath))
             }
     }
+
+    $serverIconPath = Join-Path $serverSourceFullPath "server-icon.png"
+    if (Test-Path -LiteralPath $serverIconPath -PathType Leaf) {
+        $destinationPath = Join-Path $distServerRoot "server-icon.png"
+        Copy-Item -LiteralPath $serverIconPath -Destination $destinationPath -Force
+        $serverFiles.Add((Get-FileRecord -File (Get-Item -LiteralPath $destinationPath) -RelativePath "server-icon.png"))
+    }
 }
 
 $manifest.version = $ManifestVersion

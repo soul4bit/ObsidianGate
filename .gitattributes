@@ -6,6 +6,7 @@ modpack/client/** -text
 *.sh text eol=lf
 modpack/server/** text eol=lf
 modpack/server/mods/** -text
+modpack/server/server-icon.png -text
 
 # Human-readable project docs are UTF-8 text.
 *.md text working-tree-encoding=UTF-8 eol=lf

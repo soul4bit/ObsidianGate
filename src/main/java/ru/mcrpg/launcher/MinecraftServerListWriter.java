@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +23,9 @@ public final class MinecraftServerListWriter {
     private static final String SERVERS_TAG_NAME = "servers";
     private static final String SERVER_NAME_TAG = "name";
     private static final String SERVER_ADDRESS_TAG = "ip";
+    private static final String SERVER_ICON_TAG = "icon";
+    private static final String ACCEPT_TEXTURES_TAG = "acceptTextures";
+    private static final String SERVER_ICON_RESOURCE = "/ru/mcrpg/launcher/assets/minecraft-server-icon.png";
     private static final String DEFAULT_SERVER_NAME = LauncherBrand.APP_TITLE;
 
     private static final byte TAG_END = 0;
@@ -56,8 +60,8 @@ public final class MinecraftServerListWriter {
 
         CompoundTag entryByName = findServerByName(servers, managedName);
         if (entryByName != null) {
-            entryByName.putString(SERVER_NAME_TAG, managedName);
-            entryByName.putString(SERVER_ADDRESS_TAG, address);
+            applyManagedServerEntry(entryByName, managedName, address);
+            moveToTop(servers, entryByName);
             writeRoot(serversFile, root);
             return;
         }
@@ -67,14 +71,14 @@ public final class MinecraftServerListWriter {
             if (!hasText(entryByAddress.getString(SERVER_NAME_TAG))) {
                 entryByAddress.putString(SERVER_NAME_TAG, managedName);
             }
-            entryByAddress.putString(SERVER_ADDRESS_TAG, address);
+            applyManagedServerEntry(entryByAddress, entryByAddress.getString(SERVER_NAME_TAG), address);
+            moveToTop(servers, entryByAddress);
             writeRoot(serversFile, root);
             return;
         }
 
         CompoundTag newEntry = new CompoundTag();
-        newEntry.putString(SERVER_NAME_TAG, managedName);
-        newEntry.putString(SERVER_ADDRESS_TAG, address);
+        applyManagedServerEntry(newEntry, managedName, address);
         servers.add(0, newEntry);
         writeRoot(serversFile, root);
     }
@@ -90,6 +94,45 @@ public final class MinecraftServerListWriter {
             throw new IllegalArgumentException("Порт сервера вне допустимого диапазона: " + port);
         }
         return host + ":" + port;
+    }
+
+    private static void applyManagedServerEntry(CompoundTag entry, String name, String address) throws IOException {
+        entry.putString(SERVER_NAME_TAG, requireText(name, "Имя сервера не настроено."));
+        entry.putString(SERVER_ADDRESS_TAG, address);
+        entry.put(ACCEPT_TEXTURES_TAG, new ByteTag((byte) 1));
+        String icon = loadServerIcon();
+        if (hasText(icon)) {
+            entry.putString(SERVER_ICON_TAG, icon);
+        }
+    }
+
+    private static void moveToTop(ListTag servers, CompoundTag entry) {
+        List<Tag> values = servers.getValues();
+        int index = values.indexOf(entry);
+        if (index <= 0) {
+            return;
+        }
+        values.remove(index);
+        values.add(0, entry);
+    }
+
+    private static String loadServerIcon() throws IOException {
+        try (InputStream inputStream = MinecraftServerListWriter.class.getResourceAsStream(SERVER_ICON_RESOURCE)) {
+            if (inputStream == null) {
+                return "";
+            }
+            byte[] bytes = readAllBytes(inputStream);
+            if (bytes.length == 0) {
+                return "";
+            }
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
+        }
+    }
+
+    private static byte[] readAllBytes(InputStream inputStream) throws IOException {
+        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+        DownloadUtils.copy(inputStream, output);
+        return output.toByteArray();
     }
 
     private static ListTag ensureServerList(CompoundTag root) {

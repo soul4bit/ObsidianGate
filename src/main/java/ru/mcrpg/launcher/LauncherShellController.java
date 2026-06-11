@@ -77,6 +77,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private final ModpackSyncService modpackSyncService = new ModpackSyncService(manifestClient);
     private final LauncherUpdateService launcherUpdateService = new LauncherUpdateService();
     private final LaunchCommandBuilder launchCommandBuilder = new LaunchCommandBuilder();
+    private final MinecraftServerListWriter serverListWriter = new MinecraftServerListWriter();
     private final AtomicLong serverStatusRequestSequence = new AtomicLong();
     private final AtomicLong syncRequestSequence = new AtomicLong();
     private final AtomicLong newsRequestSequence = new AtomicLong();
@@ -507,6 +508,9 @@ public final class LauncherShellController extends AbstractScreenController {
                 });
             }
         }
+
+        Platform.runLater(() -> applyLaunchStep("Настраиваем сервер", "Добавляем ObsidianGate в список серверов Minecraft", "server", "#fbbf24"));
+        serverListWriter.upsert(launchConfig);
 
         Platform.runLater(() -> applyLaunchStep("Проверяем сессию", "Обновляем вход в аккаунт", "profile", "#fbbf24"));
         AuthSession refreshedSession = context().getAuthService().refreshIfNeeded(launchConfig, session);

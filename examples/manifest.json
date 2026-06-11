@@ -502,8 +502,8 @@
     "launcherUpdate":  {
                            "version":  "2026.06.11",
                            "url":  "client/launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "0722f29223444a171f77a36f127d6cb5c6317a58b7b96ef3159a208ba12e0245",
-                           "size":  18118871,
+                           "sha256":  "eac3579913eefbcf46e972a81c8ada38d8cc2493b72afef60b96e5b435491fe9",
+                           "size":  18130193,
                            "required":  true,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
