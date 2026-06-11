@@ -5,7 +5,7 @@ param(
     [string]$ServerSourceDir = "modpack/server",
     [string]$DistDir = "dist",
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
-    [string]$LauncherUpdatePath = "client/launcher/obsidian-gate-launcher.jar",
+    [string]$LauncherUpdatePath = "launcher/obsidian-gate-launcher.jar",
     [string]$LauncherBootstrapSourceDir = "launcher/windows",
     [string]$PublicBaseUrl = $env:OBSIDIANGATE_PUBLIC_BASE_URL,
     [string]$PublicServerHost = $env:OBSIDIANGATE_PUBLIC_SERVER_HOST,
@@ -546,16 +546,20 @@ if (-not $SkipLauncherRelease) {
 
     $distLauncherPath = Join-Path $distFullPath ($normalizedLauncherPath.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
     $distLauncherParent = Split-Path -Parent $distLauncherPath
-    $null = New-Item -ItemType Directory -Path $distLauncherParent -Force
-    Copy-Item $launcherJar.FullName $distLauncherPath -Force
 
     $null = New-Item -ItemType Directory -Path $distLauncherRoot -Force
     $launcherBootstrapSourceFullPath = Resolve-InputPath $LauncherBootstrapSourceDir
     if (Test-Path -LiteralPath $launcherBootstrapSourceFullPath -PathType Container) {
         Copy-DirectoryContent -Source $launcherBootstrapSourceFullPath -Destination $distLauncherRoot
     }
+
+    $null = New-Item -ItemType Directory -Path $distLauncherParent -Force
+    Copy-Item $launcherJar.FullName $distLauncherPath -Force
     $distLauncherFile = Get-Item $distLauncherPath
-    Copy-Item $launcherJar.FullName (Join-Path $distLauncherRoot $distLauncherFile.Name) -Force
+    $distLauncherMirrorPath = Join-Path $distLauncherRoot $distLauncherFile.Name
+    if ($distLauncherMirrorPath -ne $distLauncherPath) {
+        Copy-Item $launcherJar.FullName $distLauncherMirrorPath -Force
+    }
 
     $launcherRecord = [pscustomobject][ordered]@{
         version = $ManifestVersion
