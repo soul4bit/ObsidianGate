@@ -72,6 +72,44 @@ class ModpackSyncServiceTest {
     }
 
     @Test
+    void cachedLaunchPreviewSkipsFileInspectionButSyncStillRepairsChangedFiles() throws Exception {
+        Path sourceDirectory = Files.createDirectories(tempDirectory.resolve("source"));
+        Path modJar = writeFile(sourceDirectory, "mods/examplemod.jar", "example-mod");
+
+        Path manifest = tempDirectory.resolve("manifest.json");
+        String manifestJson = "{\n"
+            + "  \"schemaVersion\": 1,\n"
+            + "  \"id\": \"mc-rpg\",\n"
+            + "  \"version\": \"2026.05.05\",\n"
+            + "  \"baseUrl\": \"" + sourceDirectory.toUri().toURL().toString() + "\",\n"
+            + "  \"files\": [\n"
+            + fileJson("mods/examplemod.jar", modJar) + "\n"
+            + "  ]\n"
+            + "}\n";
+        Files.write(manifest, manifestJson.getBytes(StandardCharsets.UTF_8));
+
+        Path clientDirectory = tempDirectory.resolve("client-cached-preview");
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setManifestUrl(manifest.toUri().toURL().toString());
+        config.setGameDirectory(clientDirectory.toString());
+
+        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        service.sync(config, null);
+        writeFile(clientDirectory, "mods/examplemod.jar", "stale-value");
+
+        ModpackSyncService.LaunchModpackSyncPreview launchPreview = service.previewForLaunch(config, null, null);
+        assertEquals(0, launchPreview.getPreviewResult().getDownloadFiles());
+        assertEquals(1, launchPreview.getPreviewResult().getReusedFiles());
+
+        ModpackSyncResult result = service.sync(launchPreview, null, null);
+        assertEquals(1, result.getDownloadedFiles());
+        assertEquals("example-mod", new String(
+            Files.readAllBytes(clientDirectory.resolve("mods/examplemod.jar")),
+            StandardCharsets.UTF_8
+        ));
+    }
+
+    @Test
     void syncReportsStructuredProgress() throws Exception {
         Path sourceDirectory = Files.createDirectories(tempDirectory.resolve("source"));
         Path forgeJar = writeFile(sourceDirectory, "forge-1.12.2-14.23.5.2847.jar", "forge-client");

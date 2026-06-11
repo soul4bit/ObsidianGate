@@ -45,6 +45,67 @@ function Get-JavaMajorVersion {
     return [int]$parts[0]
 }
 
+function Read-JavaCache {
+    param([Parameter(Mandatory = $true)][string]$CachePath)
+
+    if (-not (Test-Path -LiteralPath $CachePath -PathType Leaf)) {
+        return $null
+    }
+
+    try {
+        return Get-Content -LiteralPath $CachePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+}
+
+function Save-JavaCache {
+    param(
+        [Parameter(Mandatory = $true)][string]$CachePath,
+        [Parameter(Mandatory = $true)][string]$JavaExe,
+        [Parameter(Mandatory = $true)][int]$Major
+    )
+
+    try {
+        $parent = Split-Path -Parent $CachePath
+        if ($parent) {
+            New-Item -ItemType Directory -Force -Path $parent | Out-Null
+        }
+        $document = [pscustomobject]@{
+            javaExe = $JavaExe
+            major = $Major
+            updatedAt = (Get-Date).ToString("o")
+        }
+        $document | ConvertTo-Json | Set-Content -LiteralPath $CachePath -Encoding UTF8
+    } catch {
+        Write-Step "Java cache was not saved: $($_.Exception.Message)"
+    }
+}
+
+function Resolve-CachedJava {
+    param(
+        [Parameter(Mandatory = $true)][string]$CachePath,
+        [int]$MinimumMajor
+    )
+
+    $cache = Read-JavaCache -CachePath $CachePath
+    if (-not $cache -or -not $cache.javaExe -or -not $cache.major) {
+        return $null
+    }
+
+    $cachedJava = [string]$cache.javaExe
+    $cachedMajor = [int]$cache.major
+    if ($cachedMajor -lt $MinimumMajor) {
+        return $null
+    }
+    if (-not (Test-Path -LiteralPath $cachedJava -PathType Leaf)) {
+        return $null
+    }
+
+    Write-Step "Using cached Java ${cachedMajor}: $cachedJava"
+    return $cachedJava
+}
+
 function Resolve-SystemJava {
     param([int]$MinimumMajor)
 
@@ -122,22 +183,38 @@ function Resolve-Java {
     param(
         [Parameter(Mandatory = $true)][string]$RuntimeDirectory,
         [Parameter(Mandatory = $true)][string]$DownloadUrl,
+        [Parameter(Mandatory = $true)][string]$CachePath,
         [int]$MinimumMajor
     )
+
+    $cachedJava = Resolve-CachedJava -CachePath $CachePath -MinimumMajor $MinimumMajor
+    if ($cachedJava) {
+        return $cachedJava
+    }
 
     $portableJava = Join-Path $RuntimeDirectory "bin\java.exe"
     $portableMajor = Get-JavaMajorVersion -JavaExe $portableJava
     if ($portableMajor -ge $MinimumMajor) {
         Write-Step "Using bundled Java ${portableMajor}: $portableJava"
+        Save-JavaCache -CachePath $CachePath -JavaExe $portableJava -Major $portableMajor
         return $portableJava
     }
 
     $systemJava = Resolve-SystemJava -MinimumMajor $MinimumMajor
     if ($systemJava) {
+        $systemMajor = Get-JavaMajorVersion -JavaExe $systemJava
+        if ($systemMajor -ge $MinimumMajor) {
+            Save-JavaCache -CachePath $CachePath -JavaExe $systemJava -Major $systemMajor
+        }
         return $systemJava
     }
 
-    return Install-PortableRuntime -DownloadUrl $DownloadUrl -RuntimeDirectory $RuntimeDirectory
+    $installedJava = Install-PortableRuntime -DownloadUrl $DownloadUrl -RuntimeDirectory $RuntimeDirectory
+    $installedMajor = Get-JavaMajorVersion -JavaExe $installedJava
+    if ($installedMajor -ge $MinimumMajor) {
+        Save-JavaCache -CachePath $CachePath -JavaExe $installedJava -Major $installedMajor
+    }
+    return $installedJava
 }
 
 function Resolve-LauncherJar {
@@ -168,8 +245,9 @@ try {
     $scriptDirectory = Get-ScriptDirectory
     $installDirectory = Join-Path $env:LOCALAPPDATA "ObsidianGate\launcher"
     $runtimeDirectory = Join-Path $installDirectory "runtime\jre21"
+    $javaCachePath = Join-Path $installDirectory "java-cache.json"
 
-    $java = Resolve-Java -RuntimeDirectory $runtimeDirectory -DownloadUrl $RuntimeUrl -MinimumMajor $MinimumJavaMajor
+    $java = Resolve-Java -RuntimeDirectory $runtimeDirectory -DownloadUrl $RuntimeUrl -CachePath $javaCachePath -MinimumMajor $MinimumJavaMajor
     $jar = Resolve-LauncherJar -ScriptDirectory $scriptDirectory -InstallDirectory $installDirectory -JarName $LauncherJar -DownloadUrl $LauncherUrl
 
     Write-Step "Starting launcher..."

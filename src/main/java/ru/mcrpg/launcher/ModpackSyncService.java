@@ -71,6 +71,9 @@ public final class ModpackSyncService {
         progressTracker.phase(ModpackSyncProgress.Phase.PREPARING, "Загружаем manifest для предпросмотра", true);
         PreparedSyncContext prepared = prepareSync(baseConfig, logSink, "Предпросмотр manifest");
         log(logSink, "Файлов в manifest для предпросмотра: " + prepared.manifest.getFiles().size());
+        if (isSyncedManifestCached(prepared, logSink)) {
+            return cachedPreview(prepared, progressTracker, logSink);
+        }
         progressTracker.startChecking(prepared.manifest.getFiles().size(), "Проверяем локальные файлы");
 
         int downloadFiles = 0;
@@ -250,8 +253,65 @@ public final class ModpackSyncService {
                 + ", байт: " + downloadedBytes
         );
         progressTracker.complete("Синхронизация завершена");
+        saveManifestState(prepared, logSink);
 
         return new ModpackSyncResult(resolvedConfig, manifest, downloadedFiles, reusedFiles, removedFiles, downloadedBytes);
+    }
+
+    private static boolean isSyncedManifestCached(PreparedSyncContext prepared, LogSink logSink) {
+        try {
+            return ModpackManifestStateCache.open(prepared.gameDirectory).matches(
+                prepared.loadedManifest,
+                prepared.manifest
+            );
+        } catch (IOException exception) {
+            log(logSink, "Кеш состояния manifest не прочитан: " + exception.getMessage());
+            return false;
+        }
+    }
+
+    private static LaunchModpackSyncPreview cachedPreview(
+        PreparedSyncContext prepared,
+        SyncProgressTracker progressTracker,
+        LogSink logSink
+    ) throws IOException {
+        List<ModpackSyncPreviewEntry> entries = new ArrayList<ModpackSyncPreviewEntry>(prepared.manifest.getFiles().size());
+        for (ModpackFile file : prepared.manifest.getFiles()) {
+            Path target = resolveTargetPath(prepared.gameDirectory, file.getPath());
+            String expectedSha256 = requireText(file.getSha256(), "Для файла " + file.getPath() + " не указан sha256.");
+            entries.add(new ModpackSyncPreviewEntry(
+                file.getPath(),
+                target.toString(),
+                expectedSha256,
+                file.getSize(),
+                ModpackSyncPreviewEntry.State.REUSED,
+                "manifest-cache"
+            ));
+        }
+
+        progressTracker.complete("Предпросмотр завершен из кеша");
+        log(logSink, "Manifest не изменился после последней синхронизации. Предпросмотр файлов пропущен.");
+
+        ModpackSyncPreviewResult previewResult = new ModpackSyncPreviewResult(
+            prepared.resolvedConfig,
+            prepared.manifest,
+            entries,
+            0,
+            entries.size(),
+            0L
+        );
+        return new LaunchModpackSyncPreview(previewResult, prepared);
+    }
+
+    private static void saveManifestState(PreparedSyncContext prepared, LogSink logSink) {
+        try {
+            ModpackManifestStateCache.open(prepared.gameDirectory).recordSynced(
+                prepared.loadedManifest,
+                prepared.manifest
+            );
+        } catch (IOException exception) {
+            log(logSink, "Кеш состояния manifest не сохранен: " + exception.getMessage());
+        }
     }
 
     private PreparedSyncContext prepareSync(LauncherConfig baseConfig, LogSink logSink, String manifestLogPrefix)
