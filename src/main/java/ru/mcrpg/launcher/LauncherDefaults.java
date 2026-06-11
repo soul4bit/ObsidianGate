@@ -59,12 +59,12 @@ public final class LauncherDefaults {
 
     public static String defaultManifestUrl(String serverHost) {
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return HTTP_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH;
+        return HTTPS_SCHEME + host + ":" + DEFAULT_MANIFEST_PORT + DEFAULT_MANIFEST_PATH;
     }
 
     public static String defaultAuthBaseUrl(String serverHost) {
         String host = hasText(serverHost) ? serverHost.trim() : LauncherConfig.DEFAULT_SERVER_HOST;
-        return HTTP_SCHEME + host + ":" + DEFAULT_AUTH_PORT;
+        return HTTPS_SCHEME + host + ":" + DEFAULT_AUTH_PORT;
     }
 
     public static String defaultServerId() {

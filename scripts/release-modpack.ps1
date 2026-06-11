@@ -402,6 +402,29 @@ function Copy-RelativeFile {
     return Get-Item -LiteralPath $destinationPath
 }
 
+function Update-LauncherBootstrapHash {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BootstrapPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$LauncherSha256
+    )
+
+    if (-not (Test-Path -LiteralPath $BootstrapPath -PathType Leaf)) {
+        return
+    }
+
+    $content = Get-Content -LiteralPath $BootstrapPath -Raw -Encoding UTF8
+    $pattern = '\[string\]\$LauncherSha256\s*=\s*"[^"]*"'
+    $replacement = '[string]$LauncherSha256 = "' + $LauncherSha256 + '"'
+    if ($content -notmatch $pattern) {
+        throw "Launcher bootstrap does not expose LauncherSha256: $BootstrapPath"
+    }
+
+    Write-Utf8NoBom -Path $BootstrapPath -Content ([regex]::Replace($content, $pattern, $replacement, 1))
+}
+
 if (-not $SkipAuthRelease) {
     Write-Host "==> Preparing auth release artifacts" -ForegroundColor Cyan
     & (Join-Path $PSScriptRoot "release-auth.ps1") `
@@ -536,6 +559,10 @@ if (-not $SkipLauncherRelease) {
         artifactVersion = Get-ProjectVersion
         fileName = $distLauncherFile.Name
     }
+
+    Update-LauncherBootstrapHash `
+        -BootstrapPath (Join-Path $distLauncherRoot "ObsidianGateLauncher.ps1") `
+        -LauncherSha256 $launcherRecord.sha256
 
     if ($normalizedLauncherPath.StartsWith("client/", [System.StringComparison]::OrdinalIgnoreCase)) {
         $launcherClientRelativePath = $normalizedLauncherPath.Substring("client/".Length)

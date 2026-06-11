@@ -125,8 +125,8 @@ game.directory=C:\\Users\\<user>\\rpg-client
 working.directory=
 server.host=play.example.com
 server.port=25565
-manifest.url=http://play.example.com:8080/manifest.json
-auth.base.url=http://play.example.com:8081
+manifest.url=https://play.example.com:8080/manifest.json
+auth.base.url=https://play.example.com:8081
 server.id=obsidiangate-main
 launch.template={java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}
 update.files.before.launch=true
@@ -173,7 +173,7 @@ launcher.updates.enabled=true
   "schemaVersion": 1,
   "id": "rpg",
   "version": "2026.05.29",
-  "baseUrl": "http://play.example.com:8080/client/",
+  "baseUrl": "https://play.example.com:8080/client/",
   "news": {
     "title": "Последние новости",
     "date": "2026-05-29",
@@ -183,7 +183,7 @@ launcher.updates.enabled=true
   "launcher": {
     "serverHost": "play.example.com",
     "serverPort": 25565,
-    "authBaseUrl": "http://play.example.com:8081",
+    "authBaseUrl": "https://play.example.com:8081",
     "serverId": "obsidiangate-main",
     "workingDirectory": ".",
     "launchTemplate": ""

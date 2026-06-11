@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$LauncherJar = "obsidian-gate-launcher.jar",
-    [string]$LauncherUrl = "http://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
+    [string]$LauncherUrl = "https://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
+    [string]$LauncherSha256 = "e90be0c428d67d97f8195788e1b2eb9816bae22de18f6689bf420376f25d969d",
     [int]$MinimumJavaMajor = 17,
     [string]$RuntimeUrl = "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse"
 )
@@ -18,6 +19,39 @@ function Get-ScriptDirectory {
         return $PSScriptRoot
     }
     return Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+
+function Normalize-Sha256 {
+    param([string]$Value)
+
+    if (-not $Value) {
+        return ""
+    }
+    $normalized = $Value.Trim().ToLowerInvariant()
+    if (-not $normalized) {
+        return ""
+    }
+    if ($normalized -notmatch '^[0-9a-f]{64}$') {
+        throw "Launcher SHA-256 must be a 64-character hexadecimal value."
+    }
+    return $normalized
+}
+
+function Test-FileSha256 {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$ExpectedSha256
+    )
+
+    $expected = Normalize-Sha256 -Value $ExpectedSha256
+    if (-not $expected) {
+        return
+    }
+
+    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $expected) {
+        throw "Launcher jar SHA-256 mismatch. Expected $expected, got $actual."
+    }
 }
 
 function Get-JavaMajorVersion {
@@ -222,18 +256,30 @@ function Resolve-LauncherJar {
         [Parameter(Mandatory = $true)][string]$ScriptDirectory,
         [Parameter(Mandatory = $true)][string]$InstallDirectory,
         [Parameter(Mandatory = $true)][string]$JarName,
-        [Parameter(Mandatory = $true)][string]$DownloadUrl
+        [Parameter(Mandatory = $true)][string]$DownloadUrl,
+        [string]$ExpectedSha256
     )
 
     $localJar = Join-Path $ScriptDirectory $JarName
     if (Test-Path -LiteralPath $localJar) {
+        Test-FileSha256 -Path $localJar -ExpectedSha256 $ExpectedSha256
         return $localJar
     }
 
     New-Item -ItemType Directory -Force -Path $InstallDirectory | Out-Null
     $installedJar = Join-Path $InstallDirectory $JarName
+    $tempJar = Join-Path $InstallDirectory ($JarName + ".download")
     Write-Step "Downloading launcher jar..."
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $installedJar -UseBasicParsing
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    try {
+        Invoke-WebRequest -Uri $DownloadUrl -OutFile $tempJar -UseBasicParsing
+        Test-FileSha256 -Path $tempJar -ExpectedSha256 $ExpectedSha256
+        Move-Item -LiteralPath $tempJar -Destination $installedJar -Force
+    } finally {
+        if (Test-Path -LiteralPath $tempJar) {
+            Remove-Item -LiteralPath $tempJar -Force
+        }
+    }
     return $installedJar
 }
 
@@ -248,7 +294,7 @@ try {
     $javaCachePath = Join-Path $installDirectory "java-cache.json"
 
     $java = Resolve-Java -RuntimeDirectory $runtimeDirectory -DownloadUrl $RuntimeUrl -CachePath $javaCachePath -MinimumMajor $MinimumJavaMajor
-    $jar = Resolve-LauncherJar -ScriptDirectory $scriptDirectory -InstallDirectory $installDirectory -JarName $LauncherJar -DownloadUrl $LauncherUrl
+    $jar = Resolve-LauncherJar -ScriptDirectory $scriptDirectory -InstallDirectory $installDirectory -JarName $LauncherJar -DownloadUrl $LauncherUrl -ExpectedSha256 $LauncherSha256
 
     Write-Step "Starting launcher..."
     & $java -jar $jar @args
