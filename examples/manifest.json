@@ -2,7 +2,7 @@
     "schemaVersion":  1,
     "id":  "mc-rpg",
     "version":  "2026.06.11",
-    "baseUrl":  "https://obsidiangates.duckdns.org:8080/client/",
+    "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Безопасная загрузка лаунчера",
                  "date":  "2026-06-11",
@@ -494,7 +494,7 @@
     "launcher":  {
                      "serverHost":  "obsidiangates.duckdns.org",
                      "serverPort":  25565,
-                     "authBaseUrl":  "https://obsidiangates.duckdns.org:8081",
+                     "authBaseUrl":  "http://obsidiangates.duckdns.org:8081",
                      "serverId":  "obsidiangate-main",
                      "workingDirectory":  ".",
                      "launchTemplate":  ""

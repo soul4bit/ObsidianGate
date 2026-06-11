@@ -56,7 +56,7 @@ class ModpackSyncServiceTest {
             "{java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}",
             result.getResolvedConfig().getLaunchTemplate()
         );
-        assertEquals("https://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081", result.getResolvedConfig().getAuthBaseUrl());
+        assertEquals("http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081", result.getResolvedConfig().getAuthBaseUrl());
         assertEquals("obsidiangate-main", result.getResolvedConfig().getServerId());
         assertTrue(result.getResolvedConfig().getWorkingDirectory().endsWith("client"));
         assertEquals(3, result.getDownloadedFiles());
@@ -341,7 +341,7 @@ class ModpackSyncServiceTest {
         ModpackSyncPreviewResult previewResult = service.preview(config, null);
 
         assertEquals(LauncherConfig.DEFAULT_SERVER_HOST, previewResult.getResolvedConfig().getServerHost());
-        assertEquals("https://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081", previewResult.getResolvedConfig().getAuthBaseUrl());
+        assertEquals("http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081", previewResult.getResolvedConfig().getAuthBaseUrl());
         assertEquals("obsidiangate-main", previewResult.getResolvedConfig().getServerId());
     }
 
@@ -598,7 +598,7 @@ class ModpackSyncServiceTest {
             + "  \"launcher\": {\n"
             + "    \"serverHost\": \"" + LauncherConfig.DEFAULT_SERVER_HOST + "\",\n"
             + "    \"serverPort\": 25565,\n"
-            + "    \"authBaseUrl\": \"https://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081\",\n"
+            + "    \"authBaseUrl\": \"http://" + LauncherConfig.DEFAULT_SERVER_HOST + ":8081\",\n"
             + "    \"serverId\": \"obsidiangate-main\",\n"
             + "    \"workingDirectory\": \".\",\n"
             + "    \"launchTemplate\": \"{java} -jar forge-1.12.2-14.23.5.2847.jar --username {username} --gameDir {gameDir} --server {serverHost} --port {serverPort}\"\n"
