@@ -127,7 +127,7 @@ public final class MinecraftServerListWriter {
             if (bytes.length == 0) {
                 return "";
             }
-            return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
+            return Base64.getEncoder().encodeToString(bytes);
         }
     }
 

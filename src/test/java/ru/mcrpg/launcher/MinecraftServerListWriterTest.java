@@ -292,7 +292,7 @@ class MinecraftServerListWriterTest {
         assertEquals(Byte.valueOf((byte) 1), server.get("acceptTextures"));
         Object icon = server.get("icon");
         assertTrue(icon instanceof String);
-        assertTrue(((String) icon).startsWith("data:image/png;base64,"));
+        assertTrue(((String) icon).matches("[A-Za-z0-9+/=]+"));
     }
 
     private static final class ServerFixture {
