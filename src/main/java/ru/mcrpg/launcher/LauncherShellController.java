@@ -153,6 +153,9 @@ public final class LauncherShellController extends AbstractScreenController {
     private Arc syncProgressArc;
 
     @FXML
+    private Arc syncActivityArc;
+
+    @FXML
     private Label syncProgressLabel;
 
     @FXML
@@ -1837,6 +1840,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private void applySyncVisualState(String statusStyleClass) {
         setSyncStatusStyle(syncProgressWrap, statusStyleClass);
         setSyncStatusStyle(syncProgressArc, statusStyleClass);
+        setSyncStatusStyle(syncActivityArc, statusStyleClass);
         setSyncStatusStyle(syncProgressLabel, statusStyleClass);
         if (SYNC_STATUS_WORKING.equals(statusStyleClass)) {
             startSyncPulse();
@@ -1846,21 +1850,22 @@ public final class LauncherShellController extends AbstractScreenController {
     }
 
     private void startSyncPulse() {
-        if (syncProgressArc == null) {
+        if (syncActivityArc == null) {
             return;
         }
         if (syncPulseTransition == null) {
-            syncPulseTransition = new FadeTransition(Duration.millis(900.0d), syncProgressArc);
-            syncPulseTransition.setFromValue(0.62d);
+            syncPulseTransition = new FadeTransition(Duration.millis(720.0d), syncActivityArc);
+            syncPulseTransition.setFromValue(0.48d);
             syncPulseTransition.setToValue(1.0d);
             syncPulseTransition.setAutoReverse(true);
             syncPulseTransition.setCycleCount(Animation.INDEFINITE);
         }
+        syncActivityArc.setOpacity(1.0d);
         if (syncPulseTransition.getStatus() != Animation.Status.RUNNING) {
             syncPulseTransition.play();
         }
         if (syncRingRotation == null) {
-            syncRingRotation = new RotateTransition(Duration.millis(2600.0d), syncProgressArc);
+            syncRingRotation = new RotateTransition(Duration.millis(1250.0d), syncActivityArc);
             syncRingRotation.setByAngle(360.0d);
             syncRingRotation.setCycleCount(Animation.INDEFINITE);
             syncRingRotation.setInterpolator(Interpolator.LINEAR);
@@ -1877,9 +1882,9 @@ public final class LauncherShellController extends AbstractScreenController {
         if (syncRingRotation != null) {
             syncRingRotation.stop();
         }
-        if (syncProgressArc != null) {
-            syncProgressArc.setOpacity(1.0d);
-            syncProgressArc.setRotate(0.0d);
+        if (syncActivityArc != null) {
+            syncActivityArc.setOpacity(0.0d);
+            syncActivityArc.setRotate(0.0d);
         }
     }
 
