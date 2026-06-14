@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.11",
+    "version":  "2026.06.15",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Новое меню и сервер в один клик",
@@ -1651,12 +1651,6 @@
                       "executable":  false
                   },
                   {
-                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "f73c5f1a411e9caed3d22e43e67c3ea461a95a97dcf86178810e83d77cb05bd1",
-                      "size":  31723,
-                      "executable":  false
-                  },
-                  {
                       "path":  "mods/OreLib-1.12.2-3.6.0.1.jar",
                       "sha256":  "4483d8cc2b0334b82b7d0f5bb6354a2020a0e00ce63a48379e8ba5eb7d79eef9",
                       "size":  341728,
@@ -1990,6 +1984,12 @@
                       "path":  "THIRD_PARTY_MODS.txt",
                       "sha256":  "e7181c21f605900e0e695488dd3be1b8397c0a1392bdf5f5e305013cfca711e2",
                       "size":  5605,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
+                      "sha256":  "f73c5f1a411e9caed3d22e43e67c3ea461a95a97dcf86178810e83d77cb05bd1",
+                      "size":  31723,
                       "executable":  false
                   }
               ]
