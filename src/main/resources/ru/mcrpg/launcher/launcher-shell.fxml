@@ -240,7 +240,7 @@
                                                              startAngle="90.0" strokeLineCap="ROUND"
                                                              styleClass="progress-value-shape" type="OPEN"/>
                                                         <Arc fx:id="syncActivityArc" length="-72.0" opacity="0.0"
-                                                             radiusX="43.0" radiusY="43.0" startAngle="90.0"
+                                                             radiusX="54.0" radiusY="54.0" startAngle="90.0"
                                                              strokeLineCap="ROUND"
                                                              styleClass="progress-activity-shape" type="OPEN"/>
                                                         <Label fx:id="syncProgressLabel" styleClass="progress-label" text="0%"/>
