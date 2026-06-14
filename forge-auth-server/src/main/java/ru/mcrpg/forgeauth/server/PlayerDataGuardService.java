@@ -189,7 +189,11 @@ final class PlayerDataGuardService {
                 throw new IOException("Playerdata root is not a compound tag");
             }
             readString(input);
-            return findInventoryInCompound(input, 0);
+            int inventoryCount = findInventoryInCompound(input, 0);
+            if (input.read() >= 0) {
+                throw new IOException("Playerdata contains trailing data");
+            }
+            return inventoryCount;
         }
     }
 
@@ -340,17 +344,18 @@ final class PlayerDataGuardService {
 
     private static int findInventoryInCompound(DataInputStream input, int depth) throws IOException {
         requireDepth(depth);
+        int inventoryCount = 0;
         while (true) {
             int type = input.readUnsignedByte();
             if (type == 0) {
-                return 0;
+                return inventoryCount;
             }
             String name = readString(input);
             if (type == 9) {
                 int elementType = input.readUnsignedByte();
                 int length = readLength(input);
                 if ("Inventory".equals(name)) {
-                    return length;
+                    inventoryCount = length;
                 }
                 for (int index = 0; index < length; index++) {
                     skipPayload(input, elementType, depth + 1);
