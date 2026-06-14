@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
@@ -239,10 +240,19 @@
                                                         <Arc fx:id="syncProgressArc" length="0.0" radiusX="54.0" radiusY="54.0"
                                                              startAngle="90.0" strokeLineCap="ROUND"
                                                              styleClass="progress-value-shape" type="OPEN"/>
-                                                        <Arc fx:id="syncActivityArc" length="-72.0" opacity="0.0"
-                                                             radiusX="54.0" radiusY="54.0" startAngle="90.0"
-                                                             strokeLineCap="ROUND"
-                                                             styleClass="progress-activity-shape" type="OPEN"/>
+                                                        <Pane maxHeight="108.0" maxWidth="108.0"
+                                                              minHeight="108.0" minWidth="108.0"
+                                                              mouseTransparent="true"
+                                                              prefHeight="108.0" prefWidth="108.0">
+                                                            <children>
+                                                                <Arc fx:id="syncActivityArc"
+                                                                     centerX="54.0" centerY="54.0"
+                                                                     length="-72.0" opacity="0.0"
+                                                                     radiusX="54.0" radiusY="54.0"
+                                                                     startAngle="90.0" strokeLineCap="ROUND"
+                                                                     styleClass="progress-activity-shape" type="OPEN"/>
+                                                            </children>
+                                                        </Pane>
                                                         <Label fx:id="syncProgressLabel" styleClass="progress-label" text="0%"/>
                                                     </children>
                                                     <VBox.margin>
