@@ -44,6 +44,7 @@ public final class ForgeAuthServerMod {
     private static final TeleportGuardService TELEPORT_GUARD = new TeleportGuardService();
     private static final BackLocationService BACK_LOCATIONS = new BackLocationService(LOGGER);
     private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER);
+    private static final PlayerDataGuardService PLAYERDATA_GUARD = new PlayerDataGuardService(LOGGER);
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -67,6 +68,7 @@ public final class ForgeAuthServerMod {
         HOME_SERVICE.load();
         BACK_LOCATIONS.load();
         ACHIEVEMENTS.load();
+        MinecraftForge.EVENT_BUS.register(PLAYERDATA_GUARD);
         MinecraftForge.EVENT_BUS.register(LIFECYCLE);
         MinecraftForge.EVENT_BUS.register(FIRST_JOIN_WELCOME);
         MinecraftForge.EVENT_BUS.register(ACHIEVEMENTS);
