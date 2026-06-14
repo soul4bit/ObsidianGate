@@ -25,6 +25,7 @@ public final class LauncherConfigStore {
     private static final String KEY_UPDATE_FILES_BEFORE_LAUNCH = "update.files.before.launch";
     private static final String KEY_LAUNCHER_UPDATE_ENABLED = "launcher.update.enabled";
     private static final String KEY_LAUNCHER_UPDATES_ENABLED = "launcher.updates.enabled";
+    private static final String KEY_CLOSE_LAUNCHER_AFTER_GAME_START = "close.launcher.after.game.start";
 
     private final Path configFile;
 
@@ -84,6 +85,10 @@ public final class LauncherConfigStore {
             ),
             defaults.isLauncherUpdatesEnabled()
         ));
+        defaults.setCloseLauncherAfterGameStart(parseBoolean(
+            properties.getProperty(KEY_CLOSE_LAUNCHER_AFTER_GAME_START),
+            defaults.isCloseLauncherAfterGameStart()
+        ));
         return LauncherDefaults.applyMissingValues(defaults);
     }
 
@@ -103,6 +108,10 @@ public final class LauncherConfigStore {
         properties.setProperty(KEY_MEMORY_MAX_MB, Integer.toString(config.getMemoryMaxMb()));
         properties.setProperty(KEY_UPDATE_FILES_BEFORE_LAUNCH, Boolean.toString(config.isUpdateFilesBeforeLaunch()));
         properties.setProperty(KEY_LAUNCHER_UPDATE_ENABLED, Boolean.toString(config.isLauncherUpdatesEnabled()));
+        properties.setProperty(
+            KEY_CLOSE_LAUNCHER_AFTER_GAME_START,
+            Boolean.toString(config.isCloseLauncherAfterGameStart())
+        );
 
         Path parent = configFile.getParent();
         if (parent != null) {

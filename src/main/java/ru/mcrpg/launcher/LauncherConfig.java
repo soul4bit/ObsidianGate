@@ -23,6 +23,7 @@ public final class LauncherConfig {
     private int memoryMaxMb;
     private boolean updateFilesBeforeLaunch;
     private boolean launcherUpdatesEnabled;
+    private boolean closeLauncherAfterGameStart;
 
     public static LauncherConfig defaults() {
         LauncherConfig config = new LauncherConfig();
@@ -40,6 +41,7 @@ public final class LauncherConfig {
         config.setMemoryMaxMb(DEFAULT_MEMORY_MAX_MB);
         config.setUpdateFilesBeforeLaunch(true);
         config.setLauncherUpdatesEnabled(true);
+        config.setCloseLauncherAfterGameStart(true);
         return config;
     }
 
@@ -59,6 +61,7 @@ public final class LauncherConfig {
         copy.setMemoryMaxMb(memoryMaxMb);
         copy.setUpdateFilesBeforeLaunch(updateFilesBeforeLaunch);
         copy.setLauncherUpdatesEnabled(launcherUpdatesEnabled);
+        copy.setCloseLauncherAfterGameStart(closeLauncherAfterGameStart);
         return copy;
     }
 
@@ -172,6 +175,14 @@ public final class LauncherConfig {
 
     public void setLauncherUpdatesEnabled(boolean launcherUpdatesEnabled) {
         this.launcherUpdatesEnabled = launcherUpdatesEnabled;
+    }
+
+    public boolean isCloseLauncherAfterGameStart() {
+        return closeLauncherAfterGameStart;
+    }
+
+    public void setCloseLauncherAfterGameStart(boolean closeLauncherAfterGameStart) {
+        this.closeLauncherAfterGameStart = closeLauncherAfterGameStart;
     }
 
     private static String sanitize(String value) {

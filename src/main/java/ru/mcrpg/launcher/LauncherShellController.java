@@ -762,8 +762,10 @@ public final class LauncherShellController extends AbstractScreenController {
         setSyncStatus("Игра запущена", SYNC_STATUS_OK, "check-circle", "#86efac");
         setSyncDetail(describeSyncResult(result == null ? null : result.syncResult()));
         context().persistStateQuietly();
-        Platform.exit();
-        System.exit(0);
+        if (state().getConfig().isCloseLauncherAfterGameStart()) {
+            Platform.exit();
+            System.exit(0);
+        }
     }
 
     private void finishFailedLaunch(Throwable exception) {

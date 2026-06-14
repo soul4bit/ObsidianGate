@@ -295,6 +295,8 @@
                                                                                           text="Обновления лаунчера проверяются всегда"/>
                                                                                 <CheckBox fx:id="updateFilesBeforeLaunchCheck"
                                                                                           text="Проверять файлы модпака перед запуском"/>
+                                                                                <CheckBox fx:id="closeLauncherAfterGameStartCheck"
+                                                                                          text="Закрывать лаунчер после запуска Minecraft"/>
                                                                             </children>
                                                                         </VBox>
                                                                     </children>

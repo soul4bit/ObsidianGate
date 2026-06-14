@@ -34,6 +34,7 @@ class LauncherConfigStoreTest {
         config.setMemoryMaxMb(6144);
         config.setUpdateFilesBeforeLaunch(false);
         config.setLauncherUpdatesEnabled(false);
+        config.setCloseLauncherAfterGameStart(false);
 
         store.save(config);
         LauncherConfig restored = store.load();
@@ -52,6 +53,7 @@ class LauncherConfigStoreTest {
         assertEquals(6144, restored.getMemoryMaxMb());
         assertEquals(false, restored.isUpdateFilesBeforeLaunch());
         assertEquals(false, restored.isLauncherUpdatesEnabled());
+        assertEquals(false, restored.isCloseLauncherAfterGameStart());
     }
 
     @Test

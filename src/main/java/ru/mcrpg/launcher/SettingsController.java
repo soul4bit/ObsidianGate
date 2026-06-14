@@ -139,6 +139,9 @@ public final class SettingsController extends AbstractScreenController {
     private CheckBox updateFilesBeforeLaunchCheck;
 
     @FXML
+    private CheckBox closeLauncherAfterGameStartCheck;
+
+    @FXML
     private Label statusLabel;
 
     @FXML
@@ -353,6 +356,7 @@ public final class SettingsController extends AbstractScreenController {
         config.setLaunchTemplate(requireText(launchTemplateArea.getText(), "Укажите шаблон запуска."));
         config.setUpdateFilesBeforeLaunch(updateFilesBeforeLaunchCheck.isSelected());
         config.setLauncherUpdatesEnabled(launcherUpdatesEnabledCheck.isSelected());
+        config.setCloseLauncherAfterGameStart(closeLauncherAfterGameStartCheck.isSelected());
 
         if (state().isAuthenticated() && state().getSession().getAccount() != null) {
             config.setUsername(state().getSession().getAccount().getUsername());
@@ -379,6 +383,7 @@ public final class SettingsController extends AbstractScreenController {
             launchTemplateArea.setText(resolved.getLaunchTemplate());
             launcherUpdatesEnabledCheck.setSelected(resolved.isLauncherUpdatesEnabled());
             updateFilesBeforeLaunchCheck.setSelected(resolved.isUpdateFilesBeforeLaunch());
+            closeLauncherAfterGameStartCheck.setSelected(resolved.isCloseLauncherAfterGameStart());
         } finally {
             applyingConfigToFields = false;
         }
@@ -419,6 +424,7 @@ public final class SettingsController extends AbstractScreenController {
         addDirtyListener(launchTemplateArea);
         launcherUpdatesEnabledCheck.selectedProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
         updateFilesBeforeLaunchCheck.selectedProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
+        closeLauncherAfterGameStartCheck.selectedProperty().addListener((observable, oldValue, newValue) -> markSettingsDirty());
         memoryToggleGroup.selectedToggleProperty().addListener((observable, oldToggle, selectedToggle) -> markSettingsDirty());
     }
 

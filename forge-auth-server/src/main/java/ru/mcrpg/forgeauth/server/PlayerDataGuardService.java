@@ -1,24 +1,32 @@
 package ru.mcrpg.forgeauth.server;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -27,9 +35,12 @@ final class PlayerDataGuardService {
 
     private static final DateTimeFormatter INCIDENT_TIME = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int MAX_DEPTH = 64;
+    private static final int MAX_PLAYERDATA_BYTES = 16 * 1024 * 1024;
     private static final int RESTORE_DELAY_TICKS = 40;
     private static final String DISCONNECT_REASON =
         "PLAYERDATA_LOAD_FAILED: сервер не загрузил ваш профиль. Файл сохранен; сообщите администратору.";
+    private static final String AUTO_RESTORE_REASON =
+        "PLAYERDATA_AUTO_RESTORED: профиль восстановлен из резервной копии. Подключитесь снова через несколько секунд.";
 
     private final Logger logger;
     private final MinecraftPlayerBridge playerBridge;
@@ -59,35 +70,57 @@ final class PlayerDataGuardService {
             return;
         }
 
-        Path playerFile = playerDataDirectory().resolve(uuid.toLowerCase() + ".dat");
+        String normalizedUuid = uuid.toLowerCase();
+        String worldName = levelName();
+        Path playerFile = serverRoot.resolve(worldName).resolve("playerdata").resolve(normalizedUuid + ".dat");
         if (!Files.isRegularFile(playerFile)) {
             return;
         }
 
         try {
-            int savedItems = readInventoryCount(playerFile);
+            byte[] original = Files.readAllBytes(playerFile);
             int loadedItems = countLoadedItems(player);
-            if (savedItems <= 0 || loadedItems > 0) {
+            if (loadedItems > 0) {
                 return;
             }
 
-            byte[] original = Files.readAllBytes(playerFile);
+            int savedItems;
+            try {
+                savedItems = readInventoryCount(original);
+                if (savedItems <= 0) {
+                    return;
+                }
+            } catch (IOException corruptPlayerdata) {
+                savedItems = -1;
+                logger.log(Level.SEVERE, "Playerdata is unreadable for " + username + ".", corruptPlayerdata);
+            }
+
             Path incidentFile = incidentDirectory().resolve(
-                INCIDENT_TIME.format(LocalDateTime.now()) + "-" + uuid.toLowerCase() + ".dat"
+                INCIDENT_TIME.format(LocalDateTime.now()) + "-" + normalizedUuid + ".dat"
             );
             Files.createDirectories(incidentFile.getParent());
             Files.write(incidentFile, original);
-            pendingRestores.put(uuid.toLowerCase(), new PendingRestore(playerFile, original, tick + RESTORE_DELAY_TICKS));
+
+            BackupCandidate backup = findLatestValidBackup(
+                serverRoot.resolve("backups").resolve("playerdata"),
+                worldName,
+                normalizedUuid,
+                original,
+                savedItems > 0
+            );
+            byte[] restoreData = backup == null ? original : backup.playerdata;
+            pendingRestores.put(normalizedUuid, new PendingRestore(playerFile, restoreData, tick + RESTORE_DELAY_TICKS));
 
             logger.severe(String.format(
-                "Playerdata load guard stopped %s (%s): saved inventory has %d entries, loaded inventory is empty. "
-                    + "Original profile: %s",
+                "Playerdata load guard stopped %s (%s): saved inventory has %s entries, loaded inventory is empty. "
+                    + "Original profile: %s. Restore source: %s",
                 username,
                 uuid,
-                savedItems,
-                incidentFile
+                savedItems < 0 ? "unreadable" : Integer.toString(savedItems),
+                incidentFile,
+                backup == null ? "original protected file" : backup.archive
             ));
-            playerBridge.disconnectPlayer(player, DISCONNECT_REASON);
+            playerBridge.disconnectPlayer(player, backup == null ? DISCONNECT_REASON : AUTO_RESTORE_REASON);
         } catch (Exception exception) {
             logger.log(Level.SEVERE, "Playerdata load guard failed for " + username + ".", exception);
         }
@@ -110,21 +143,21 @@ final class PlayerDataGuardService {
             }
             try {
                 Path temp = pending.playerFile.resolveSibling(pending.playerFile.getFileName() + ".guard.tmp");
-                Files.write(temp, pending.original);
+                Files.write(temp, pending.playerdata);
                 Files.move(temp, pending.playerFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
                 logger.warning("Restored protected playerdata after failed load: " + pending.playerFile);
             } catch (IOException exception) {
                 logger.log(Level.SEVERE, "Could not restore protected playerdata: " + pending.playerFile, exception);
                 pendingRestores.put(entry.getKey(), new PendingRestore(
                     pending.playerFile,
-                    pending.original,
+                    pending.playerdata,
                     tick + RESTORE_DELAY_TICKS
                 ));
             }
         }
     }
 
-    private Path playerDataDirectory() {
+    private String levelName() {
         Properties properties = new Properties();
         Path propertiesFile = serverRoot.resolve("server.properties");
         try (InputStream input = Files.newInputStream(propertiesFile)) {
@@ -136,7 +169,7 @@ final class PlayerDataGuardService {
         if (levelName.isEmpty() || levelName.contains("/") || levelName.contains("\\")) {
             throw new IllegalStateException("Unsafe level-name in " + propertiesFile + ": " + levelName);
         }
-        return serverRoot.resolve(levelName).resolve("playerdata");
+        return levelName;
     }
 
     private Path incidentDirectory() {
@@ -144,16 +177,164 @@ final class PlayerDataGuardService {
     }
 
     static int readInventoryCount(Path playerFile) throws IOException {
-        try (
-            InputStream file = Files.newInputStream(playerFile);
-            DataInputStream input = new DataInputStream(new BufferedInputStream(new GZIPInputStream(file)))
-        ) {
+        return readInventoryCount(Files.readAllBytes(playerFile));
+    }
+
+    static int readInventoryCount(byte[] playerdata) throws IOException {
+        try (DataInputStream input = new DataInputStream(new BufferedInputStream(
+            new GZIPInputStream(new ByteArrayInputStream(playerdata))
+        ))) {
             int rootType = input.readUnsignedByte();
             if (rootType != 10) {
                 throw new IOException("Playerdata root is not a compound tag");
             }
             readString(input);
             return findInventoryInCompound(input, 0);
+        }
+    }
+
+    static BackupCandidate findLatestValidBackup(
+        Path backupDirectory,
+        String worldName,
+        String uuid,
+        byte[] currentPlayerdata,
+        boolean requireInventory
+    ) throws IOException {
+        if (!Files.isDirectory(backupDirectory)) {
+            return null;
+        }
+
+        List<Path> archives;
+        try (Stream<Path> paths = Files.list(backupDirectory)) {
+            archives = paths
+                .filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().startsWith("playerdata-"))
+                .filter(path -> path.getFileName().toString().endsWith(".tar.gz"))
+                .sorted(Comparator.comparing((Path path) -> path.getFileName().toString()).reversed())
+                .collect(Collectors.toList());
+        }
+
+        String entryName = worldName + "/playerdata/" + uuid + ".dat";
+        for (Path archive : archives) {
+            try {
+                byte[] candidate = readTarEntry(archive, entryName);
+                if (candidate == null || Arrays.equals(candidate, currentPlayerdata)) {
+                    continue;
+                }
+                int inventoryCount = readInventoryCount(candidate);
+                if (!requireInventory || inventoryCount > 0) {
+                    return new BackupCandidate(archive, candidate);
+                }
+            } catch (IOException ignored) {
+                // A damaged archive must not prevent checking older backups.
+            }
+        }
+        return null;
+    }
+
+    private static byte[] readTarEntry(Path archive, String expectedName) throws IOException {
+        try (InputStream input = new BufferedInputStream(new GZIPInputStream(Files.newInputStream(archive)))) {
+            byte[] header = new byte[512];
+            while (readBlock(input, header)) {
+                if (isZeroBlock(header)) {
+                    return null;
+                }
+
+                String name = readTarString(header, 0, 100);
+                String prefix = readTarString(header, 345, 155);
+                if (!prefix.isEmpty()) {
+                    name = prefix + "/" + name;
+                }
+                while (name.startsWith("./")) {
+                    name = name.substring(2);
+                }
+
+                long size = readTarOctal(header, 124, 12);
+                if (size < 0 || (expectedName.equals(name) && size > MAX_PLAYERDATA_BYTES)) {
+                    throw new IOException("Invalid tar entry size: " + size);
+                }
+
+                if (expectedName.equals(name)) {
+                    ByteArrayOutputStream output = new ByteArrayOutputStream((int) size);
+                    copyExactly(input, output, size);
+                    return output.toByteArray();
+                }
+
+                skipExactly(input, size);
+                skipExactly(input, (512 - (size % 512)) % 512);
+            }
+            return null;
+        }
+    }
+
+    private static boolean readBlock(InputStream input, byte[] block) throws IOException {
+        int offset = 0;
+        while (offset < block.length) {
+            int read = input.read(block, offset, block.length - offset);
+            if (read < 0) {
+                if (offset == 0) {
+                    return false;
+                }
+                throw new EOFException("Unexpected end of tar archive");
+            }
+            offset += read;
+        }
+        return true;
+    }
+
+    private static boolean isZeroBlock(byte[] block) {
+        for (byte value : block) {
+            if (value != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String readTarString(byte[] block, int offset, int length) {
+        int end = offset;
+        while (end < offset + length && block[end] != 0) {
+            end++;
+        }
+        return new String(block, offset, end - offset, StandardCharsets.US_ASCII);
+    }
+
+    private static long readTarOctal(byte[] block, int offset, int length) throws IOException {
+        String value = readTarString(block, offset, length).trim();
+        if (value.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(value, 8);
+        } catch (NumberFormatException exception) {
+            throw new IOException("Invalid tar entry size", exception);
+        }
+    }
+
+    private static void copyExactly(InputStream input, ByteArrayOutputStream output, long bytes) throws IOException {
+        byte[] buffer = new byte[8192];
+        long remaining = bytes;
+        while (remaining > 0) {
+            int read = input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+            if (read < 0) {
+                throw new EOFException("Unexpected end of tar entry");
+            }
+            output.write(buffer, 0, read);
+            remaining -= read;
+        }
+    }
+
+    private static void skipExactly(InputStream input, long bytes) throws IOException {
+        long remaining = bytes;
+        while (remaining > 0) {
+            long skipped = input.skip(remaining);
+            if (skipped <= 0) {
+                if (input.read() < 0) {
+                    throw new EOFException("Unexpected end of tar archive");
+                }
+                skipped = 1;
+            }
+            remaining -= skipped;
         }
     }
 
@@ -331,13 +512,23 @@ final class PlayerDataGuardService {
 
     private static final class PendingRestore {
         private final Path playerFile;
-        private final byte[] original;
+        private final byte[] playerdata;
         private final long restoreAtTick;
 
-        private PendingRestore(Path playerFile, byte[] original, long restoreAtTick) {
+        private PendingRestore(Path playerFile, byte[] playerdata, long restoreAtTick) {
             this.playerFile = playerFile;
-            this.original = original;
+            this.playerdata = playerdata;
             this.restoreAtTick = restoreAtTick;
+        }
+    }
+
+    static final class BackupCandidate {
+        final Path archive;
+        final byte[] playerdata;
+
+        private BackupCandidate(Path archive, byte[] playerdata) {
+            this.archive = archive;
+            this.playerdata = playerdata;
         }
     }
 }
