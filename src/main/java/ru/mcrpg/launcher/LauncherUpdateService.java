@@ -145,7 +145,7 @@ final class LauncherUpdateService {
             + "$workdir = " + powerShellQuote(targetDirectory) + "\r\n"
             + "Start-Sleep -Seconds 2\r\n"
             + "Copy-Item -LiteralPath $src -Destination $dst -Force\r\n"
-            + "Start-Process -FilePath $java -ArgumentList @('-jar', $dst) -WorkingDirectory $workdir\r\n";
+            + "Start-Process -FilePath $java -ArgumentList @('-jar', $dst, '--update-complete') -WorkingDirectory $workdir\r\n";
     }
 
     private static String unixScript(Path updateFile, Path currentLauncherPath, String javaCommand) {
@@ -155,6 +155,7 @@ final class LauncherUpdateService {
             + shellQuote(currentLauncherPath.toAbsolutePath().toString()) + "\n"
             + "chmod +x " + shellQuote(currentLauncherPath.toAbsolutePath().toString()) + "\n"
             + shellQuote(javaCommand) + " -jar " + shellQuote(currentLauncherPath.toAbsolutePath().toString())
+            + " --update-complete"
             + " >/dev/null 2>&1 &\n"
             + "rm -- \"$0\"\n";
     }

@@ -26,7 +26,9 @@ public final class LauncherShellApplication extends Application {
         "/ru/mcrpg/launcher/assets/fonts/RussoOne-Regular.ttf"
     };
     private static final String PREVIEW_HOME_ARG = "--preview-home";
+    private static final String UPDATE_COMPLETE_ARG = "--update-complete";
     static final String PREVIEW_HOME_PROPERTY = "obsidiangate.previewHome";
+    static final String UPDATE_COMPLETE_PROPERTY = "obsidiangate.updateComplete";
 
     public static void launchApp(String[] args) {
         launch(args);
@@ -69,6 +71,11 @@ public final class LauncherShellApplication extends Application {
             System.setProperty(PREVIEW_HOME_PROPERTY, "true");
         } else {
             System.clearProperty(PREVIEW_HOME_PROPERTY);
+        }
+        if (getParameters().getRaw().contains(UPDATE_COMPLETE_ARG)) {
+            System.setProperty(UPDATE_COMPLETE_PROPERTY, "true");
+        } else {
+            System.clearProperty(UPDATE_COMPLETE_PROPERTY);
         }
 
         stage.setOnCloseRequest(event -> context.persistStateQuietly());

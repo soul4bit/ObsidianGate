@@ -34,6 +34,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
@@ -100,6 +101,11 @@ public final class LauncherShellController extends AbstractScreenController {
     private Timeline playButtonPulseTimeline;
     private List<NewsItem> currentNewsItems = Collections.emptyList();
     private StackPane newsOverlay;
+    private StackPane launcherUpdateOverlay;
+    private Label launcherUpdateTitleLabel;
+    private Label launcherUpdateDetailLabel;
+    private Label launcherUpdatePercentLabel;
+    private ProgressBar launcherUpdateProgressBar;
 
     @FXML
     private Label brandLogoLabel;
@@ -265,6 +271,9 @@ public final class LauncherShellController extends AbstractScreenController {
         applyServerEndpointFromConfig(state().getConfig());
         configureCleanGlassSidebar(ScreenRouter.Screen.HOME);
         applyProfileState();
+        if (Boolean.getBoolean(LauncherShellApplication.UPDATE_COMPLETE_PROPERTY)) {
+            Platform.runLater(this::showCompletedLauncherUpdate);
+        }
         Platform.runLater(this::startServerStatusPolling);
         Platform.runLater(this::startNewsPolling);
     }
@@ -809,6 +818,7 @@ public final class LauncherShellController extends AbstractScreenController {
         launcherUpdateInProgress = true;
         applyPlayButtonState();
         setSyncStatus("Скачиваем лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
+        showLauncherUpdateOverlay(update);
 
         Task<Void> task = new Task<Void>() {
             @Override
@@ -827,11 +837,14 @@ public final class LauncherShellController extends AbstractScreenController {
 
         task.setOnSucceeded(event -> {
             setSyncStatus("Перезапуск лаунчера", SYNC_STATUS_OK, "check-circle", "#86efac");
+            updateLauncherOverlay(1.0d, "Устанавливаем обновление", "Новая версия уже загружена. Перезапускаем лаунчер...", "100%");
+            context().persistStateQuietly();
             Platform.exit();
             System.exit(0);
         });
         task.setOnFailed(event -> {
             launcherUpdateInProgress = false;
+            hideLauncherUpdateOverlay();
             applyPlayButtonState();
             setSyncStatus("Ошибка обновления", SYNC_STATUS_ERROR, "info", "#fda4af");
             showError(resolveLauncherUpdateFailureMessage(task.getException(), update));
@@ -851,11 +864,111 @@ public final class LauncherShellController extends AbstractScreenController {
             setText(syncProgressLabel, Math.round(progress * 100.0d) + "%");
             setSyncStatus("Скачиваем лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
             setSyncDetail(formatBytes(safeDownloaded) + " / " + formatBytes(safeTotal) + " · " + formatSpeed(safeDownloaded, elapsedMillis));
+            updateLauncherOverlay(
+                progress,
+                "Обновляем ObsidianGate",
+                formatBytes(safeDownloaded) + " из " + formatBytes(safeTotal) + " · " + formatSpeed(safeDownloaded, elapsedMillis),
+                Math.round(progress * 100.0d) + "%"
+            );
             return;
         }
 
         setSyncStatus("Скачиваем лаунчер", SYNC_STATUS_WORKING, "download", "#fbbf24");
         setSyncDetail(formatBytes(safeDownloaded) + " · " + formatSpeed(safeDownloaded, elapsedMillis));
+        updateLauncherOverlay(
+            ProgressBar.INDETERMINATE_PROGRESS,
+            "Обновляем ObsidianGate",
+            formatBytes(safeDownloaded) + " · " + formatSpeed(safeDownloaded, elapsedMillis),
+            ""
+        );
+    }
+
+    private void showLauncherUpdateOverlay(LauncherUpdateCandidate update) {
+        if (launcherShellRoot == null) {
+            return;
+        }
+        hideLauncherUpdateOverlay();
+
+        Label eyebrow = new Label("ОБНОВЛЕНИЕ ЛАУНЧЕРА");
+        eyebrow.getStyleClass().add("launcher-update-eyebrow");
+
+        launcherUpdateTitleLabel = new Label("Готовим новую версию");
+        launcherUpdateTitleLabel.getStyleClass().add("launcher-update-title");
+
+        launcherUpdateDetailLabel = new Label(
+            update == null ? "Подключаемся к серверу обновлений" : "Версия " + update.getVersion()
+        );
+        launcherUpdateDetailLabel.getStyleClass().add("launcher-update-detail");
+
+        launcherUpdateProgressBar = new ProgressBar(0.0d);
+        launcherUpdateProgressBar.setMaxWidth(Double.MAX_VALUE);
+        launcherUpdateProgressBar.getStyleClass().add("launcher-update-progress");
+
+        launcherUpdatePercentLabel = new Label("0%");
+        launcherUpdatePercentLabel.getStyleClass().add("launcher-update-percent");
+
+        HBox progressRow = new HBox(14.0d, launcherUpdateProgressBar, launcherUpdatePercentLabel);
+        progressRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(launcherUpdateProgressBar, Priority.ALWAYS);
+        progressRow.setMaxWidth(560.0d);
+
+        Label note = new Label("Не закрывайте лаунчер. После установки интерфейс обновится автоматически.");
+        note.setWrapText(true);
+        note.getStyleClass().add("launcher-update-note");
+
+        VBox content = new VBox(
+            16.0d,
+            LauncherIcons.logoCube(78.0d),
+            eyebrow,
+            launcherUpdateTitleLabel,
+            launcherUpdateDetailLabel,
+            progressRow,
+            note
+        );
+        content.setAlignment(Pos.CENTER);
+        content.setMaxWidth(620.0d);
+
+        launcherUpdateOverlay = new StackPane(content);
+        launcherUpdateOverlay.getStyleClass().add("launcher-update-overlay");
+        launcherUpdateOverlay.setFocusTraversable(true);
+        launcherShellRoot.getChildren().add(launcherUpdateOverlay);
+        Platform.runLater(launcherUpdateOverlay::requestFocus);
+    }
+
+    private void showCompletedLauncherUpdate() {
+        System.clearProperty(LauncherShellApplication.UPDATE_COMPLETE_PROPERTY);
+        showLauncherUpdateOverlay(null);
+        updateLauncherOverlay(1.0d, "Обновление завершено", "Новая версия лаунчера готова", "100%");
+
+        FadeTransition reveal = new FadeTransition(Duration.millis(650.0d), launcherUpdateOverlay);
+        reveal.setDelay(Duration.millis(700.0d));
+        reveal.setFromValue(1.0d);
+        reveal.setToValue(0.0d);
+        reveal.setOnFinished(event -> hideLauncherUpdateOverlay());
+        reveal.play();
+    }
+
+    private void updateLauncherOverlay(double progress, String title, String detail, String percent) {
+        if (launcherUpdateOverlay == null) {
+            return;
+        }
+        if (launcherUpdateProgressBar != null) {
+            launcherUpdateProgressBar.setProgress(progress);
+        }
+        setText(launcherUpdateTitleLabel, title);
+        setText(launcherUpdateDetailLabel, detail);
+        setText(launcherUpdatePercentLabel, percent);
+    }
+
+    private void hideLauncherUpdateOverlay() {
+        if (launcherUpdateOverlay != null && launcherShellRoot != null) {
+            launcherShellRoot.getChildren().remove(launcherUpdateOverlay);
+        }
+        launcherUpdateOverlay = null;
+        launcherUpdateTitleLabel = null;
+        launcherUpdateDetailLabel = null;
+        launcherUpdatePercentLabel = null;
+        launcherUpdateProgressBar = null;
     }
 
     private void applyPlayButtonState() {

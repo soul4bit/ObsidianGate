@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URL;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,6 +67,26 @@ class LauncherUpdateServiceTest {
         assertNotNull(update);
         assertEquals("http://cdn.example.com/launcher.jar", update.getDownloadUrl().toString());
         assertTrue(!update.isInstallSupported());
+    }
+
+    @Test
+    void restartScriptContinuesUpdateExperienceInNewLauncher() throws Exception {
+        Method method = LauncherUpdateService.class.getDeclaredMethod(
+            System.getProperty("os.name", "").toLowerCase().contains("win") ? "windowsScript" : "unixScript",
+            Path.class,
+            Path.class,
+            String.class
+        );
+        method.setAccessible(true);
+
+        String script = (String) method.invoke(
+            null,
+            tempDirectory.resolve("update.jar"),
+            tempDirectory.resolve("launcher.jar"),
+            "java"
+        );
+
+        assertTrue(script.contains("--update-complete"));
     }
 
     private static LoadedManifest manifestWithUpdate(String version, String url, String sha256, long size) throws Exception {
