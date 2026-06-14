@@ -23,7 +23,6 @@ import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
-import javafx.animation.RotateTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -92,7 +91,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private volatile boolean launcherUpdateInProgress;
     private double lastSyncProgress;
     private FadeTransition syncPulseTransition;
-    private RotateTransition syncRingRotation;
+    private Timeline syncRingRotation;
     private Timeline syncProgressTimeline;
     private Timeline heroBreathingTimeline;
     private Timeline heroSweepTimeline;
@@ -1867,10 +1866,14 @@ public final class LauncherShellController extends AbstractScreenController {
             syncPulseTransition.play();
         }
         if (syncRingRotation == null) {
-            syncRingRotation = new RotateTransition(Duration.millis(1250.0d), syncActivityArc);
-            syncRingRotation.setByAngle(360.0d);
+            syncRingRotation = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(syncActivityArc.startAngleProperty(), 90.0d)),
+                new KeyFrame(
+                    Duration.millis(1250.0d),
+                    new KeyValue(syncActivityArc.startAngleProperty(), 450.0d, Interpolator.LINEAR)
+                )
+            );
             syncRingRotation.setCycleCount(Animation.INDEFINITE);
-            syncRingRotation.setInterpolator(Interpolator.LINEAR);
         }
         if (syncRingRotation.getStatus() != Animation.Status.RUNNING) {
             syncRingRotation.play();
@@ -1886,7 +1889,7 @@ public final class LauncherShellController extends AbstractScreenController {
         }
         if (syncActivityArc != null) {
             syncActivityArc.setOpacity(0.0d);
-            syncActivityArc.setRotate(0.0d);
+            syncActivityArc.setStartAngle(90.0d);
         }
     }
 
