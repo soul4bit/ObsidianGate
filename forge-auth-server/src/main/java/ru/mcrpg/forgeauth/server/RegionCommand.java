@@ -16,9 +16,9 @@ final class RegionCommand {
     private RegionCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, RegionProtectionService regions) {
+    static void register(FMLServerStartingEvent event, RegionProtectionService regions, PlayerRoleLookup roles) {
         register(event, "/wand", Collections.singletonList("wand"), new WandHandler());
-        register(event, "rg", Arrays.asList("region", "регион"), new RegionHandler(regions));
+        register(event, "rg", Arrays.asList("region", "регион"), new RegionHandler(regions, roles));
     }
 
     private static void register(
@@ -123,9 +123,11 @@ final class RegionCommand {
 
     private static final class RegionHandler implements CommandExecutor {
         private final RegionProtectionService regions;
+        private final PlayerRoleLookup roles;
 
-        private RegionHandler(RegionProtectionService regions) {
+        private RegionHandler(RegionProtectionService regions, PlayerRoleLookup roles) {
             this.regions = regions;
+            this.roles = roles;
         }
 
         @Override
@@ -138,6 +140,12 @@ final class RegionCommand {
             try {
                 if ("claim".equals(action) && args.length == 2) {
                     claim(player, args[1]);
+                } else if ("flag".equals(action) && args.length == 4) {
+                    boolean allowed = parseState(args[3]);
+                    regions.setFlag(args[1], PlayerIdentity.id(player), args[2], allowed, isOperator(player));
+                    ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "флаг " + args[2] + " = " + (allowed ? "allow" : "deny") + ".");
+                } else if ("show".equals(action) && args.length <= 2) {
+                    show(server, player, args.length == 2 ? args[1] : null);
                 } else if (("addmember".equals(action) || "add".equals(action)) && args.length == 3) {
                     boolean changed = regions.addMember(args[1], PlayerIdentity.id(player), args[2], isOperator(player));
                     result(player, changed, "Игрок добавлен.", "Игрок уже является участником.");
@@ -151,6 +159,8 @@ final class RegionCommand {
                     list(player);
                 } else if ("info".equals(action)) {
                     info(player, args.length > 1 ? args[1] : null);
+                } else if ("admin".equals(action) && args.length >= 3 && isOperator(player)) {
+                    admin(player, args);
                 } else {
                     RegionCommand.usage(player);
                 }
@@ -165,7 +175,8 @@ final class RegionCommand {
             RegionProtectionService.ClaimResult result = regions.claim(
                 name,
                 PlayerIdentity.id(player),
-                PlayerIdentity.name(player)
+                PlayerIdentity.name(player),
+                RoleLimits.forRole(roles.roleFor(player)).maxRegions()
             );
             if (!result.success) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, result.message);
@@ -215,14 +226,106 @@ final class RegionCommand {
                 SUBJECT,
                 ServerChat.value(region.name) + ", владелец " + ServerChat.value(region.ownerName)
                     + ", участники " + ServerChat.value(region.members.isEmpty() ? "нет" : region.members)
+                    + ", флаги " + ServerChat.value(flagSummary(region))
                     + ", границы X " + region.minX + ".." + region.maxX + ", Z " + region.minZ + ".." + region.maxZ + "."
             );
         }
 
+        private void show(Object server, Object player, String name) {
+            RegionProtectionService.Region region = name == null
+                ? regions.regionAt(
+                    TeleportSupport.playerDimension(player),
+                    (int) TeleportSupport.playerX(player),
+                    (int) TeleportSupport.playerY(player),
+                    (int) TeleportSupport.playerZ(player)
+                )
+                : regions.region(name);
+            if (region == null) {
+                throw new IllegalArgumentException("Регион не найден.");
+            }
+            int y = Math.max(1, Math.min(254, (int) Math.floor(TeleportSupport.playerY(player))));
+            Object manager = ServerReflection.invoke(server, new String[] { "getCommandManager", "func_71187_D" });
+            int step = Math.max(1, Math.max(region.maxX - region.minX, region.maxZ - region.minZ) / 32);
+            for (int x = region.minX; x <= region.maxX; x += step) {
+                particle(manager, player, x, y, region.minZ);
+                particle(manager, player, x, y, region.maxZ);
+            }
+            for (int z = region.minZ; z <= region.maxZ; z += step) {
+                particle(manager, player, region.minX, y, z);
+                particle(manager, player, region.maxX, y, z);
+            }
+            ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "границы " + ServerChat.value(region.name) + " показаны частицами.");
+        }
+
+        private void admin(Object player, String[] args) {
+            String adminAction = args[1].toLowerCase(Locale.ROOT);
+            if ("find".equals(adminAction)) {
+                List<RegionProtectionService.Region> found = regions.find(args[2]);
+                ServerChat.status(player, ServerChat.Tone.INFO, SUBJECT, "найдено: " + ServerChat.value(regionNames(found)) + ".");
+                return;
+            }
+            if ("delete".equals(adminAction)) {
+                regions.delete(args[2], PlayerIdentity.id(player), true);
+                ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион удален в архив.");
+                return;
+            }
+            if ("restore".equals(adminAction)) {
+                regions.restore(args[2]);
+                ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион восстановлен.");
+                return;
+            }
+            throw new IllegalArgumentException("Админ-команды: find, delete, restore.");
+        }
+
         @Override
         public String usage() {
-            return "/rg <claim|info|list|addmember|removemember|delete>";
+            return "/rg <claim|flag|show|info|list|addmember|removemember|delete|admin>";
         }
+    }
+
+    private static boolean parseState(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        if ("allow".equals(normalized) || "true".equals(normalized) || "on".equals(normalized)) {
+            return true;
+        }
+        if ("deny".equals(normalized) || "false".equals(normalized) || "off".equals(normalized)) {
+            return false;
+        }
+        throw new IllegalArgumentException("Значение флага: allow или deny.");
+    }
+
+    private static String flagSummary(RegionProtectionService.Region region) {
+        StringBuilder result = new StringBuilder();
+        for (RegionProtectionService.RegionFlag flag : RegionProtectionService.RegionFlag.values()) {
+            if (result.length() > 0) {
+                result.append(", ");
+            }
+            result.append(flag.id).append('=').append(region.flag(flag) ? "allow" : "deny");
+        }
+        return result.toString();
+    }
+
+    private static String regionNames(List<RegionProtectionService.Region> regions) {
+        if (regions.isEmpty()) {
+            return "нет";
+        }
+        StringBuilder result = new StringBuilder();
+        for (RegionProtectionService.Region region : regions) {
+            if (result.length() > 0) {
+                result.append(", ");
+            }
+            result.append(region.name).append('(').append(region.ownerName).append(')');
+        }
+        return result.toString();
+    }
+
+    private static void particle(Object manager, Object player, int x, int y, int z) {
+        ServerReflection.invoke(
+            manager,
+            new String[] { "executeCommand", "func_71556_a" },
+            player,
+            "particle reddust " + x + " " + y + " " + z + " 0 0 0 0 1 force " + PlayerIdentity.name(player)
+        );
     }
 
     private static Object player(Object sender) {
@@ -250,6 +353,8 @@ final class RegionCommand {
     private static void usage(Object player) {
         ServerChat.usage(player, "/rg claim <название>");
         ServerChat.usage(player, "/rg info [название]");
+        ServerChat.usage(player, "/rg show [название]");
+        ServerChat.usage(player, "/rg flag <регион> <флаг> <allow|deny>");
         ServerChat.usage(player, "/rg list");
         ServerChat.usage(player, "/rg addmember <регион> <игрок>");
         ServerChat.usage(player, "/rg removemember <регион> <игрок>");

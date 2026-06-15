@@ -22,7 +22,7 @@ class RegionProtectionServiceTest {
         RegionProtectionService service = service(path);
         select(service, "owner", 0, 10, 20, 20, 30);
 
-        RegionProtectionService.ClaimResult result = service.claim("Base_1", "owner", "Owner");
+        RegionProtectionService.ClaimResult result = service.claim("Base_1", "owner", "Owner", 3);
 
         assertTrue(result.success);
         assertEquals("base_1", result.region.name);
@@ -41,20 +41,20 @@ class RegionProtectionServiceTest {
     void rejectsOverlapAndOversizedSelections() {
         RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
         select(service, "first", 0, 0, 0, 10, 10);
-        assertTrue(service.claim("first", "first", "First").success);
+        assertTrue(service.claim("first", "first", "First", 3).success);
 
         select(service, "second", 0, 10, 10, 20, 20);
-        assertFalse(service.claim("second", "second", "Second").success);
+        assertFalse(service.claim("second", "second", "Second", 3).success);
 
         select(service, "third", 0, 100, 100, 500, 500);
-        assertFalse(service.claim("huge", "third", "Third").success);
+        assertFalse(service.claim("huge", "third", "Third", 3).success);
     }
 
     @Test
     void membersCanBuildAndOwnerCanRemoveThem() {
         RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
         select(service, "owner", 0, -5, -5, 5, 5);
-        assertTrue(service.claim("home", "owner", "Owner").success);
+        assertTrue(service.claim("home", "owner", "Owner", 3).success);
 
         assertTrue(service.addMember("home", "owner", "Friend", false));
         assertTrue(service.canBuild("friend-id", "friend", false, 0, 0, 64, 0));
@@ -65,18 +65,67 @@ class RegionProtectionServiceTest {
             () -> service.delete("home", "stranger", false)
         );
         assertTrue(service.delete("home", "operator", true));
+
+        RegionProtectionService reloaded = service(tempDirectory.resolve("regions.properties"));
+        assertTrue(reloaded.restore("home"));
+        assertNotNull(reloaded.region("home"));
     }
 
     @Test
     void enforcesPerPlayerRegionLimit() {
         RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
-        for (int index = 0; index < RegionProtectionService.MAX_REGIONS_PER_PLAYER; index++) {
+        for (int index = 0; index < 3; index++) {
             int start = index * 20;
             select(service, "owner", 0, start, 0, start + 5, 5);
-            assertTrue(service.claim("r" + index, "owner", "Owner").success);
+            assertTrue(service.claim("r" + index, "owner", "Owner", 3).success);
         }
         select(service, "owner", 0, 100, 0, 105, 5);
-        assertFalse(service.claim("extra", "owner", "Owner").success);
+        assertFalse(service.claim("extra", "owner", "Owner", 3).success);
+    }
+
+    @Test
+    void flagsPersistAndControlPublicAccess() {
+        Path path = tempDirectory.resolve("regions.properties");
+        RegionProtectionService service = service(path);
+        select(service, "owner", 0, 0, 0, 5, 5);
+        assertTrue(service.claim("flags", "owner", "Owner", 3).success);
+
+        assertFalse(service.allows(
+            RegionProtectionService.RegionFlag.DOORS,
+            "stranger",
+            "Stranger",
+            false,
+            0,
+            1,
+            64,
+            1
+        ));
+        assertTrue(service.setFlag("flags", "owner", "doors", true, false));
+        assertTrue(service.allows(
+            RegionProtectionService.RegionFlag.DOORS,
+            "stranger",
+            "Stranger",
+            false,
+            0,
+            1,
+            64,
+            1
+        ));
+
+        RegionProtectionService restored = service(path);
+        assertTrue(restored.region("flags").flag(RegionProtectionService.RegionFlag.DOORS));
+    }
+
+    @Test
+    void vipLimitAllowsFiveRegions() {
+        RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
+        for (int index = 0; index < 5; index++) {
+            int start = index * 20;
+            select(service, "vip", 0, start, 0, start + 5, 5);
+            assertTrue(service.claim("vip" + index, "vip", "Vip", 5).success);
+        }
+        assertEquals(5, service.ownedRegions("vip").size());
+        assertEquals(5, service.find("Vip").size());
     }
 
     @Test

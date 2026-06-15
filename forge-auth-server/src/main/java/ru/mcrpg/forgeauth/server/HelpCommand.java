@@ -44,6 +44,8 @@ final class HelpCommand {
             entry("//wand", "//wand", "получить топор для выделения территории"),
             entry("/rg claim <название>", "/rg claim ", "создать приват по двум выбранным точкам"),
             entry("/rg info [название]", "/rg info ", "информация о регионе"),
+            entry("/rg show [название]", "/rg show ", "показать границы частицами"),
+            entry("/rg flag <регион> <флаг> <allow|deny>", "/rg flag ", "настроить PvP, двери, сундуки, механизмы или жидкости"),
             entry("/rg list", "/rg list", "список ваших регионов"),
             entry("/rg addmember <регион> <игрок>", "/rg addmember ", "добавить участника"),
             entry("/rg removemember <регион> <игрок>", "/rg removemember ", "удалить участника"),
@@ -70,7 +72,10 @@ final class HelpCommand {
         entry("/spawnprotect on|off", "/spawnprotect ", "включить или выключить защиту"),
         entry("/spawnprotect radius <блоки>", "/spawnprotect radius ", "радиус защиты"),
         entry("/spawnprotect region here <радиус>", "/spawnprotect region here ", "задать регион вокруг себя"),
-        entry("/spawnprotect reload", "/spawnprotect reload", "перезагрузить конфиг")
+        entry("/spawnprotect reload", "/spawnprotect reload", "перезагрузить конфиг"),
+        entry("/rg admin find <запрос>", "/rg admin find ", "найти регион по названию или владельцу"),
+        entry("/rg admin delete <регион>", "/rg admin delete ", "удалить регион в архив"),
+        entry("/rg admin restore <регион>", "/rg admin restore ", "восстановить регион из архива")
     );
 
     private HelpCommand() {

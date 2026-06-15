@@ -112,7 +112,7 @@ public final class ForgeAuthServerMod {
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
         AchievementCommand.register(event, ACHIEVEMENTS);
-        RegionCommand.register(event, REGIONS);
+        RegionCommand.register(event, REGIONS, LIFECYCLE);
         HelpCommand.register(event);
     }
 

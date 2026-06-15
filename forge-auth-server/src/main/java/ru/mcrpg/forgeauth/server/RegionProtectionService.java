@@ -22,12 +22,12 @@ import java.util.logging.Logger;
 final class RegionProtectionService {
 
     private static final Path DEFAULT_PATH = Paths.get("obsidiangate", "regions.properties");
-    static final int MAX_REGIONS_PER_PLAYER = 3;
     static final long MAX_HORIZONTAL_AREA = 65536L;
 
     private final Logger logger;
     private final Path storagePath;
     private final Map<String, Region> regions = new LinkedHashMap<String, Region>();
+    private final Map<String, Region> archivedRegions = new LinkedHashMap<String, Region>();
     private final Map<String, Selection> selections = new ConcurrentHashMap<String, Selection>();
 
     RegionProtectionService(Logger logger) {
@@ -41,6 +41,7 @@ final class RegionProtectionService {
 
     synchronized void load() {
         regions.clear();
+        archivedRegions.clear();
         if (!Files.isRegularFile(storagePath)) {
             save();
             return;
@@ -50,10 +51,18 @@ final class RegionProtectionService {
             properties.load(input);
             for (String key : properties.stringPropertyNames()) {
                 if (!key.startsWith("region.") || !key.endsWith(".ownerId")) {
+                    if (!key.startsWith("archive.") || !key.endsWith(".ownerId")) {
+                        continue;
+                    }
+                    String archivedName = key.substring("archive.".length(), key.length() - ".ownerId".length());
+                    Region archived = readRegion("archive.", archivedName, properties);
+                    if (archived != null) {
+                        archivedRegions.put(archivedName, archived);
+                    }
                     continue;
                 }
                 String name = key.substring("region.".length(), key.length() - ".ownerId".length());
-                Region region = readRegion(name, properties);
+                Region region = readRegion("region.", name, properties);
                 if (region != null) {
                     regions.put(name, region);
                 }
@@ -79,7 +88,7 @@ final class RegionProtectionService {
         return selections.get(normalizePlayerId(playerId));
     }
 
-    synchronized ClaimResult claim(String rawName, String ownerId, String ownerName) {
+    synchronized ClaimResult claim(String rawName, String ownerId, String ownerName, int maxRegions) {
         String name = normalizeRegionName(rawName);
         String normalizedOwnerId = normalizePlayerId(ownerId);
         Selection selection = selections.get(normalizedOwnerId);
@@ -92,8 +101,8 @@ final class RegionProtectionService {
         if (regions.containsKey(name)) {
             return ClaimResult.failure("Регион с таким названием уже существует.");
         }
-        if (ownedRegions(normalizedOwnerId).size() >= MAX_REGIONS_PER_PLAYER) {
-            return ClaimResult.failure("Достигнут лимит регионов: " + MAX_REGIONS_PER_PLAYER + ".");
+        if (!RoleLimits.isUnlimited(maxRegions) && ownedRegions(normalizedOwnerId).size() >= maxRegions) {
+            return ClaimResult.failure("Достигнут лимит регионов: " + maxRegions + ".");
         }
 
         Region candidate = Region.fromSelection(name, normalizedOwnerId, ownerName, selection);
@@ -132,9 +141,48 @@ final class RegionProtectionService {
         Region region = requireManagedRegion(regionName, actorId, operator);
         boolean removed = regions.remove(region.name) != null;
         if (removed) {
+            archivedRegions.put(region.name, region);
             save();
         }
         return removed;
+    }
+
+    synchronized boolean setFlag(String regionName, String actorId, String rawFlag, boolean allowed, boolean operator) {
+        Region region = requireManagedRegion(regionName, actorId, operator);
+        RegionFlag flag = RegionFlag.parse(rawFlag);
+        Boolean previous = region.flags.put(flag, Boolean.valueOf(allowed));
+        save();
+        return previous == null || previous.booleanValue() != allowed;
+    }
+
+    synchronized boolean restore(String rawName) {
+        String name = normalizeRegionName(rawName);
+        Region archived = archivedRegions.get(name);
+        if (archived == null) {
+            throw new IllegalArgumentException("Регион не найден в архиве.");
+        }
+        if (regions.containsKey(name)) {
+            throw new IllegalArgumentException("Активный регион с таким названием уже существует.");
+        }
+        Region overlap = firstOverlap(archived);
+        if (overlap != null) {
+            throw new IllegalArgumentException("Восстановлению мешает регион " + overlap.name + ".");
+        }
+        archivedRegions.remove(name);
+        regions.put(name, archived);
+        save();
+        return true;
+    }
+
+    synchronized List<Region> find(String query) {
+        String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        List<Region> result = new ArrayList<Region>();
+        for (Region region : regions.values()) {
+            if (region.name.contains(normalized) || region.ownerName.toLowerCase(Locale.ROOT).contains(normalized)) {
+                result.add(region);
+            }
+        }
+        return Collections.unmodifiableList(result);
     }
 
     synchronized Region region(String rawName) {
@@ -166,6 +214,26 @@ final class RegionProtectionService {
         return region == null || operator || region.allows(playerId, playerName);
     }
 
+    synchronized boolean allows(
+        RegionFlag flag,
+        String playerId,
+        String playerName,
+        boolean operator,
+        int dimension,
+        int x,
+        int y,
+        int z
+    ) {
+        Region region = regionAt(dimension, x, y, z);
+        return region == null || operator || region.allows(playerId, playerName) || region.flag(flag);
+    }
+
+    synchronized boolean crossesProtectedBoundary(int dimension, int sourceX, int sourceY, int sourceZ, int targetX, int targetY, int targetZ) {
+        Region source = regionAt(dimension, sourceX, sourceY, sourceZ);
+        Region target = regionAt(dimension, targetX, targetY, targetZ);
+        return source != target && target != null;
+    }
+
     private Region requireManagedRegion(String rawName, String actorId, boolean operator) {
         Region region = regions.get(normalizeRegionName(rawName));
         if (region == null) {
@@ -186,15 +254,19 @@ final class RegionProtectionService {
         return null;
     }
 
-    private Region readRegion(String name, Properties properties) {
+    private Region readRegion(String namespace, String name, Properties properties) {
         try {
-            String prefix = "region." + name + ".";
+            String prefix = namespace + name + ".";
             Set<String> members = new LinkedHashSet<String>();
             String rawMembers = properties.getProperty(prefix + "members", "");
             for (String member : rawMembers.split(",")) {
                 if (!member.trim().isEmpty()) {
                     members.add(normalizePlayerName(member));
                 }
+            }
+            Map<RegionFlag, Boolean> flags = new LinkedHashMap<RegionFlag, Boolean>();
+            for (RegionFlag flag : RegionFlag.values()) {
+                flags.put(flag, Boolean.valueOf(Boolean.parseBoolean(properties.getProperty(prefix + "flag." + flag.id, "false"))));
             }
             return new Region(
                 normalizeRegionName(name),
@@ -205,7 +277,8 @@ final class RegionProtectionService {
                 Integer.parseInt(properties.getProperty(prefix + "minZ")),
                 Integer.parseInt(properties.getProperty(prefix + "maxX")),
                 Integer.parseInt(properties.getProperty(prefix + "maxZ")),
-                members
+                members,
+                flags
             );
         } catch (RuntimeException exception) {
             logger.warning("Пропущен поврежденный регион " + name + ": " + exception.getMessage());
@@ -216,15 +289,10 @@ final class RegionProtectionService {
     private synchronized void save() {
         Properties properties = new Properties();
         for (Region region : regions.values()) {
-            String prefix = "region." + region.name + ".";
-            properties.setProperty(prefix + "ownerId", region.ownerId);
-            properties.setProperty(prefix + "ownerName", region.ownerName);
-            properties.setProperty(prefix + "dimension", Integer.toString(region.dimension));
-            properties.setProperty(prefix + "minX", Integer.toString(region.minX));
-            properties.setProperty(prefix + "minZ", Integer.toString(region.minZ));
-            properties.setProperty(prefix + "maxX", Integer.toString(region.maxX));
-            properties.setProperty(prefix + "maxZ", Integer.toString(region.maxZ));
-            properties.setProperty(prefix + "members", String.join(",", region.members));
+            writeRegion(properties, "region.", region);
+        }
+        for (Region region : archivedRegions.values()) {
+            writeRegion(properties, "archive.", region);
         }
         try {
             Path parent = storagePath.getParent();
@@ -236,6 +304,21 @@ final class RegionProtectionService {
             }
         } catch (IOException exception) {
             throw new IllegalStateException("Не удалось сохранить приваты.", exception);
+        }
+    }
+
+    private static void writeRegion(Properties properties, String namespace, Region region) {
+        String prefix = namespace + region.name + ".";
+        properties.setProperty(prefix + "ownerId", region.ownerId);
+        properties.setProperty(prefix + "ownerName", region.ownerName);
+        properties.setProperty(prefix + "dimension", Integer.toString(region.dimension));
+        properties.setProperty(prefix + "minX", Integer.toString(region.minX));
+        properties.setProperty(prefix + "minZ", Integer.toString(region.minZ));
+        properties.setProperty(prefix + "maxX", Integer.toString(region.maxX));
+        properties.setProperty(prefix + "maxZ", Integer.toString(region.maxZ));
+        properties.setProperty(prefix + "members", String.join(",", region.members));
+        for (RegionFlag flag : RegionFlag.values()) {
+            properties.setProperty(prefix + "flag." + flag.id, Boolean.toString(region.flag(flag)));
         }
     }
 
@@ -292,6 +375,7 @@ final class RegionProtectionService {
         final int maxX;
         final int maxZ;
         final Set<String> members;
+        final Map<RegionFlag, Boolean> flags;
 
         Region(
             String name,
@@ -302,7 +386,8 @@ final class RegionProtectionService {
             int minZ,
             int maxX,
             int maxZ,
-            Set<String> members
+            Set<String> members,
+            Map<RegionFlag, Boolean> flags
         ) {
             this.name = name;
             this.ownerId = ownerId;
@@ -313,6 +398,7 @@ final class RegionProtectionService {
             this.maxX = Math.max(minX, maxX);
             this.maxZ = Math.max(minZ, maxZ);
             this.members = new LinkedHashSet<String>(members);
+            this.flags = new LinkedHashMap<RegionFlag, Boolean>(flags);
         }
 
         private static Region fromSelection(String name, String ownerId, String ownerName, Selection selection) {
@@ -325,7 +411,8 @@ final class RegionProtectionService {
                 selection.first.z,
                 selection.second.x,
                 selection.second.z,
-                Collections.<String>emptySet()
+                Collections.<String>emptySet(),
+                Collections.<RegionFlag, Boolean>emptyMap()
             );
         }
 
@@ -347,6 +434,34 @@ final class RegionProtectionService {
 
         long horizontalArea() {
             return (long) (maxX - minX + 1) * (long) (maxZ - minZ + 1);
+        }
+
+        boolean flag(RegionFlag flag) {
+            return Boolean.TRUE.equals(flags.get(flag));
+        }
+    }
+
+    enum RegionFlag {
+        PVP("pvp"),
+        DOORS("doors"),
+        CHESTS("chests"),
+        MECHANISMS("mechanisms"),
+        LIQUIDS("liquids");
+
+        final String id;
+
+        RegionFlag(String id) {
+            this.id = id;
+        }
+
+        static RegionFlag parse(String value) {
+            String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+            for (RegionFlag flag : values()) {
+                if (flag.id.equals(normalized)) {
+                    return flag;
+                }
+            }
+            throw new IllegalArgumentException("Флаг: pvp, doors, chests, mechanisms или liquids.");
         }
     }
 
