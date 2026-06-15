@@ -242,6 +242,9 @@ public final class ModpackSyncService {
         if (MinecraftResourcePackOptions.ensureInitialDefaults(gameDirectory, DEFAULT_RESOURCE_PACKS, DEFAULT_LANGUAGE)) {
             log(logSink, "Ресурс-паки и русский язык включены для первого запуска.");
         }
+        if (XaeroUpdateNotificationOptions.disable(gameDirectory)) {
+            log(logSink, "Уведомления Xaero об обновлениях отключены.");
+        }
         if (removedFiles > 0) {
             log(logSink, "Устаревших модов убрано: " + removedFiles);
         }

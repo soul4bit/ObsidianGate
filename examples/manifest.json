@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.15.8",
+    "version":  "2026.06.15.9",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Новое меню и сервер в один клик",
@@ -522,10 +522,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.06.11",
+                           "version":  "2026.06.15.9",
                            "url":  "launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "63881de6206dcf970601dc8194b746d3af7f7fb63ae13e97be25351a182c90cd",
-                           "size":  18130834,
+                           "sha256":  "421ded7cdeea974af38f00c905669c6bde8b8b150f7f49f9b0ae348092a6846c",
+                           "size":  18141287,
                            "required":  true,
                            "artifactVersion":  "0.1.6-test",
                            "fileName":  "obsidian-gate-launcher.jar"
@@ -1244,7 +1244,7 @@
                   },
                   {
                       "path":  "config/forge.cfg",
-                      "sha256":  "00ca0f808052b0564e742e33cfaad180757c64e2a5382647cd99583d7ac4600d",
+                      "sha256":  "a8dadf0c6620b1aa7c9e2a1cdaf16a88985ad66694d864ee4a6abad519df9fe4",
                       "size":  3863,
                       "executable":  false
                   },
@@ -1370,8 +1370,8 @@
                   },
                   {
                       "path":  "config/vanillafix.cfg",
-                      "sha256":  "ff639643176995c7b2faca05e96c24dbe89befc54719bb958180fe8660165b70",
-                      "size":  463,
+                      "sha256":  "03c606910c23978bffa9b3285403519050964e824ae15961c193af51dc619ee7",
+                      "size":  428,
                       "executable":  false
                   },
                   {
@@ -1412,14 +1412,20 @@
                   },
                   {
                       "path":  "defaultconfigs/xaero/minimap/xaerominimap.txt",
-                      "sha256":  "0c309c4ba959df678e1bac6ce7f47064f47df51a89680a988def7e65880df201",
-                      "size":  114,
+                      "sha256":  "5fdb6321e9dec4ae4638dc218d63a0c0afd54f120459bb26436f5374819597fd",
+                      "size":  141,
                       "executable":  false
                   },
                   {
                       "path":  "defaultconfigs/xaero/world-map/profiles/default.cfg",
                       "sha256":  "ebac7fcca543fe54b775638658676393ac4350f71ba348b369cb67f4543b54a9",
                       "size":  298,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "defaultconfigs/xaero/world-map/xaeroworldmap.txt",
+                      "sha256":  "3f560b0c8f6ab217286474e9c9423202db43db1c6b4cae53ef27af9377bd389f",
+                      "size":  27,
                       "executable":  false
                   },
                   {
@@ -1648,6 +1654,12 @@
                       "path":  "mods/Neat+1.4-17.jar",
                       "sha256":  "2062c99a371921fb2eb7cf6833d682c05244ca5a527db8f0c36e7f12c8ca1379",
                       "size":  18527,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
+                      "sha256":  "f73c5f1a411e9caed3d22e43e67c3ea461a95a97dcf86178810e83d77cb05bd1",
+                      "size":  31723,
                       "executable":  false
                   },
                   {
@@ -1984,12 +1996,6 @@
                       "path":  "THIRD_PARTY_MODS.txt",
                       "sha256":  "e7181c21f605900e0e695488dd3be1b8397c0a1392bdf5f5e305013cfca711e2",
                       "size":  5605,
-                      "executable":  false
-                  },
-                  {
-                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "f73c5f1a411e9caed3d22e43e67c3ea461a95a97dcf86178810e83d77cb05bd1",
-                      "size":  31723,
                       "executable":  false
                   }
               ]
