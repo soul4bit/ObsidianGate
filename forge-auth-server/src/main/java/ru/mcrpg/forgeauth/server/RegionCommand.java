@@ -111,7 +111,8 @@ final class RegionCommand {
                 manager,
                 new String[] { "executeCommand", "func_71556_a" },
                 sender,
-                "give " + PlayerIdentity.name(player) + " minecraft:wooden_axe 1"
+                "give " + PlayerIdentity.name(player)
+                    + " minecraft:wooden_axe 1 0 {ObsidianGateRegionWand:1b,display:{Name:\"§6Топор привата\",Lore:[\"§7Исчезает при выбрасывании\"]}}"
             );
             ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "деревянный топор выдан. ЛКМ — точка 1, ПКМ — точка 2.");
         }

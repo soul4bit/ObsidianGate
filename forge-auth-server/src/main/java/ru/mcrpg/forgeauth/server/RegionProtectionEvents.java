@@ -7,6 +7,7 @@ import java.util.List;
 import net.minecraftforge.event.entity.living.EnderTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.BlockEvent;
@@ -52,6 +53,15 @@ final class RegionProtectionEvents {
         event.setUseBlock(Result.DENY);
         event.setUseItem(Result.DENY);
         event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onWandToss(ItemTossEvent event) {
+        Object entityItem = ServerReflection.invoke(event, new String[] { "getEntityItem" });
+        Object stack = ServerReflection.invoke(entityItem, new String[] { "getItem", "func_92059_d" });
+        if (isRegionWand(stack)) {
+            ServerReflection.invoke(entityItem, new String[] { "setDead", "func_70106_y" });
+        }
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -375,12 +385,22 @@ final class RegionProtectionEvents {
             return false;
         }
         Object stack = ServerReflection.invoke(player, new String[] { "getHeldItemMainhand", "func_184614_ca" });
+        return isRegionWand(stack);
+    }
+
+    private static boolean isRegionWand(Object stack) {
         if (stack == null || ServerReflection.bool(ServerReflection.invoke(stack, new String[] { "isEmpty", "func_190926_b" }))) {
             return false;
         }
         Object item = ServerReflection.invoke(stack, new String[] { "getItem", "func_77973_b" });
         Object registryName = ServerReflection.invoke(item, new String[] { "getRegistryName" });
-        return "minecraft:wooden_axe".equals(String.valueOf(registryName));
+        if (!"minecraft:wooden_axe".equals(String.valueOf(registryName))) {
+            return false;
+        }
+        Object tag = ServerReflection.invoke(stack, new String[] { "getTagCompound", "func_77978_p" });
+        return tag != null && ServerReflection.bool(
+            ServerReflection.invoke(tag, new String[] { "getBoolean", "func_74767_n" }, "ObsidianGateRegionWand")
+        );
     }
 
     private static void deny(Object player) {
