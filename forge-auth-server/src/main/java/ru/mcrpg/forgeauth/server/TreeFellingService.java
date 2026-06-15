@@ -16,10 +16,14 @@ final class TreeFellingService {
     private static final int MAX_SEARCH_NODES = 96;
 
     private final Logger logger;
+    private final RegionProtectionService regions;
+    private final RegionAuditService audit;
     private boolean felling;
 
-    TreeFellingService(Logger logger) {
+    TreeFellingService(Logger logger, RegionProtectionService regions, RegionAuditService audit) {
         this.logger = logger;
+        this.regions = regions;
+        this.audit = audit;
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -74,6 +78,33 @@ final class TreeFellingService {
                 }
                 if (!isLog(world, pos)) {
                     continue;
+                }
+                int dimension = TeleportSupport.playerDimension(player);
+                boolean operator = Boolean.TRUE.equals(invokeIfPresent(
+                    player,
+                    new Object[] { Integer.valueOf(2), "rg" },
+                    "canUseCommand",
+                    "func_70003_b"
+                ));
+                if (!regions.canBuild(
+                    PlayerIdentity.id(player),
+                    PlayerIdentity.name(player),
+                    operator,
+                    dimension,
+                    position.x,
+                    position.y,
+                    position.z
+                )) {
+                    continue;
+                }
+                RegionProtectionService.Region region = regions.regionAt(
+                    dimension,
+                    position.x,
+                    position.y,
+                    position.z
+                );
+                if (region != null) {
+                    audit.record(world, pos, player, region);
                 }
                 if (Boolean.TRUE.equals(invokeIfPresent(world, new Object[] { pos, Boolean.TRUE }, "destroyBlock", "func_175655_b"))) {
                     broken++;

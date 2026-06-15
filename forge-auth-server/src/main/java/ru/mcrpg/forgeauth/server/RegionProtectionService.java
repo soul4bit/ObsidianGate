@@ -89,6 +89,10 @@ final class RegionProtectionService {
     }
 
     synchronized ClaimResult claim(String rawName, String ownerId, String ownerName, int maxRegions) {
+        return claim(rawName, ownerId, ownerName, maxRegions, false);
+    }
+
+    synchronized ClaimResult claim(String rawName, String ownerId, String ownerName, int maxRegions, boolean operator) {
         String name = normalizeRegionName(rawName);
         String normalizedOwnerId = normalizePlayerId(ownerId);
         Selection selection = selections.get(normalizedOwnerId);
@@ -109,14 +113,82 @@ final class RegionProtectionService {
         if (candidate.horizontalArea() > MAX_HORIZONTAL_AREA) {
             return ClaimResult.failure("Площадь слишком большая. Максимум: " + MAX_HORIZONTAL_AREA + " блоков.");
         }
-        Region overlap = firstOverlap(candidate);
-        if (overlap != null) {
+        Region overlap = firstOverlap(candidate, null);
+        if (overlap != null && !operator) {
             return ClaimResult.failure("Территория пересекается с регионом " + overlap.name + ".");
+        }
+        if (overlap != null && !allOverlapsNested(candidate, null)) {
+            return ClaimResult.failure("Админ-регионы могут пересекаться только при полном вложении.");
         }
 
         regions.put(name, candidate);
         save();
         return ClaimResult.success(candidate);
+    }
+
+    synchronized Region redefine(String rawName, String actorId, boolean operator) {
+        Region current = requireManagedRegion(rawName, actorId, operator);
+        Selection selection = selections.get(normalizePlayerId(actorId));
+        if (selection == null || selection.first == null || selection.second == null) {
+            throw new IllegalArgumentException("Сначала выделите две точки деревянным топором.");
+        }
+        if (selection.first.dimension != selection.second.dimension) {
+            throw new IllegalArgumentException("Обе точки должны быть в одном измерении.");
+        }
+        Region replacement = Region.fromSelection(
+            current.name,
+            current.ownerId,
+            current.ownerName,
+            selection,
+            current.members,
+            current.flags,
+            current.priority
+        );
+        if (replacement.horizontalArea() > MAX_HORIZONTAL_AREA) {
+            throw new IllegalArgumentException("Площадь превышает " + MAX_HORIZONTAL_AREA + " блоков.");
+        }
+        Region overlap = firstOverlap(replacement, current.name);
+        if (overlap != null && !operator) {
+            throw new IllegalArgumentException("Территория пересекается с регионом " + overlap.name + ".");
+        }
+        if (overlap != null && !allOverlapsNested(replacement, current.name)) {
+            throw new IllegalArgumentException("Админ-регионы могут пересекаться только при полном вложении.");
+        }
+        regions.put(current.name, replacement);
+        save();
+        return replacement;
+    }
+
+    synchronized Region transfer(
+        String rawName,
+        String actorId,
+        String targetId,
+        String targetName,
+        int targetMaxRegions,
+        boolean operator
+    ) {
+        Region current = requireManagedRegion(rawName, actorId, operator);
+        String normalizedTargetId = normalizePlayerId(targetId);
+        if (!current.ownerId.equals(normalizedTargetId)
+            && !RoleLimits.isUnlimited(targetMaxRegions)
+            && ownedRegions(normalizedTargetId).size() >= targetMaxRegions) {
+            throw new IllegalArgumentException("У нового владельца достигнут лимит регионов: " + targetMaxRegions + ".");
+        }
+        Region replacement = current.withOwner(normalizedTargetId, targetName);
+        regions.put(current.name, replacement);
+        save();
+        return replacement;
+    }
+
+    synchronized Region setPriority(String rawName, int priority) {
+        Region current = regions.get(normalizeRegionName(rawName));
+        if (current == null) {
+            throw new IllegalArgumentException("Регион не найден.");
+        }
+        Region replacement = current.withPriority(priority);
+        regions.put(current.name, replacement);
+        save();
+        return replacement;
     }
 
     synchronized boolean addMember(String regionName, String actorId, String memberName, boolean operator) {
@@ -164,7 +236,7 @@ final class RegionProtectionService {
         if (regions.containsKey(name)) {
             throw new IllegalArgumentException("Активный регион с таким названием уже существует.");
         }
-        Region overlap = firstOverlap(archived);
+        Region overlap = firstOverlap(archived, null);
         if (overlap != null) {
             throw new IllegalArgumentException("Восстановлению мешает регион " + overlap.name + ".");
         }
@@ -190,12 +262,13 @@ final class RegionProtectionService {
     }
 
     synchronized Region regionAt(int dimension, int x, int y, int z) {
+        Region selected = null;
         for (Region region : regions.values()) {
-            if (region.contains(dimension, x, y, z)) {
-                return region;
+            if (region.contains(dimension, x, y, z) && isPreferred(region, selected)) {
+                selected = region;
             }
         }
-        return null;
+        return selected;
     }
 
     synchronized List<Region> ownedRegions(String ownerId) {
@@ -245,13 +318,35 @@ final class RegionProtectionService {
         return region;
     }
 
-    private Region firstOverlap(Region candidate) {
+    private Region firstOverlap(Region candidate, String ignoredName) {
         for (Region region : regions.values()) {
-            if (candidate.overlaps(region)) {
+            if ((ignoredName == null || !region.name.equals(ignoredName)) && candidate.overlaps(region)) {
                 return region;
             }
         }
         return null;
+    }
+
+    private boolean allOverlapsNested(Region candidate, String ignoredName) {
+        for (Region region : regions.values()) {
+            if ((ignoredName == null || !region.name.equals(ignoredName))
+                && candidate.overlaps(region)
+                && !candidate.containsRegion(region)
+                && !region.containsRegion(candidate)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isPreferred(Region candidate, Region current) {
+        if (current == null || candidate.priority != current.priority) {
+            return current == null || candidate.priority > current.priority;
+        }
+        if (candidate.horizontalArea() != current.horizontalArea()) {
+            return candidate.horizontalArea() < current.horizontalArea();
+        }
+        return candidate.name.compareTo(current.name) < 0;
     }
 
     private Region readRegion(String namespace, String name, Properties properties) {
@@ -278,7 +373,8 @@ final class RegionProtectionService {
                 Integer.parseInt(properties.getProperty(prefix + "maxX")),
                 Integer.parseInt(properties.getProperty(prefix + "maxZ")),
                 members,
-                flags
+                flags,
+                Integer.parseInt(properties.getProperty(prefix + "priority", "0"))
             );
         } catch (RuntimeException exception) {
             logger.warning("Пропущен поврежденный регион " + name + ": " + exception.getMessage());
@@ -316,6 +412,7 @@ final class RegionProtectionService {
         properties.setProperty(prefix + "minZ", Integer.toString(region.minZ));
         properties.setProperty(prefix + "maxX", Integer.toString(region.maxX));
         properties.setProperty(prefix + "maxZ", Integer.toString(region.maxZ));
+        properties.setProperty(prefix + "priority", Integer.toString(region.priority));
         properties.setProperty(prefix + "members", String.join(",", region.members));
         for (RegionFlag flag : RegionFlag.values()) {
             properties.setProperty(prefix + "flag." + flag.id, Boolean.toString(region.flag(flag)));
@@ -376,6 +473,7 @@ final class RegionProtectionService {
         final int maxZ;
         final Set<String> members;
         final Map<RegionFlag, Boolean> flags;
+        final int priority;
 
         Region(
             String name,
@@ -387,7 +485,8 @@ final class RegionProtectionService {
             int maxX,
             int maxZ,
             Set<String> members,
-            Map<RegionFlag, Boolean> flags
+            Map<RegionFlag, Boolean> flags,
+            int priority
         ) {
             this.name = name;
             this.ownerId = ownerId;
@@ -399,9 +498,30 @@ final class RegionProtectionService {
             this.maxZ = Math.max(minZ, maxZ);
             this.members = new LinkedHashSet<String>(members);
             this.flags = new LinkedHashMap<RegionFlag, Boolean>(flags);
+            this.priority = priority;
         }
 
         private static Region fromSelection(String name, String ownerId, String ownerName, Selection selection) {
+            return fromSelection(
+                name,
+                ownerId,
+                ownerName,
+                selection,
+                Collections.<String>emptySet(),
+                Collections.<RegionFlag, Boolean>emptyMap(),
+                0
+            );
+        }
+
+        private static Region fromSelection(
+            String name,
+            String ownerId,
+            String ownerName,
+            Selection selection,
+            Set<String> members,
+            Map<RegionFlag, Boolean> flags,
+            int priority
+        ) {
             return new Region(
                 name,
                 ownerId,
@@ -411,9 +531,18 @@ final class RegionProtectionService {
                 selection.first.z,
                 selection.second.x,
                 selection.second.z,
-                Collections.<String>emptySet(),
-                Collections.<RegionFlag, Boolean>emptyMap()
+                members,
+                flags,
+                priority
             );
+        }
+
+        private Region withOwner(String newOwnerId, String newOwnerName) {
+            return new Region(name, newOwnerId, newOwnerName, dimension, minX, minZ, maxX, maxZ, members, flags, priority);
+        }
+
+        private Region withPriority(int newPriority) {
+            return new Region(name, ownerId, ownerName, dimension, minX, minZ, maxX, maxZ, members, flags, newPriority);
         }
 
         boolean contains(int targetDimension, int x, int y, int z) {
@@ -426,6 +555,14 @@ final class RegionProtectionService {
                 && maxX >= other.minX
                 && minZ <= other.maxZ
                 && maxZ >= other.minZ;
+        }
+
+        boolean containsRegion(Region other) {
+            return dimension == other.dimension
+                && minX <= other.minX
+                && maxX >= other.maxX
+                && minZ <= other.minZ
+                && maxZ >= other.maxZ;
         }
 
         boolean allows(String playerId, String playerName) {
@@ -446,7 +583,11 @@ final class RegionProtectionService {
         DOORS("doors"),
         CHESTS("chests"),
         MECHANISMS("mechanisms"),
-        LIQUIDS("liquids");
+        LIQUIDS("liquids"),
+        MOB_SPAWN("mob-spawn"),
+        EXPLOSIONS("explosions"),
+        FIRE_SPREAD("fire-spread"),
+        ENDERPEARL("enderpearl");
 
         final String id;
 
@@ -461,7 +602,9 @@ final class RegionProtectionService {
                     return flag;
                 }
             }
-            throw new IllegalArgumentException("Флаг: pvp, doors, chests, mechanisms или liquids.");
+            throw new IllegalArgumentException(
+                "Флаг: pvp, doors, chests, mechanisms, liquids, mob-spawn, explosions, fire-spread или enderpearl."
+            );
         }
     }
 

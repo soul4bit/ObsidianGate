@@ -129,6 +129,52 @@ class RegionProtectionServiceTest {
     }
 
     @Test
+    void nestedAdminRegionsUsePriorityAndRejectPartialOverlap() {
+        Path path = tempDirectory.resolve("regions.properties");
+        RegionProtectionService service = service(path);
+        select(service, "owner", 0, 0, 0, 20, 20);
+        assertTrue(service.claim("outer", "owner", "Owner", 3).success);
+
+        select(service, "admin", 0, 5, 5, 10, 10);
+        assertTrue(service.claim("inner", "admin", "Admin", Integer.MAX_VALUE, true).success);
+        service.setPriority("inner", 10);
+        assertEquals("inner", service.regionAt(0, 7, 64, 7).name);
+        assertEquals("outer", service.regionAt(0, 15, 64, 15).name);
+
+        select(service, "admin", 0, 18, 18, 25, 25);
+        assertFalse(service.claim("partial", "admin", "Admin", Integer.MAX_VALUE, true).success);
+
+        RegionProtectionService restored = service(path);
+        assertEquals(10, restored.region("inner").priority);
+        assertEquals("inner", restored.regionAt(0, 7, 64, 7).name);
+    }
+
+    @Test
+    void redefinePreservesSettingsAndTransferChangesOwner() {
+        Path path = tempDirectory.resolve("regions.properties");
+        RegionProtectionService service = service(path);
+        select(service, "owner", 0, 0, 0, 5, 5);
+        assertTrue(service.claim("home", "owner", "Owner", 3).success);
+        service.addMember("home", "owner", "Friend", false);
+        service.setFlag("home", "owner", "enderpearl", true, false);
+
+        select(service, "owner", 0, 20, 20, 30, 30);
+        RegionProtectionService.Region redefined = service.redefine("home", "owner", false);
+        assertEquals(20, redefined.minX);
+        assertTrue(redefined.members.contains("friend"));
+        assertTrue(redefined.flag(RegionProtectionService.RegionFlag.ENDERPEARL));
+
+        RegionProtectionService.Region transferred = service.transfer("home", "owner", "new-owner", "NewOwner", 3, false);
+        assertEquals("new-owner", transferred.ownerId);
+        assertFalse(service.canBuild("owner", "Owner", false, 0, 25, 64, 25));
+        assertTrue(service.canBuild("new-owner", "NewOwner", false, 0, 25, 64, 25));
+
+        RegionProtectionService restored = service(path);
+        assertEquals("new-owner", restored.region("home").ownerId);
+        assertTrue(restored.region("home").flag(RegionProtectionService.RegionFlag.ENDERPEARL));
+    }
+
+    @Test
     void validatesRegionNames() {
         assertEquals("base-1", RegionProtectionService.normalizeRegionName("Base-1"));
         assertThrows(IllegalArgumentException.class, () -> RegionProtectionService.normalizeRegionName("дом"));

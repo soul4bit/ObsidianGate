@@ -4,7 +4,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Iterator;
 import java.util.List;
+import net.minecraftforge.event.entity.living.EnderTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.LivingSpawnEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
@@ -17,11 +20,13 @@ final class RegionProtectionEvents {
 
     private static final String SUBJECT = "Приват";
     private final RegionProtectionService regions;
+    private final RegionAuditService audit;
     private final Map<String, String> playerRegions = new ConcurrentHashMap<String, String>();
     private final Map<String, Long> lastRegionChecks = new ConcurrentHashMap<String, Long>();
 
-    RegionProtectionEvents(RegionProtectionService regions) {
+    RegionProtectionEvents(RegionProtectionService regions, RegionAuditService audit) {
         this.regions = regions;
+        this.audit = audit;
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -51,19 +56,85 @@ final class RegionProtectionEvents {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockEvent.BreakEvent event) {
         Object player = ServerReflection.invoke(event, new String[] { "getPlayer" });
-        if (!canBuild(player, ServerReflection.invoke(event, new String[] { "getPos" }))) {
+        Object pos = ServerReflection.invoke(event, new String[] { "getPos" });
+        if (!canBuild(player, pos)) {
             event.setCanceled(true);
             event.setExpToDrop(0);
             deny(player);
+            return;
+        }
+        RegionProtectionService.Region region = regionAt(player, pos);
+        if (region != null) {
+            audit.record(ServerReflection.invoke(event, new String[] { "getWorld" }), pos, player, region);
         }
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockPlace(BlockEvent.PlaceEvent event) {
         Object player = ServerReflection.invoke(event, new String[] { "getPlayer" });
-        if (!canBuild(player, ServerReflection.invoke(event, new String[] { "getPos" }))) {
+        Object pos = ServerReflection.invoke(event, new String[] { "getPos" });
+        if (!canBuild(player, pos)) {
             event.setCanceled(true);
             deny(player);
+            return;
+        }
+        RegionProtectionService.Region region = regionAt(player, pos);
+        if (region != null) {
+            audit.recordSnapshot(ServerReflection.invoke(event, new String[] { "getBlockSnapshot" }), player, region);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onEntityAttack(AttackEntityEvent event) {
+        Object player = ServerReflection.invoke(event, new String[] { "getEntityPlayer", "getEntity" });
+        Object target = ServerReflection.invoke(event, new String[] { "getTarget" });
+        if (isProtectedEntity(target) && !canUseEntity(player, target)) {
+            event.setCanceled(true);
+            deny(player);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        Object player = ServerReflection.invoke(event, new String[] { "getEntityPlayer", "getEntity" });
+        Object target = ServerReflection.invoke(event, new String[] { "getTarget" });
+        if (isProtectedEntity(target) && !canUseEntity(player, target)) {
+            event.setCanceled(true);
+            deny(player);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onMobSpawn(LivingSpawnEvent.CheckSpawn event) {
+        Object entity = ServerReflection.invoke(event, new String[] { "getEntityLiving", "getEntity" });
+        RegionProtectionService.Region region = regionAt(entity);
+        if (region != null && !region.flag(RegionProtectionService.RegionFlag.MOB_SPAWN)) {
+            event.setResult(Result.DENY);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onEnderTeleport(EnderTeleportEvent event) {
+        Object entity = ServerReflection.invoke(event, new String[] { "getEntityLiving", "getEntity" });
+        if (!isPlayer(entity)) {
+            return;
+        }
+        int dimension = TeleportSupport.playerDimension(entity);
+        int targetX = (int) Math.floor(number(ServerReflection.invoke(event, new String[] { "getTargetX" })));
+        int targetY = (int) Math.floor(number(ServerReflection.invoke(event, new String[] { "getTargetY" })));
+        int targetZ = (int) Math.floor(number(ServerReflection.invoke(event, new String[] { "getTargetZ" })));
+        if (!regions.allows(
+            RegionProtectionService.RegionFlag.ENDERPEARL,
+            PlayerIdentity.id(entity),
+            PlayerIdentity.name(entity),
+            isOperator(entity),
+            dimension,
+            targetX,
+            targetY,
+            targetZ
+        )) {
+            event.setCanceled(true);
+            ServerChat.status(entity, ServerChat.Tone.WARNING, SUBJECT, "Ender pearl teleport is disabled in this region.");
         }
     }
 
@@ -127,6 +198,13 @@ final class RegionProtectionEvents {
             return;
         }
         int dimension = dimension(world);
+        RegionProtectionService.Region sourceRegion = regions.regionAt(dimension, x(source), y(source), z(source));
+        if (block.contains("fire")
+            && sourceRegion != null
+            && !sourceRegion.flag(RegionProtectionService.RegionFlag.FIRE_SPREAD)) {
+            event.setCanceled(true);
+            return;
+        }
         int[][] offsets = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
         for (int[] offset : offsets) {
             int targetX = x(source) + offset[0];
@@ -134,9 +212,11 @@ final class RegionProtectionEvents {
             int targetZ = z(source) + offset[2];
             if (regions.crossesProtectedBoundary(dimension, x(source), y(source), z(source), targetX, targetY, targetZ)) {
                 RegionProtectionService.Region target = regions.regionAt(dimension, targetX, targetY, targetZ);
-                RegionProtectionService.RegionFlag flag = isLiquidOrFire(block)
-                    ? RegionProtectionService.RegionFlag.LIQUIDS
-                    : RegionProtectionService.RegionFlag.MECHANISMS;
+                RegionProtectionService.RegionFlag flag = block.contains("fire")
+                    ? RegionProtectionService.RegionFlag.FIRE_SPREAD
+                    : isLiquid(block)
+                        ? RegionProtectionService.RegionFlag.LIQUIDS
+                        : RegionProtectionService.RegionFlag.MECHANISMS;
                 if (target != null && !target.flag(flag)) {
                     event.setCanceled(true);
                     return;
@@ -194,10 +274,36 @@ final class RegionProtectionEvents {
         Iterator<?> iterator = ((List<?>) rawAffected).iterator();
         while (iterator.hasNext()) {
             Object pos = iterator.next();
-            if (regions.regionAt(dimension, x(pos), y(pos), z(pos)) != null) {
+            RegionProtectionService.Region region = regions.regionAt(dimension, x(pos), y(pos), z(pos));
+            if (region != null && !region.flag(RegionProtectionService.RegionFlag.EXPLOSIONS)) {
                 iterator.remove();
             }
         }
+    }
+
+    private RegionProtectionService.Region regionAt(Object entity) {
+        return regions.regionAt(
+            TeleportSupport.playerDimension(entity),
+            (int) Math.floor(TeleportSupport.playerX(entity)),
+            (int) Math.floor(TeleportSupport.playerY(entity)),
+            (int) Math.floor(TeleportSupport.playerZ(entity))
+        );
+    }
+
+    private RegionProtectionService.Region regionAt(Object player, Object pos) {
+        return regions.regionAt(TeleportSupport.playerDimension(player), x(pos), y(pos), z(pos));
+    }
+
+    private boolean canUseEntity(Object player, Object entity) {
+        return regions.canBuild(
+            PlayerIdentity.id(player),
+            PlayerIdentity.name(player),
+            isOperator(player),
+            TeleportSupport.playerDimension(entity),
+            (int) Math.floor(TeleportSupport.playerX(entity)),
+            (int) Math.floor(TeleportSupport.playerY(entity)),
+            (int) Math.floor(TeleportSupport.playerZ(entity))
+        );
     }
 
     private void setSelection(Object player, int point, Object pos) {
@@ -301,8 +407,23 @@ final class RegionProtectionEvents {
         return containsAny(name, "piston", "hopper", "fire", "water", "lava", "fluid");
     }
 
-    private static boolean isLiquidOrFire(String name) {
-        return containsAny(name, "fire", "water", "lava", "fluid");
+    private static boolean isLiquid(String name) {
+        return containsAny(name, "water", "lava", "fluid");
+    }
+
+    private static boolean isProtectedEntity(Object entity) {
+        if (entity == null) {
+            return false;
+        }
+        Class<?> type = entity.getClass();
+        while (type != null) {
+            String name = type.getName().toLowerCase();
+            if (containsAny(name, "itemframe", "armorstand", "entityanimal", "minecart")) {
+                return true;
+            }
+            type = type.getSuperclass();
+        }
+        return false;
     }
 
     private static boolean containsAny(String value, String... needles) {
@@ -316,6 +437,10 @@ final class RegionProtectionEvents {
 
     private static boolean isPlayer(Object entity) {
         return entity != null && entity.getClass().getName().toLowerCase().contains("player");
+    }
+
+    private static double number(Object value) {
+        return value instanceof Number ? ((Number) value).doubleValue() : 0.0D;
     }
 
     private static boolean equals(String first, String second) {

@@ -16,9 +16,9 @@ final class RegionCommand {
     private RegionCommand() {
     }
 
-    static void register(FMLServerStartingEvent event, RegionProtectionService regions, PlayerRoleLookup roles) {
+    static void register(FMLServerStartingEvent event, RegionProtectionService regions, RegionAuditService audit, PlayerRoleLookup roles) {
         register(event, "/wand", Collections.singletonList("wand"), new WandHandler());
-        register(event, "rg", Arrays.asList("region", "регион"), new RegionHandler(regions, roles));
+        register(event, "rg", Arrays.asList("region", "регион"), new RegionHandler(regions, audit, roles));
     }
 
     private static void register(
@@ -123,10 +123,12 @@ final class RegionCommand {
 
     private static final class RegionHandler implements CommandExecutor {
         private final RegionProtectionService regions;
+        private final RegionAuditService audit;
         private final PlayerRoleLookup roles;
 
-        private RegionHandler(RegionProtectionService regions, PlayerRoleLookup roles) {
+        private RegionHandler(RegionProtectionService regions, RegionAuditService audit, PlayerRoleLookup roles) {
             this.regions = regions;
+            this.audit = audit;
             this.roles = roles;
         }
 
@@ -140,6 +142,16 @@ final class RegionCommand {
             try {
                 if ("claim".equals(action) && args.length == 2) {
                     claim(player, args[1]);
+                } else if ("redefine".equals(action) && args.length == 2) {
+                    RegionProtectionService.Region region = regions.redefine(args[1], PlayerIdentity.id(player), isOperator(player));
+                    ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "Границы региона " + ServerChat.value(region.name) + " изменены.");
+                } else if ("transfer".equals(action) && args.length == 3) {
+                    transfer(server, player, args[1], args[2]);
+                } else if ("setpriority".equals(action) && args.length == 3 && isOperator(player)) {
+                    RegionProtectionService.Region region = regions.setPriority(args[1], Integer.parseInt(args[2]));
+                    ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "приоритет региона: " + region.priority + ".");
+                } else if ("rollback".equals(action) && args.length >= 2 && args.length <= 4) {
+                    rollback(server, player, args);
                 } else if ("flag".equals(action) && args.length == 4) {
                     boolean allowed = parseState(args[3]);
                     regions.setFlag(args[1], PlayerIdentity.id(player), args[2], allowed, isOperator(player));
@@ -176,7 +188,8 @@ final class RegionCommand {
                 name,
                 PlayerIdentity.id(player),
                 PlayerIdentity.name(player),
-                RoleLimits.forRole(roles.roleFor(player)).maxRegions()
+                RoleLimits.forRole(roles.roleFor(player)).maxRegions(),
+                isOperator(player)
             );
             if (!result.success) {
                 ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, result.message);
@@ -189,6 +202,47 @@ final class RegionCommand {
                 "регион " + ServerChat.value(result.region.name) + " создан, площадь "
                     + ServerChat.value(result.region.horizontalArea()) + "."
             );
+        }
+
+        private void transfer(Object server, Object player, String regionName, String targetName) {
+            Object target = TeleportSupport.findOnlinePlayer(server, targetName);
+            if (target == null) {
+                throw new IllegalArgumentException("Новый владелец должен быть онлайн.");
+            }
+            RegionProtectionService.Region region = regions.transfer(
+                regionName,
+                PlayerIdentity.id(player),
+                PlayerIdentity.id(target),
+                PlayerIdentity.name(target),
+                RoleLimits.forRole(roles.roleFor(target)).maxRegions(),
+                isOperator(player)
+            );
+            ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион передан игроку " + ServerChat.value(region.ownerName) + ".");
+            ServerChat.status(target, ServerChat.Tone.SUCCESS, SUBJECT, "вам передан регион " + ServerChat.value(region.name) + ".");
+        }
+
+        private void rollback(Object server, Object player, String[] args) {
+            RegionProtectionService.Region region = regions.region(args[1]);
+            if (region == null) {
+                throw new IllegalArgumentException("Регион не найден.");
+            }
+            if (!isOperator(player) && !region.ownerId.equals(PlayerIdentity.id(player))) {
+                throw new IllegalArgumentException("Откат доступен только владельцу региона.");
+            }
+            String playerFilter = null;
+            int limit = 100;
+            if (args.length >= 3) {
+                if (args[2].matches("\\d+")) {
+                    limit = Integer.parseInt(args[2]);
+                } else {
+                    playerFilter = args[2];
+                }
+            }
+            if (args.length == 4) {
+                limit = Integer.parseInt(args[3]);
+            }
+            int restored = audit.rollback(server, player, region, playerFilter, limit);
+            ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "восстановлено изменений: " + ServerChat.value(restored) + ".");
         }
 
         private void list(Object player) {
@@ -227,6 +281,7 @@ final class RegionCommand {
                 ServerChat.value(region.name) + ", владелец " + ServerChat.value(region.ownerName)
                     + ", участники " + ServerChat.value(region.members.isEmpty() ? "нет" : region.members)
                     + ", флаги " + ServerChat.value(flagSummary(region))
+                    + ", приоритет " + region.priority
                     + ", границы X " + region.minX + ".." + region.maxX + ", Z " + region.minZ + ".." + region.maxZ + "."
             );
         }
@@ -279,7 +334,7 @@ final class RegionCommand {
 
         @Override
         public String usage() {
-            return "/rg <claim|flag|show|info|list|addmember|removemember|delete|admin>";
+            return "/rg <claim|redefine|transfer|setpriority|rollback|flag|show|info|list|addmember|removemember|delete|admin>";
         }
     }
 
@@ -352,6 +407,10 @@ final class RegionCommand {
 
     private static void usage(Object player) {
         ServerChat.usage(player, "/rg claim <название>");
+        ServerChat.usage(player, "/rg redefine <регион>");
+        ServerChat.usage(player, "/rg transfer <регион> <игрок>");
+        ServerChat.usage(player, "/rg setpriority <регион> <число>");
+        ServerChat.usage(player, "/rg rollback <регион> [игрок] [количество]");
         ServerChat.usage(player, "/rg info [название]");
         ServerChat.usage(player, "/rg show [название]");
         ServerChat.usage(player, "/rg flag <регион> <флаг> <allow|deny>");

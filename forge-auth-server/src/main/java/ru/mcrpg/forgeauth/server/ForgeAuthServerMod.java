@@ -43,10 +43,11 @@ public final class ForgeAuthServerMod {
     private static final HomeRespawnService HOME_RESPAWN = new HomeRespawnService(LOGGER, HOME_SERVICE);
     private static final TeleportGuardService TELEPORT_GUARD = new TeleportGuardService();
     private static final BackLocationService BACK_LOCATIONS = new BackLocationService(LOGGER);
-    private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER);
     private static final PlayerDataGuardService PLAYERDATA_GUARD = new PlayerDataGuardService(LOGGER);
     private static final RegionProtectionService REGIONS = new RegionProtectionService(LOGGER);
-    private static final RegionProtectionEvents REGION_EVENTS = new RegionProtectionEvents(REGIONS);
+    private static final RegionAuditService REGION_AUDIT = new RegionAuditService(LOGGER);
+    private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER, REGIONS, REGION_AUDIT);
+    private static final RegionProtectionEvents REGION_EVENTS = new RegionProtectionEvents(REGIONS, REGION_AUDIT);
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -112,7 +113,7 @@ public final class ForgeAuthServerMod {
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
         AchievementCommand.register(event, ACHIEVEMENTS);
-        RegionCommand.register(event, REGIONS, LIFECYCLE);
+        RegionCommand.register(event, REGIONS, REGION_AUDIT, LIFECYCLE);
         HelpCommand.register(event);
     }
 
