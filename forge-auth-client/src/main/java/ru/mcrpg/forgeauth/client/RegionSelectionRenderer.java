@@ -9,7 +9,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 final class RegionSelectionRenderer {
 
-    private static final long MESSAGE_TIMEOUT_MS = 2600L;
+    private static final long MESSAGE_TIMEOUT_MS = 300000L;
     private static final int GL_LINES = 1;
     private static final int GL_BLEND = 3042;
     private static final int GL_CULL_FACE = 2884;
@@ -23,6 +23,10 @@ final class RegionSelectionRenderer {
 
     static void update(RegionSelectionMessage message) {
         selection = message.visible ? new Selection(message) : null;
+    }
+
+    static void clear() {
+        selection = null;
     }
 
     @SubscribeEvent

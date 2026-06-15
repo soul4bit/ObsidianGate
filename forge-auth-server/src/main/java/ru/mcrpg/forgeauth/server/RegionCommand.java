@@ -19,6 +19,7 @@ final class RegionCommand {
     static void register(FMLServerStartingEvent event, RegionProtectionService regions, RegionAuditService audit, PlayerRoleLookup roles) {
         register(event, "/wand", Collections.singletonList("wand"), new WandHandler());
         register(event, "/expand", Arrays.asList("expand", "/exp", "exp"), new ExpandHandler(regions));
+        register(event, "/sel", Collections.singletonList("sel"), new SelectionHandler(regions));
         register(event, "rg", Arrays.asList("region", "регион"), new RegionHandler(regions, audit, roles));
     }
 
@@ -168,6 +169,30 @@ final class RegionCommand {
         }
     }
 
+    private static final class SelectionHandler implements CommandExecutor {
+        private final RegionProtectionService regions;
+
+        private SelectionHandler(RegionProtectionService regions) {
+            this.regions = regions;
+        }
+
+        @Override
+        public void execute(Object server, Object sender, String[] args) {
+            Object player = player(sender);
+            if (player == null) {
+                return;
+            }
+            regions.clearSelection(PlayerIdentity.id(player));
+            hideSelection(player);
+            ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "выделение скрыто.");
+        }
+
+        @Override
+        public String usage() {
+            return "//sel";
+        }
+    }
+
     private static final class RegionHandler implements CommandExecutor {
         private final RegionProtectionService regions;
         private final RegionAuditService audit;
@@ -210,7 +235,7 @@ final class RegionCommand {
                         audit.recordAction(player, "flag", region, args[2] + "=" + (allowed ? "allow" : "deny"));
                     }
                 } else if ("show".equals(action) && args.length <= 2) {
-                    show(server, player, args.length == 2 ? args[1] : null);
+                    show(player, args.length == 2 ? args[1] : null);
                 } else if (("addmember".equals(action) || "add".equals(action)) && args.length == 3) {
                     boolean changed = regions.addMember(args[1], PlayerIdentity.id(player), args[2], isOperator(player));
                     result(player, changed, "Игрок добавлен.", "Игрок уже является участником.");
@@ -390,7 +415,7 @@ final class RegionCommand {
             );
         }
 
-        private void show(Object server, Object player, String name) {
+        private void show(Object player, String name) {
             RegionProtectionService.Region region = name == null
                 ? regions.regionAt(
                     TeleportSupport.playerDimension(player),
@@ -402,19 +427,8 @@ final class RegionCommand {
             if (region == null) {
                 throw new IllegalArgumentException("Регион не найден.");
             }
-            int y = Math.max(1, Math.min(254, (int) Math.floor(TeleportSupport.playerY(player))));
-            Object manager = ServerReflection.invoke(server, new String[] { "getCommandManager", "func_71187_D" });
-            Object sender = silentCommandSender(player);
-            int step = Math.max(1, Math.max(region.maxX - region.minX, region.maxZ - region.minZ) / 32);
-            for (int x = region.minX; x <= region.maxX; x += step) {
-                particle(manager, sender, player, x, y, region.minZ);
-                particle(manager, sender, player, x, y, region.maxZ);
-            }
-            for (int z = region.minZ; z <= region.maxZ; z += step) {
-                particle(manager, sender, player, region.minX, y, z);
-                particle(manager, sender, player, region.maxX, y, z);
-            }
-            ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "границы " + ServerChat.value(region.name) + " показаны частицами.");
+            showSelection(player, region);
+            ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "границы " + ServerChat.value(region.name) + " показаны.");
         }
 
         private void admin(Object player, String[] args) {
@@ -503,15 +517,6 @@ final class RegionCommand {
         return result.toString();
     }
 
-    private static void particle(Object manager, Object sender, Object player, int x, int y, int z) {
-        ServerReflection.invoke(
-            manager,
-            new String[] { "executeCommand", "func_71556_a" },
-            sender,
-            "particle reddust " + x + " " + y + " " + z + " 0 0 0 0 1 force " + PlayerIdentity.name(player)
-        );
-    }
-
     static void showSelection(Object player, RegionProtectionService.Selection selection) {
         if (player == null) {
             return;
@@ -524,6 +529,22 @@ final class RegionCommand {
             return;
         }
         sendToPlayer(player, RegionSelectionMessage.visible(selection.first, selection.second));
+    }
+
+    static void showSelection(Object player, RegionProtectionService.Region region) {
+        if (player == null || region == null) {
+            return;
+        }
+        if (ForgeAuthServerMod.networkChannel() == null) {
+            return;
+        }
+        sendToPlayer(
+            player,
+            RegionSelectionMessage.visible(
+                new RegionProtectionService.Position(region.dimension, region.minX, region.minY, region.minZ),
+                new RegionProtectionService.Position(region.dimension, region.maxX, region.maxY, region.maxZ)
+            )
+        );
     }
 
     static void hideSelection(Object player) {
@@ -576,42 +597,6 @@ final class RegionCommand {
         throw new IllegalStateException("Forge network channel does not expose sendTo.");
     }
 
-    private static Object silentCommandSender(final Object player) {
-        try {
-            Class<?> senderType = Class.forName("net.minecraft.command.ICommandSender");
-            return Proxy.newProxyInstance(
-                senderType.getClassLoader(),
-                new Class<?>[] { senderType },
-                (proxy, method, args) -> {
-                    String name = method.getName();
-                    if ("sendMessage".equals(name) || "func_145747_a".equals(name)) {
-                        return null;
-                    }
-                    if ("sendCommandFeedback".equals(name) || "func_174792_t".equals(name)) {
-                        return Boolean.FALSE;
-                    }
-                    if ("equals".equals(name)) {
-                        return Boolean.valueOf(args != null && args.length > 0 && proxy == args[0]);
-                    }
-                    if ("hashCode".equals(name)) {
-                        return Integer.valueOf(System.identityHashCode(proxy));
-                    }
-                    if ("toString".equals(name)) {
-                        return "ObsidianGateSelectionSender";
-                    }
-                    try {
-                        method.setAccessible(true);
-                        return method.invoke(player, args == null ? new Object[0] : args);
-                    } catch (ReflectiveOperationException exception) {
-                        return defaultValue(method.getReturnType());
-                    }
-                }
-            );
-        } catch (ClassNotFoundException | LinkageError exception) {
-            return player;
-        }
-    }
-
     private static String selectionSummary(RegionProtectionService.Selection selection) {
         int minX = Math.min(selection.first.x, selection.second.x);
         int minY = Math.min(selection.first.y, selection.second.y);
@@ -647,6 +632,7 @@ final class RegionCommand {
     private static void usage(Object player) {
         ServerChat.usage(player, "/rg claim <название>");
         ServerChat.usage(player, "//expand <блоки> <направление> [...]");
+        ServerChat.usage(player, "//sel");
         ServerChat.usage(player, "/rg redefine <регион>");
         ServerChat.usage(player, "/rg transfer <регион> <игрок>");
         ServerChat.usage(player, "/rg setpriority <регион> <число>");

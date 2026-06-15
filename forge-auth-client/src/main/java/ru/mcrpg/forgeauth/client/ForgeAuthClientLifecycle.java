@@ -44,6 +44,7 @@ final class ForgeAuthClientLifecycle {
     @SubscribeEvent
     public void onConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
         RegionHudRenderer.clear();
+        RegionSelectionRenderer.clear();
         pendingSession = null;
         pendingSessionPath = null;
         pendingProof = null;
@@ -141,6 +142,7 @@ final class ForgeAuthClientLifecycle {
     @SubscribeEvent
     public void onDisconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         RegionHudRenderer.clear();
+        RegionSelectionRenderer.clear();
         pendingSession = null;
         pendingSessionPath = null;
         pendingProof = null;

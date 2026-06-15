@@ -88,6 +88,10 @@ final class RegionProtectionService {
         return selections.get(normalizePlayerId(playerId));
     }
 
+    void clearSelection(String playerId) {
+        selections.remove(normalizePlayerId(playerId));
+    }
+
     Selection expandSelection(String playerId, int amount, String... rawDirections) {
         if (amount < 1 || amount > 255) {
             throw new IllegalArgumentException("Размер расширения должен быть от 1 до 255 блоков.");
