@@ -296,10 +296,11 @@ final class RegionProtectionEvents {
                 RegionCommand.hideSelection(player);
             }
         }
-        Long previousCheck = lastRegionChecks.put(playerId, Long.valueOf(now));
+        Long previousCheck = lastRegionChecks.get(playerId);
         if (previousCheck != null && now - previousCheck.longValue() < 1000L) {
             return;
         }
+        lastRegionChecks.put(playerId, Long.valueOf(now));
         RegionProtectionService.Region current = regions.regionAt(
             TeleportSupport.playerDimension(player),
             (int) Math.floor(TeleportSupport.playerX(player)),

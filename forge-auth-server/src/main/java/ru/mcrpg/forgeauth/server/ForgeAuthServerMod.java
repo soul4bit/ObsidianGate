@@ -2,6 +2,7 @@ package ru.mcrpg.forgeauth.server;
 
 import java.util.logging.Logger;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -98,6 +99,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(BACK_LOCATIONS);
         MinecraftForge.EVENT_BUS.register(HOME_RESPAWN);
         MinecraftForge.EVENT_BUS.register(REGION_EVENTS);
+        FMLCommonHandler.instance().bus().register(REGION_EVENTS);
 
         AuthServerConfig config = AuthServerConfig.fromSystem();
         if (config.isReady()) {
