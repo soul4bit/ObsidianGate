@@ -15,6 +15,7 @@ import net.minecraftforge.event.world.ExplosionEvent;
 import net.minecraftforge.fml.common.eventhandler.Event.Result;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 final class RegionProtectionEvents {
@@ -238,6 +239,19 @@ final class RegionProtectionEvents {
     }
 
     @SubscribeEvent
+    public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        clearPlayerState(ServerReflection.field(event, "player"));
+    }
+
+    @SubscribeEvent
+    public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        Object player = ServerReflection.field(event, "player");
+        clearPlayerState(player);
+        RegionCommand.hideSelection(player);
+        RegionCommand.hideRegionHud(player);
+    }
+
+    @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
             return;
@@ -296,6 +310,17 @@ final class RegionProtectionEvents {
             lastRegionHudSyncs.put(playerId, Long.valueOf(now));
             RegionCommand.hideRegionHud(player);
         }
+    }
+
+    private void clearPlayerState(Object player) {
+        if (player == null) {
+            return;
+        }
+        String playerId = PlayerIdentity.id(player);
+        playerRegions.remove(playerId);
+        lastRegionChecks.remove(playerId);
+        lastSelectionShows.remove(playerId);
+        lastRegionHudSyncs.remove(playerId);
     }
 
     @SubscribeEvent

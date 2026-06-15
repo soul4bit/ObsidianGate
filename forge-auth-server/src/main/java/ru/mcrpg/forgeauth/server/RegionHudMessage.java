@@ -13,7 +13,7 @@ public final class RegionHudMessage implements IMessage {
 
     static RegionHudMessage show(String regionName) {
         RegionHudMessage message = new RegionHudMessage();
-        message.regionName = regionName == null ? "" : regionName;
+        message.regionName = normalize(regionName);
         return message;
     }
 
@@ -26,7 +26,7 @@ public final class RegionHudMessage implements IMessage {
         int length = buf.readUnsignedShort();
         byte[] value = new byte[length];
         buf.readBytes(value);
-        regionName = new String(value, StandardCharsets.UTF_8);
+        regionName = normalize(new String(value, StandardCharsets.UTF_8));
     }
 
     @Override
@@ -37,5 +37,13 @@ public final class RegionHudMessage implements IMessage {
         }
         buf.writeShort(value.length);
         buf.writeBytes(value);
+    }
+
+    private static String normalize(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty() || "none".equalsIgnoreCase(normalized) || "null".equalsIgnoreCase(normalized)) {
+            return "";
+        }
+        return normalized;
     }
 }
