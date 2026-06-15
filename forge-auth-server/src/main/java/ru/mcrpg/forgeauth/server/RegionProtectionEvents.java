@@ -25,6 +25,7 @@ final class RegionProtectionEvents {
     private final Map<String, String> playerRegions = new ConcurrentHashMap<String, String>();
     private final Map<String, Long> lastRegionChecks = new ConcurrentHashMap<String, Long>();
     private final Map<String, Long> lastSelectionShows = new ConcurrentHashMap<String, Long>();
+    private final Map<String, Long> lastRegionHudSyncs = new ConcurrentHashMap<String, Long>();
 
     RegionProtectionEvents(RegionProtectionService regions, RegionAuditService audit) {
         this.regions = regions;
@@ -271,6 +272,15 @@ final class RegionProtectionEvents {
         String previousName = playerRegions.get(playerId);
         String currentName = current == null ? null : current.name;
         if (equals(previousName, currentName)) {
+            Long previousHudSync = lastRegionHudSyncs.get(playerId);
+            if (previousHudSync == null || now - previousHudSync.longValue() >= 5000L) {
+                lastRegionHudSyncs.put(playerId, Long.valueOf(now));
+                if (currentName == null) {
+                    RegionCommand.hideRegionHud(player);
+                } else {
+                    RegionCommand.showRegionHud(player, currentName);
+                }
+            }
             return;
         }
         if (previousName != null) {
@@ -279,9 +289,11 @@ final class RegionProtectionEvents {
         if (currentName != null) {
             ServerChat.status(player, ServerChat.Tone.INFO, SUBJECT, "вы вошли в регион " + ServerChat.value(currentName) + ", владелец " + ServerChat.value(current.ownerName) + ".");
             playerRegions.put(playerId, currentName);
+            lastRegionHudSyncs.put(playerId, Long.valueOf(now));
             RegionCommand.showRegionHud(player, currentName);
         } else {
             playerRegions.remove(playerId);
+            lastRegionHudSyncs.put(playerId, Long.valueOf(now));
             RegionCommand.hideRegionHud(player);
         }
     }

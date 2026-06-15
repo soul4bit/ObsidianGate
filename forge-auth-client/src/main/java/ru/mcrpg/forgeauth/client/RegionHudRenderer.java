@@ -3,6 +3,7 @@ package ru.mcrpg.forgeauth.client;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 final class RegionHudRenderer {
@@ -17,7 +18,7 @@ final class RegionHudRenderer {
         regionName = "";
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onOverlay(RenderGameOverlayEvent.Post event) {
         if (event.getType() != RenderGameOverlayEvent.ElementType.ALL || regionName.isEmpty()) {
             return;
@@ -31,13 +32,13 @@ final class RegionHudRenderer {
 
         String text = "Регион: " + regionName;
         int width = integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, text));
-        drawRect(5, 5, width + 15, 20, 0x99000000);
+        drawRect(5, 155, width + 15, 170, 0xB0000000);
         invoke(
             font,
             new String[] { "drawStringWithShadow", "func_175063_a" },
             text,
             Float.valueOf(10.0F),
-            Float.valueOf(10.0F),
+            Float.valueOf(160.0F),
             Integer.valueOf(0xFFF1C75B)
         );
     }
