@@ -23,6 +23,7 @@ final class RegionProtectionEvents {
     private final RegionAuditService audit;
     private final Map<String, String> playerRegions = new ConcurrentHashMap<String, String>();
     private final Map<String, Long> lastRegionChecks = new ConcurrentHashMap<String, Long>();
+    private final Map<String, Long> lastSelectionShows = new ConcurrentHashMap<String, Long>();
 
     RegionProtectionEvents(RegionProtectionService regions, RegionAuditService audit) {
         this.regions = regions;
@@ -236,6 +237,15 @@ final class RegionProtectionEvents {
         }
         String playerId = PlayerIdentity.id(player);
         long now = System.currentTimeMillis();
+        if (isWand(player, null)) {
+            Long previousShow = lastSelectionShows.get(playerId);
+            if (previousShow == null || now - previousShow.longValue() >= 1500L) {
+                lastSelectionShows.put(playerId, Long.valueOf(now));
+                RegionCommand.showSelection(player, regions.selection(playerId));
+            }
+        } else {
+            lastSelectionShows.remove(playerId);
+        }
         Long previousCheck = lastRegionChecks.put(playerId, Long.valueOf(now));
         if (previousCheck != null && now - previousCheck.longValue() < 1000L) {
             return;
@@ -318,12 +328,6 @@ final class RegionProtectionEvents {
             )
         );
         RegionCommand.showSelection(player, regions.selection(PlayerIdentity.id(player)));
-        ServerChat.status(
-            player,
-            ServerChat.Tone.SUCCESS,
-            SUBJECT,
-            "точка " + point + ": " + x(pos) + ", " + y(pos) + ", " + z(pos) + "."
-        );
     }
 
     private boolean canBuild(Object player, Object pos) {
