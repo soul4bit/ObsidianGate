@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,7 @@ class RegionProtectionServiceTest {
     Path tempDirectory;
 
     @Test
-    void claimsPersistAndProtectFullHeight() {
+    void claimsPersistAndProtectSelectedHeight() {
         Path path = tempDirectory.resolve("regions.properties");
         RegionProtectionService service = service(path);
         select(service, "owner", 0, 10, 20, 20, 30);
@@ -27,14 +29,54 @@ class RegionProtectionServiceTest {
         assertTrue(result.success);
         assertEquals("base_1", result.region.name);
         assertEquals(121L, result.region.horizontalArea());
-        assertFalse(service.canBuild("stranger", "Stranger", false, 0, 15, 0, 25));
-        assertFalse(service.canBuild("stranger", "Stranger", false, 0, 15, 255, 25));
+        assertTrue(service.canBuild("stranger", "Stranger", false, 0, 15, 0, 25));
+        assertTrue(service.canBuild("stranger", "Stranger", false, 0, 15, 255, 25));
+        assertFalse(service.canBuild("stranger", "Stranger", false, 0, 15, 65, 25));
         assertTrue(service.canBuild("owner", "Owner", false, 0, 15, 64, 25));
         assertTrue(service.canBuild("stranger", "Stranger", false, 0, 30, 64, 25));
 
         RegionProtectionService restored = service(path);
         assertNotNull(restored.region("base_1"));
         assertFalse(restored.canBuild("stranger", "Stranger", false, 0, 15, 64, 25));
+    }
+
+    @Test
+    void expandsSelectionInMultipleDirectionsAndClampsHeight() {
+        RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
+        select(service, "owner", 0, 10, 10, 20, 20);
+
+        RegionProtectionService.Selection expanded = service.expandSelection("owner", 50, "up", "down", "west");
+
+        assertEquals(-40, expanded.first.x);
+        assertEquals(14, expanded.first.y);
+        assertEquals(120, expanded.second.y);
+        assertEquals(20, expanded.second.x);
+
+        service.expandSelection("owner", 255, "up", "down");
+        assertEquals(0, expanded.first.y);
+        assertEquals(255, expanded.second.y);
+    }
+
+    @Test
+    void loadsLegacyRegionsAtFullWorldHeight() throws Exception {
+        Path path = tempDirectory.resolve("legacy-regions.properties");
+        Files.write(
+            path,
+            (
+                "region.legacy.ownerId=owner\n"
+                    + "region.legacy.ownerName=Owner\n"
+                    + "region.legacy.dimension=0\n"
+                    + "region.legacy.minX=0\n"
+                    + "region.legacy.minZ=0\n"
+                    + "region.legacy.maxX=5\n"
+                    + "region.legacy.maxZ=5\n"
+            ).getBytes(StandardCharsets.ISO_8859_1)
+        );
+
+        RegionProtectionService service = service(path);
+
+        assertFalse(service.canBuild("stranger", "Stranger", false, 0, 1, 0, 1));
+        assertFalse(service.canBuild("stranger", "Stranger", false, 0, 1, 255, 1));
     }
 
     @Test

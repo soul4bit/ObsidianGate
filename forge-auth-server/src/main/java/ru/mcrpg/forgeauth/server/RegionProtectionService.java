@@ -88,6 +88,56 @@ final class RegionProtectionService {
         return selections.get(normalizePlayerId(playerId));
     }
 
+    Selection expandSelection(String playerId, int amount, String... rawDirections) {
+        if (amount < 1 || amount > 255) {
+            throw new IllegalArgumentException("Размер расширения должен быть от 1 до 255 блоков.");
+        }
+        Selection selection = selections.get(normalizePlayerId(playerId));
+        if (selection == null || selection.first == null || selection.second == null) {
+            throw new IllegalArgumentException("Сначала выделите две точки деревянным топором.");
+        }
+        if (selection.first.dimension != selection.second.dimension) {
+            throw new IllegalArgumentException("Обе точки должны быть в одном измерении.");
+        }
+        if (rawDirections == null || rawDirections.length == 0) {
+            throw new IllegalArgumentException("Направление: up, down, north, south, east или west.");
+        }
+
+        Position first = selection.first;
+        Position second = selection.second;
+        int minX = Math.min(first.x, second.x);
+        int minY = Math.min(first.y, second.y);
+        int minZ = Math.min(first.z, second.z);
+        int maxX = Math.max(first.x, second.x);
+        int maxY = Math.max(first.y, second.y);
+        int maxZ = Math.max(first.z, second.z);
+        Set<String> directions = new LinkedHashSet<String>();
+        for (String rawDirection : rawDirections) {
+            String direction = rawDirection == null ? "" : rawDirection.trim().toLowerCase(Locale.ROOT);
+            if (!directions.add(direction)) {
+                continue;
+            }
+            if ("up".equals(direction)) {
+                maxY = Math.min(255, maxY + amount);
+            } else if ("down".equals(direction)) {
+                minY = Math.max(0, minY - amount);
+            } else if ("north".equals(direction)) {
+                minZ -= amount;
+            } else if ("south".equals(direction)) {
+                maxZ += amount;
+            } else if ("east".equals(direction)) {
+                maxX += amount;
+            } else if ("west".equals(direction)) {
+                minX -= amount;
+            } else {
+                throw new IllegalArgumentException("Направление: up, down, north, south, east или west.");
+            }
+        }
+        selection.first = new Position(first.dimension, minX, minY, minZ);
+        selection.second = new Position(first.dimension, maxX, maxY, maxZ);
+        return selection;
+    }
+
     synchronized ClaimResult claim(String rawName, String ownerId, String ownerName, int maxRegions) {
         return claim(rawName, ownerId, ownerName, maxRegions, false);
     }
@@ -369,8 +419,10 @@ final class RegionProtectionService {
                 properties.getProperty(prefix + "ownerName", ""),
                 Integer.parseInt(properties.getProperty(prefix + "dimension")),
                 Integer.parseInt(properties.getProperty(prefix + "minX")),
+                Integer.parseInt(properties.getProperty(prefix + "minY", "0")),
                 Integer.parseInt(properties.getProperty(prefix + "minZ")),
                 Integer.parseInt(properties.getProperty(prefix + "maxX")),
+                Integer.parseInt(properties.getProperty(prefix + "maxY", "255")),
                 Integer.parseInt(properties.getProperty(prefix + "maxZ")),
                 members,
                 flags,
@@ -409,8 +461,10 @@ final class RegionProtectionService {
         properties.setProperty(prefix + "ownerName", region.ownerName);
         properties.setProperty(prefix + "dimension", Integer.toString(region.dimension));
         properties.setProperty(prefix + "minX", Integer.toString(region.minX));
+        properties.setProperty(prefix + "minY", Integer.toString(region.minY));
         properties.setProperty(prefix + "minZ", Integer.toString(region.minZ));
         properties.setProperty(prefix + "maxX", Integer.toString(region.maxX));
+        properties.setProperty(prefix + "maxY", Integer.toString(region.maxY));
         properties.setProperty(prefix + "maxZ", Integer.toString(region.maxZ));
         properties.setProperty(prefix + "priority", Integer.toString(region.priority));
         properties.setProperty(prefix + "members", String.join(",", region.members));
@@ -468,8 +522,10 @@ final class RegionProtectionService {
         final String ownerName;
         final int dimension;
         final int minX;
+        final int minY;
         final int minZ;
         final int maxX;
+        final int maxY;
         final int maxZ;
         final Set<String> members;
         final Map<RegionFlag, Boolean> flags;
@@ -481,8 +537,10 @@ final class RegionProtectionService {
             String ownerName,
             int dimension,
             int minX,
+            int minY,
             int minZ,
             int maxX,
+            int maxY,
             int maxZ,
             Set<String> members,
             Map<RegionFlag, Boolean> flags,
@@ -493,8 +551,10 @@ final class RegionProtectionService {
             this.ownerName = ownerName == null ? "" : ownerName;
             this.dimension = dimension;
             this.minX = Math.min(minX, maxX);
+            this.minY = Math.max(0, Math.min(minY, maxY));
             this.minZ = Math.min(minZ, maxZ);
             this.maxX = Math.max(minX, maxX);
+            this.maxY = Math.min(255, Math.max(minY, maxY));
             this.maxZ = Math.max(minZ, maxZ);
             this.members = new LinkedHashSet<String>(members);
             this.flags = new LinkedHashMap<RegionFlag, Boolean>(flags);
@@ -528,8 +588,10 @@ final class RegionProtectionService {
                 ownerName,
                 selection.first.dimension,
                 selection.first.x,
+                selection.first.y,
                 selection.first.z,
                 selection.second.x,
+                selection.second.y,
                 selection.second.z,
                 members,
                 flags,
@@ -538,21 +600,29 @@ final class RegionProtectionService {
         }
 
         private Region withOwner(String newOwnerId, String newOwnerName) {
-            return new Region(name, newOwnerId, newOwnerName, dimension, minX, minZ, maxX, maxZ, members, flags, priority);
+            return new Region(name, newOwnerId, newOwnerName, dimension, minX, minY, minZ, maxX, maxY, maxZ, members, flags, priority);
         }
 
         private Region withPriority(int newPriority) {
-            return new Region(name, ownerId, ownerName, dimension, minX, minZ, maxX, maxZ, members, flags, newPriority);
+            return new Region(name, ownerId, ownerName, dimension, minX, minY, minZ, maxX, maxY, maxZ, members, flags, newPriority);
         }
 
         boolean contains(int targetDimension, int x, int y, int z) {
-            return targetDimension == dimension && x >= minX && x <= maxX && z >= minZ && z <= maxZ && y >= 0 && y <= 255;
+            return targetDimension == dimension
+                && x >= minX
+                && x <= maxX
+                && y >= minY
+                && y <= maxY
+                && z >= minZ
+                && z <= maxZ;
         }
 
         boolean overlaps(Region other) {
             return dimension == other.dimension
                 && minX <= other.maxX
                 && maxX >= other.minX
+                && minY <= other.maxY
+                && maxY >= other.minY
                 && minZ <= other.maxZ
                 && maxZ >= other.minZ;
         }
@@ -561,6 +631,8 @@ final class RegionProtectionService {
             return dimension == other.dimension
                 && minX <= other.minX
                 && maxX >= other.maxX
+                && minY <= other.minY
+                && maxY >= other.maxY
                 && minZ <= other.minZ
                 && maxZ >= other.maxZ;
         }

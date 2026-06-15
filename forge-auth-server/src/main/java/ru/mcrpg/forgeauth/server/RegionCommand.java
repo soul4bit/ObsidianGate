@@ -18,6 +18,7 @@ final class RegionCommand {
 
     static void register(FMLServerStartingEvent event, RegionProtectionService regions, RegionAuditService audit, PlayerRoleLookup roles) {
         register(event, "/wand", Collections.singletonList("wand"), new WandHandler());
+        register(event, "/expand", Arrays.asList("expand", "/exp", "exp"), new ExpandHandler(regions));
         register(event, "rg", Arrays.asList("region", "регион"), new RegionHandler(regions, audit, roles));
     }
 
@@ -118,6 +119,51 @@ final class RegionCommand {
         @Override
         public String usage() {
             return "//wand";
+        }
+    }
+
+    private static final class ExpandHandler implements CommandExecutor {
+        private final RegionProtectionService regions;
+
+        private ExpandHandler(RegionProtectionService regions) {
+            this.regions = regions;
+        }
+
+        @Override
+        public void execute(Object server, Object sender, String[] args) {
+            Object player = player(sender);
+            if (player == null) {
+                return;
+            }
+            if (args.length < 2) {
+                ServerChat.usage(player, "//expand <блоки> <up|down|north|south|east|west> [...]");
+                return;
+            }
+            try {
+                int amount = Integer.parseInt(args[0]);
+                String[] directions = Arrays.copyOfRange(args, 1, args.length);
+                RegionProtectionService.Selection selection = regions.expandSelection(
+                    PlayerIdentity.id(player),
+                    amount,
+                    directions
+                );
+                showSelection(player, selection);
+                ServerChat.status(
+                    player,
+                    ServerChat.Tone.SUCCESS,
+                    SUBJECT,
+                    "выделение расширено на " + amount + ": " + selectionSummary(selection) + "."
+                );
+            } catch (NumberFormatException exception) {
+                ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "Укажите целое количество блоков.");
+            } catch (IllegalArgumentException exception) {
+                ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, exception.getMessage());
+            }
+        }
+
+        @Override
+        public String usage() {
+            return "//expand <блоки> <направление> [...]";
         }
     }
 
@@ -282,7 +328,9 @@ final class RegionCommand {
                     + ", участники " + ServerChat.value(region.members.isEmpty() ? "нет" : region.members)
                     + ", флаги " + ServerChat.value(flagSummary(region))
                     + ", приоритет " + region.priority
-                    + ", границы X " + region.minX + ".." + region.maxX + ", Z " + region.minZ + ".." + region.maxZ + "."
+                    + ", границы X " + region.minX + ".." + region.maxX
+                    + ", Y " + region.minY + ".." + region.maxY
+                    + ", Z " + region.minZ + ".." + region.maxZ + "."
             );
         }
 
@@ -383,6 +431,64 @@ final class RegionCommand {
         );
     }
 
+    static void showSelection(Object player, RegionProtectionService.Selection selection) {
+        if (player == null || selection == null || selection.first == null) {
+            return;
+        }
+        Object server = ServerReflection.invoke(player, new String[] { "getServer", "func_184102_h" });
+        Object manager = ServerReflection.invoke(server, new String[] { "getCommandManager", "func_71187_D" });
+        if (manager == null) {
+            return;
+        }
+        if (selection.second == null || selection.first.dimension != selection.second.dimension) {
+            selectionPoint(manager, player, selection.first);
+            return;
+        }
+        int minX = Math.min(selection.first.x, selection.second.x);
+        int minY = Math.max(0, Math.min(selection.first.y, selection.second.y));
+        int minZ = Math.min(selection.first.z, selection.second.z);
+        int maxX = Math.max(selection.first.x, selection.second.x);
+        int maxY = Math.min(255, Math.max(selection.first.y, selection.second.y));
+        int maxZ = Math.max(selection.first.z, selection.second.z);
+        int step = Math.max(1, Math.max(Math.max(maxX - minX, maxY - minY), maxZ - minZ) / 16);
+        for (int x = minX; x <= maxX; x += step) {
+            particle(manager, player, x, minY, minZ);
+            particle(manager, player, x, minY, maxZ);
+            particle(manager, player, x, maxY, minZ);
+            particle(manager, player, x, maxY, maxZ);
+        }
+        for (int y = minY; y <= maxY; y += step) {
+            particle(manager, player, minX, y, minZ);
+            particle(manager, player, minX, y, maxZ);
+            particle(manager, player, maxX, y, minZ);
+            particle(manager, player, maxX, y, maxZ);
+        }
+        for (int z = minZ; z <= maxZ; z += step) {
+            particle(manager, player, minX, minY, z);
+            particle(manager, player, minX, maxY, z);
+            particle(manager, player, maxX, minY, z);
+            particle(manager, player, maxX, maxY, z);
+        }
+        selectionPoint(manager, player, selection.first);
+        selectionPoint(manager, player, selection.second);
+    }
+
+    private static void selectionPoint(Object manager, Object player, RegionProtectionService.Position position) {
+        for (int offset = 0; offset < 3; offset++) {
+            particle(manager, player, position.x, Math.min(255, position.y + offset), position.z);
+        }
+    }
+
+    private static String selectionSummary(RegionProtectionService.Selection selection) {
+        int minX = Math.min(selection.first.x, selection.second.x);
+        int minY = Math.min(selection.first.y, selection.second.y);
+        int minZ = Math.min(selection.first.z, selection.second.z);
+        int maxX = Math.max(selection.first.x, selection.second.x);
+        int maxY = Math.max(selection.first.y, selection.second.y);
+        int maxZ = Math.max(selection.first.z, selection.second.z);
+        return "X " + minX + ".." + maxX + ", Y " + minY + ".." + maxY + ", Z " + minZ + ".." + maxZ;
+    }
+
     private static Object player(Object sender) {
         Object resolved = TeleportSupport.resolvePlayer(sender);
         if (resolved != null) {
@@ -407,6 +513,7 @@ final class RegionCommand {
 
     private static void usage(Object player) {
         ServerChat.usage(player, "/rg claim <название>");
+        ServerChat.usage(player, "//expand <блоки> <направление> [...]");
         ServerChat.usage(player, "/rg redefine <регион>");
         ServerChat.usage(player, "/rg transfer <регион> <игрок>");
         ServerChat.usage(player, "/rg setpriority <регион> <число>");

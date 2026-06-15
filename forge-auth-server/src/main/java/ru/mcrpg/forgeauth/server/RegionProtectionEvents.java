@@ -317,6 +317,7 @@ final class RegionProtectionEvents {
                 z(pos)
             )
         );
+        RegionCommand.showSelection(player, regions.selection(PlayerIdentity.id(player)));
         ServerChat.status(
             player,
             ServerChat.Tone.SUCCESS,
