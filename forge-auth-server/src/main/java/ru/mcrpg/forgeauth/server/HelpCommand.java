@@ -39,6 +39,17 @@ final class HelpCommand {
             entry("/delhome [название]", "/delhome ", "удалить точку дома")
         ),
         section(
+            "Приваты",
+            "region", "regions", "приват", "приваты", "rg",
+            entry("//wand", "//wand", "получить топор для выделения территории"),
+            entry("/rg claim <название>", "/rg claim ", "создать приват по двум выбранным точкам"),
+            entry("/rg info [название]", "/rg info ", "информация о регионе"),
+            entry("/rg list", "/rg list", "список ваших регионов"),
+            entry("/rg addmember <регион> <игрок>", "/rg addmember ", "добавить участника"),
+            entry("/rg removemember <регион> <игрок>", "/rg removemember ", "удалить участника"),
+            entry("/rg delete <регион>", "/rg delete ", "удалить свой регион")
+        ),
+        section(
             "Телепорт",
             "tp", "teleport", "телепорт", "тп",
             entry("/call <игрок>", "/call ", "попроситься к игроку"),

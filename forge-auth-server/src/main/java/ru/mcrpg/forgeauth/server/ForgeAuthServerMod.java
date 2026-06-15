@@ -45,6 +45,8 @@ public final class ForgeAuthServerMod {
     private static final BackLocationService BACK_LOCATIONS = new BackLocationService(LOGGER);
     private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER);
     private static final PlayerDataGuardService PLAYERDATA_GUARD = new PlayerDataGuardService(LOGGER);
+    private static final RegionProtectionService REGIONS = new RegionProtectionService(LOGGER);
+    private static final RegionProtectionEvents REGION_EVENTS = new RegionProtectionEvents(REGIONS);
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -67,6 +69,7 @@ public final class ForgeAuthServerMod {
         FIRST_JOIN_WELCOME.load();
         HOME_SERVICE.load();
         BACK_LOCATIONS.load();
+        REGIONS.load();
         ACHIEVEMENTS.load();
         MinecraftForge.EVENT_BUS.register(PLAYERDATA_GUARD);
         MinecraftForge.EVENT_BUS.register(LIFECYCLE);
@@ -80,6 +83,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(TELEPORT_GUARD);
         MinecraftForge.EVENT_BUS.register(BACK_LOCATIONS);
         MinecraftForge.EVENT_BUS.register(HOME_RESPAWN);
+        MinecraftForge.EVENT_BUS.register(REGION_EVENTS);
 
         AuthServerConfig config = AuthServerConfig.fromSystem();
         if (config.isReady()) {
@@ -108,6 +112,7 @@ public final class ForgeAuthServerMod {
         RandomTeleportCommand.register(event, TELEPORT_GUARD, LIFECYCLE);
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
         AchievementCommand.register(event, ACHIEVEMENTS);
+        RegionCommand.register(event, REGIONS);
         HelpCommand.register(event);
     }
 
