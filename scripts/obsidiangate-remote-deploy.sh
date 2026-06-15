@@ -67,6 +67,10 @@ if [ ! -f "$STAGE_DIR/manifest.json" ]; then
     echo "Missing staged manifest: $STAGE_DIR/manifest.json" >&2
     exit 3
 fi
+if [ ! -f "$STAGE_DIR/manifest.json.sig" ]; then
+    echo "Missing staged manifest signature: $STAGE_DIR/manifest.json.sig" >&2
+    exit 3
+fi
 
 if [ ! -f "$STAGE_DIR/$SERVER_JAR" ]; then
     echo "Missing staged server jar: $STAGE_DIR/$SERVER_JAR" >&2
@@ -139,8 +143,10 @@ if [ -d "$STAGE_DIR/launcher" ]; then
 fi
 
 install -m 644 "$STAGE_DIR/manifest.json" "$WEB_ROOT/manifest.json"
+install -m 644 "$STAGE_DIR/manifest.json.sig" "$WEB_ROOT/manifest.json.sig"
 sha256sum "$SERVER_MODS_DIR/$SERVER_JAR"
 sha256sum "$WEB_ROOT/manifest.json"
+sha256sum "$WEB_ROOT/manifest.json.sig"
 
 if [ "$SKIP_RESTART" != "1" ]; then
     systemctl restart "$SERVICE_NAME"

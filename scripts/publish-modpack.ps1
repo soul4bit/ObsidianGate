@@ -9,6 +9,7 @@ param(
     [string]$PublicServerHost = $env:OBSIDIANGATE_PUBLIC_SERVER_HOST,
     [int]$PublicServerPort = [int]($env:OBSIDIANGATE_PUBLIC_SERVER_PORT -as [int]),
     [string]$PublicAuthBaseUrl = $env:OBSIDIANGATE_PUBLIC_AUTH_BASE_URL,
+    [string]$ManifestPrivateKeyPath = $env:OBSIDIANGATE_MANIFEST_PRIVATE_KEY,
     [switch]$SkipSourceManifestUpdate,
     [switch]$SkipLauncherRelease,
     [string]$Target = "mc-rpg-deploy",
@@ -65,6 +66,7 @@ if (-not $WhatIfPreference -and -not $SkipConnectivityCheck) {
     -PublicServerHost $PublicServerHost `
     -PublicServerPort $PublicServerPort `
     -PublicAuthBaseUrl $PublicAuthBaseUrl `
+    -ManifestPrivateKeyPath $ManifestPrivateKeyPath `
     -SkipSourceManifestUpdate:$SkipSourceManifestUpdate `
     -SkipLauncherRelease:$SkipLauncherRelease
 

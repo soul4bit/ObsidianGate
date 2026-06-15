@@ -11,6 +11,7 @@ param(
     [string]$PublicServerHost = $env:OBSIDIANGATE_PUBLIC_SERVER_HOST,
     [int]$PublicServerPort = [int]($env:OBSIDIANGATE_PUBLIC_SERVER_PORT -as [int]),
     [string]$PublicAuthBaseUrl = $env:OBSIDIANGATE_PUBLIC_AUTH_BASE_URL,
+    [string]$ManifestPrivateKeyPath = $env:OBSIDIANGATE_MANIFEST_PRIVATE_KEY,
     [switch]$SkipSourceManifestUpdate,
     [switch]$SkipAuthRelease,
     [switch]$SkipLauncherRelease
@@ -430,7 +431,8 @@ if (-not $SkipAuthRelease) {
     & (Join-Path $PSScriptRoot "release-auth.ps1") `
         -ManifestPath $ManifestPath `
         -DistDir $DistDir `
-        -ManifestVersion $ManifestVersion
+        -ManifestVersion $ManifestVersion `
+        -ManifestPrivateKeyPath $ManifestPrivateKeyPath
     if ($LASTEXITCODE -ne 0) {
         throw "release-auth.ps1 failed."
     }
@@ -634,11 +636,23 @@ $manifest.files = @($manifestFiles)
 if (-not $SkipSourceManifestUpdate) {
     $sourceManifestJson = $manifest | ConvertTo-Json -Depth 10
     Write-Utf8NoBom -Path $manifestFullPath -Content ($sourceManifestJson + [Environment]::NewLine)
+    & (Join-Path $PSScriptRoot "sign-manifest.ps1") `
+        -ManifestPath $manifestFullPath `
+        -PrivateKeyPath $ManifestPrivateKeyPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Source manifest signing failed."
+    }
 }
 
 Apply-PublicManifestOverrides -Manifest $manifest
 $manifestJson = $manifest | ConvertTo-Json -Depth 10
 Write-Utf8NoBom -Path $distManifestPath -Content ($manifestJson + [Environment]::NewLine)
+& (Join-Path $PSScriptRoot "sign-manifest.ps1") `
+    -ManifestPath $distManifestPath `
+    -PrivateKeyPath $ManifestPrivateKeyPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Dist manifest signing failed."
+}
 
 $metadata = [pscustomobject][ordered]@{
     generatedAt = (Get-Date).ToString("o")
@@ -646,6 +660,7 @@ $metadata = [pscustomobject][ordered]@{
         sourcePath = $ManifestPath
         version = $manifest.version
         distPath = "manifest.json"
+        signatureDistPath = "manifest.json.sig"
     }
     client = [pscustomobject][ordered]@{
         sourcePath = $ClientSourceDir

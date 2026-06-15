@@ -35,6 +35,7 @@ function Resolve-InputPath {
 $distFullPath = Resolve-InputPath $DistDir
 $metadataPath = Join-Path $distFullPath "modpack-release.json"
 $manifestPath = Join-Path $distFullPath "manifest.json"
+$manifestSignaturePath = Join-Path $distFullPath "manifest.json.sig"
 $clientDirPath = Join-Path $distFullPath "client"
 $serverDirPath = Join-Path $distFullPath "server"
 $launcherDirPath = Join-Path $distFullPath "launcher"
@@ -59,7 +60,7 @@ $launcherUpdateFileName = if ($metadata.launcherUpdate -and $metadata.launcherUp
 }
 $serverJarPath = Join-Path $distFullPath $serverFileName
 
-$requiredPaths = @($serverJarPath, $manifestPath, $clientDirPath)
+$requiredPaths = @($serverJarPath, $manifestPath, $manifestSignaturePath, $clientDirPath)
 if (Test-Path $launcherDirPath) {
     $requiredPaths += $launcherDirPath
 }
@@ -136,9 +137,9 @@ Test-DeployTargetReachability
 
 Write-Host "==> Preparing remote staging directory" -ForegroundColor Cyan
 $prepareRemoteScript = if ($useRsync) {
-    "rm -f '$RemoteStageDir/manifest.json' '$RemoteStageDir'/obsidiangate-forge-auth-server-*.jar; mkdir -p '$RemoteStageDir'"
+    "rm -f '$RemoteStageDir/manifest.json' '$RemoteStageDir/manifest.json.sig' '$RemoteStageDir'/obsidiangate-forge-auth-server-*.jar; mkdir -p '$RemoteStageDir'"
 } else {
-    "rm -rf '$RemoteStageDir/client' '$RemoteStageDir/server' '$RemoteStageDir/launcher' '$RemoteStageDir/manifest.json'; mkdir -p '$RemoteStageDir'"
+    "rm -rf '$RemoteStageDir/client' '$RemoteStageDir/server' '$RemoteStageDir/launcher' '$RemoteStageDir/manifest.json' '$RemoteStageDir/manifest.json.sig'; mkdir -p '$RemoteStageDir'"
 }
 Invoke-External -Command "ssh" -Arguments @(
     $sshTtyArgs +
@@ -149,7 +150,7 @@ Invoke-External -Command "ssh" -Arguments @(
 ) -Action "Prepare remote staging directory"
 
 Write-Host "==> Uploading modpack release to $Target" -ForegroundColor Cyan
-$uploadPaths = @($serverJarPath, $manifestPath)
+$uploadPaths = @($serverJarPath, $manifestPath, $manifestSignaturePath)
 $directoryUploads = @(
     [pscustomobject]@{ Name = "client"; Path = $clientDirPath; RemoteDir = "$RemoteStageDir/client" }
 )
@@ -219,8 +220,10 @@ if ($LegacyPromptSudo) {
     $remoteCommands.Add("  sudo cp -a '$RemoteStageDir/launcher/.' '$RemoteWebRoot/launcher/'")
     $remoteCommands.Add("fi")
     $remoteCommands.Add("sudo install -m 644 '$RemoteStageDir/manifest.json' '$RemoteWebRoot/manifest.json'")
+    $remoteCommands.Add("sudo install -m 644 '$RemoteStageDir/manifest.json.sig' '$RemoteWebRoot/manifest.json.sig'")
     $remoteCommands.Add("sha256sum '$RemoteServerModsDir/$serverFileName'")
     $remoteCommands.Add("sha256sum '$RemoteWebRoot/manifest.json'")
+    $remoteCommands.Add("sha256sum '$RemoteWebRoot/manifest.json.sig'")
 
     if (-not $SkipRestart) {
         $remoteCommands.Add("sudo systemctl restart '$ServiceName'")
@@ -230,7 +233,7 @@ if ($LegacyPromptSudo) {
     $remoteScript = $remoteCommands -join "`n"
 } else {
     $skipRestartFlag = if ($SkipRestart) { "1" } else { "0" }
-    $remoteScript = "if [ -f '$RemoteStageDir/server/server-icon.png' ]; then install -m 644 '$RemoteStageDir/server/server-icon.png' '$RemoteServerRoot/server-icon.png'; fi; sudo -n '$RemoteDeployCommand' '$RemoteStageDir' '$serverFileName' '$RemoteServerModsDir' '$RemoteWebRoot' '$ServiceName' '$skipRestartFlag' '$RemoteServerRoot'"
+    $remoteScript = "if [ -f '$RemoteStageDir/server/server-icon.png' ]; then install -m 644 '$RemoteStageDir/server/server-icon.png' '$RemoteServerRoot/server-icon.png'; fi; sudo -n '$RemoteDeployCommand' '$RemoteStageDir' '$serverFileName' '$RemoteServerModsDir' '$RemoteWebRoot' '$ServiceName' '$skipRestartFlag' '$RemoteServerRoot'; sudo -n install -m 644 '$RemoteStageDir/manifest.json.sig' '$RemoteWebRoot/manifest.json.sig'"
 }
 
 Invoke-External -Command "ssh" -Arguments @(

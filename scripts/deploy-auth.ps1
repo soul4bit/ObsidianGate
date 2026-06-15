@@ -30,6 +30,7 @@ function Resolve-InputPath {
 $distFullPath = Resolve-InputPath $DistDir
 $metadataPath = Join-Path $distFullPath "auth-release.json"
 $manifestPath = Join-Path $distFullPath "manifest.json"
+$manifestSignaturePath = Join-Path $distFullPath "manifest.json.sig"
 
 if (-not (Test-Path $metadataPath)) {
     throw "Release metadata not found: $metadataPath. Run scripts/release-auth.ps1 first."
@@ -46,7 +47,7 @@ $clientFileName = $metadata.artifacts.client.fileName
 $serverJarPath = Join-Path $distFullPath $serverFileName
 $clientJarPath = Join-Path $distFullPath $clientFileName
 
-foreach ($path in @($serverJarPath, $clientJarPath, $manifestPath)) {
+foreach ($path in @($serverJarPath, $clientJarPath, $manifestPath, $manifestSignaturePath)) {
     if (-not (Test-Path $path)) {
         throw "Required release file not found: $path"
     }
@@ -82,6 +83,7 @@ Invoke-External -Command "scp" -Arguments @(
     $serverJarPath,
     $clientJarPath,
     $manifestPath,
+    $manifestSignaturePath,
     "${Target}:$RemoteHome/"
 ) -Action "Upload dist artifacts"
 
@@ -94,6 +96,7 @@ $remoteCommands.Add("sudo -v")
 $remoteCommands.Add("sudo mkdir -p '$remoteClientModsDir'")
 $remoteCommands.Add("sudo install -m 644 '$RemoteHome/$clientFileName' '$remoteClientModsDir/$clientFileName'")
 $remoteCommands.Add("sudo install -m 644 '$RemoteHome/manifest.json' '$RemoteWebRoot/manifest.json'")
+$remoteCommands.Add("sudo install -m 644 '$RemoteHome/manifest.json.sig' '$RemoteWebRoot/manifest.json.sig'")
 $remoteCommands.Add("sha256sum '$RemoteServerModsDir/$serverFileName'")
 $remoteCommands.Add("sha256sum '$remoteClientModsDir/$clientFileName'")
 

@@ -14,10 +14,16 @@ import java.net.URLConnection;
 public final class ModpackManifestClient {
 
     private final ObjectMapper objectMapper;
+    private final ManifestSignatureVerifier signatureVerifier;
 
     public ModpackManifestClient() {
+        this(new ManifestSignatureVerifier());
+    }
+
+    ModpackManifestClient(ManifestSignatureVerifier signatureVerifier) {
         objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.signatureVerifier = signatureVerifier;
     }
 
     public LoadedManifest load(String manifestUrl) throws IOException {
@@ -27,12 +33,20 @@ public final class ModpackManifestClient {
         connection.setConnectTimeout(15000);
         connection.setReadTimeout(30000);
 
+        byte[] manifestBytes;
         try (InputStream inputStream = connection.getInputStream()) {
-            ModpackManifest manifest = objectMapper.readValue(inputStream, ModpackManifest.class);
+            manifestBytes = inputStream.readAllBytes();
+        } catch (IOException exception) {
+            throw describeLoadFailure(url, exception);
+        }
+
+        signatureVerifier.verify(url, manifestBytes);
+        try {
+            ModpackManifest manifest = objectMapper.readValue(manifestBytes, ModpackManifest.class);
             validate(manifest);
             return new LoadedManifest(url, manifest);
         } catch (IOException exception) {
-            throw describeLoadFailure(url, exception);
+            throw new IOException("Не удалось прочитать подписанный manifest.json.", exception);
         }
     }
 

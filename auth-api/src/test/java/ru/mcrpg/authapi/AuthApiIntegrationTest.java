@@ -3,15 +3,26 @@ package ru.mcrpg.authapi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,13 +36,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Testcontainers(disabledWithoutDocker = true)
 class AuthApiIntegrationTest {
+
+    @Container
+    @ServiceConnection
+    static final PostgreSQLContainer<?> POSTGRES =
+        new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Test
+    void migrationsRunAgainstPostgreSql() throws Exception {
+        try (Connection connection = dataSource.getConnection()) {
+            assertEquals("PostgreSQL", connection.getMetaData().getDatabaseProductName());
+        }
+        assertTrue(tableExists("flyway_schema_history"));
+        assertTrue(tableExists("game_tickets"));
+    }
 
     @Test
     void registerRefreshAndProfileFlowWorks() throws Exception {
@@ -143,6 +172,45 @@ class AuthApiIntegrationTest {
     }
 
     @Test
+    void concurrentTicketVerificationAllowsExactlyOneSuccess() throws Exception {
+        JsonNode registration = register("ConcurrentUser", "concurrent@example.com");
+        String accessToken = registration.path("accessToken").asText();
+        JsonNode ticket = parse(mockMvc.perform(post("/game/tickets")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serverId\":\"obsidiangate-main\"}"))
+            .andExpect(status().isCreated())
+            .andReturn());
+
+        String rawTicket = ticket.path("ticket").asText();
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            List<Future<JsonNode>> futures = List.of(
+                executor.submit(() -> verifyTicketAfterBarrier(rawTicket, ready, start)),
+                executor.submit(() -> verifyTicketAfterBarrier(rawTicket, ready, start))
+            );
+            ready.await();
+            start.countDown();
+
+            JsonNode first = futures.get(0).get();
+            JsonNode second = futures.get(1).get();
+            long validCount = List.of(first, second).stream()
+                .filter(result -> result.path("valid").asBoolean())
+                .count();
+            long usedCount = List.of(first, second).stream()
+                .filter(result -> "used".equals(result.path("reason").asText()))
+                .count();
+
+            assertEquals(1L, validCount);
+            assertEquals(1L, usedCount);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void loginByEmailWorks() throws Exception {
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -213,6 +281,47 @@ class AuthApiIntegrationTest {
 
     private JsonNode parse(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private JsonNode register(String username, String email) throws Exception {
+        return parse(mockMvc.perform(post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "username": "%s",
+                      "email": "%s",
+                      "password": "Supersafe123"
+                    }
+                    """.formatted(username, email)))
+            .andExpect(status().isCreated())
+            .andReturn());
+    }
+
+    private JsonNode verifyTicketAfterBarrier(
+        String rawTicket,
+        CountDownLatch ready,
+        CountDownLatch start
+    ) throws Exception {
+        ready.countDown();
+        start.await();
+        return parse(mockMvc.perform(post("/game/tickets/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"ticket\":\"" + rawTicket + "\",\"serverId\":\"obsidiangate-main\"}"))
+            .andExpect(status().isOk())
+            .andReturn());
+    }
+
+    private boolean tableExists(String tableName) throws Exception {
+        try (Connection connection = dataSource.getConnection();
+             java.sql.PreparedStatement statement = connection.prepareStatement(
+                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = ?"
+             )) {
+            statement.setString(1, tableName);
+            try (java.sql.ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getInt(1) == 1;
+            }
+        }
     }
 
     private static String offlinePlayerUuid(String username) {

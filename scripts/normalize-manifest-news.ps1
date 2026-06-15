@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string[]]$ManifestPath = @("examples/manifest.json", "dist/manifest.json"),
+    [string]$ManifestPrivateKeyPath = $env:OBSIDIANGATE_MANIFEST_PRIVATE_KEY,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$AdditionalManifestPath
 )
@@ -138,5 +139,11 @@ foreach ($rawPath in $ManifestPath) {
 
     $json = ($manifest | ConvertTo-Json -Depth 100) + [Environment]::NewLine
     [System.IO.File]::WriteAllText($path, $json, $utf8NoBom)
+    & (Join-Path $PSScriptRoot "sign-manifest.ps1") `
+        -ManifestPath $path `
+        -PrivateKeyPath $ManifestPrivateKeyPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Manifest signing failed after normalization: $path"
+    }
     Write-Host "Normalized manifest news: $rawPath"
 }

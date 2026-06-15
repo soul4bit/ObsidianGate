@@ -51,6 +51,7 @@ ObsidianGate - это набор компонентов для Minecraft 1.12.2 
 ## Что умеет лаунчер
 
 - Загружает `manifest.json` по HTTP(S).
+- Проверяет detached Ed25519-подпись `manifest.json.sig` встроенным публичным ключом.
 - Синхронизирует файлы клиента по SHA-256 и размеру.
 - Скачивает переносимую Java, если она описана в manifest.
 - Добирает официальную подготовку Minecraft/Forge, если она описана в manifest.
@@ -108,6 +109,15 @@ mvn -f forge-auth-server/pom.xml clean package
 mvn test
 ```
 
+Integration-тесты Auth API используют PostgreSQL 16 через Testcontainers, применяют
+настоящие Flyway-миграции и проверяют конкурентную одноразовую верификацию game ticket:
+
+```bash
+mvn -f auth-api/pom.xml test
+```
+
+Для PostgreSQL-набора нужен доступный Docker daemon. Без Docker эти тесты помечаются как skipped.
+
 ## Конфигурация лаунчера
 
 Файл настроек:
@@ -151,6 +161,34 @@ launcher.updates.enabled=true
 ## Manifest модпака
 
 Полный пример лежит в [examples/manifest.json](examples/manifest.json).
+
+Лаунчер принимает manifest только вместе с корректной detached-подписью:
+
+```text
+manifest.json
+manifest.json.sig
+```
+
+Подпись Ed25519 вычисляется над точными байтами `manifest.json`. Встроенный публичный ключ
+лежит в `src/main/resources/ru/mcrpg/launcher/security/manifest-ed25519-public.pem`.
+Поэтому SHA-256 файлов, runtime и обновления лаунчера доверяются только после проверки
+подписи manifest.
+
+Приватный ключ по умолчанию ожидается вне репозитория:
+
+```text
+~/.obsidiangate-release/manifest-ed25519-private.pem
+```
+
+Путь можно переопределить через `OBSIDIANGATE_MANIFEST_PRIVATE_KEY`. Первичная генерация
+или намеренная ротация trust anchor:
+
+```powershell
+.\scripts\initialize-manifest-signing-key.ps1
+```
+
+Ротация требует выпуска нового лаунчера со свежим публичным ключом. Релизные скрипты
+автоматически создают `manifest.json.sig`, а deploy-скрипты выкладывают оба файла.
 
 Ключевые поля:
 

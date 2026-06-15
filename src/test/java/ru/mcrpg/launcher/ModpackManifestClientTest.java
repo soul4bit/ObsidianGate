@@ -11,6 +11,10 @@ import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.Signature;
+import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,9 +45,7 @@ class ModpackManifestClientTest {
     @Test
     void loadParsesManifestNews() throws Exception {
         Path manifestFile = tempDirectory.resolve("manifest.json");
-        Files.writeString(
-            manifestFile,
-            """
+        String manifestJson = """
             {
               "schemaVersion": 1,
               "id": "test",
@@ -72,11 +74,13 @@ class ModpackManifestClientTest {
               ],
               "files": []
             }
-            """,
-            StandardCharsets.UTF_8
-        );
+            """;
+        KeyPair keyPair = generateKeyPair();
+        writeSignedManifest(manifestFile, manifestJson, keyPair);
 
-        LoadedManifest loadedManifest = new ModpackManifestClient().load(manifestFile.toUri().toURL().toString());
+        LoadedManifest loadedManifest = new ModpackManifestClient(
+            new ManifestSignatureVerifier(keyPair.getPublic())
+        ).load(manifestFile.toUri().toURL().toString());
         ModpackNews news = loadedManifest.getManifest().getNews();
 
         assertEquals("Обновление сборки", news.getTitle());
@@ -92,6 +96,48 @@ class ModpackManifestClientTest {
         assertIterableEquals(
             List.of("News panel now reaches the build file card."),
             loadedManifest.getManifest().getHistory().get(0).getHighlights()
+        );
+    }
+
+    @Test
+    void loadRejectsManifestChangedAfterSigning() throws Exception {
+        Path manifestFile = tempDirectory.resolve("manifest.json");
+        KeyPair keyPair = generateKeyPair();
+        writeSignedManifest(
+            manifestFile,
+            "{\"schemaVersion\":1,\"id\":\"test\",\"version\":\"1\",\"files\":[]}",
+            keyPair
+        );
+        Files.writeString(
+            manifestFile,
+            "{\"schemaVersion\":1,\"id\":\"test\",\"version\":\"2\",\"files\":[]}",
+            StandardCharsets.UTF_8
+        );
+
+        IOException exception = org.junit.jupiter.api.Assertions.assertThrows(
+            IOException.class,
+            () -> new ModpackManifestClient(new ManifestSignatureVerifier(keyPair.getPublic()))
+                .load(manifestFile.toUri().toURL().toString())
+        );
+
+        assertTrue(exception.getMessage().contains("недействительна"));
+    }
+
+    private static KeyPair generateKeyPair() throws Exception {
+        return KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+    }
+
+    private static void writeSignedManifest(Path path, String content, KeyPair keyPair) throws Exception {
+        byte[] manifestBytes = content.getBytes(StandardCharsets.UTF_8);
+        Files.write(path, manifestBytes);
+
+        Signature signer = Signature.getInstance("Ed25519");
+        signer.initSign(keyPair.getPrivate());
+        signer.update(manifestBytes);
+        Files.writeString(
+            Path.of(path.toString() + ".sig"),
+            Base64.getEncoder().encodeToString(signer.sign()),
+            StandardCharsets.US_ASCII
         );
     }
 }

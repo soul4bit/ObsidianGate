@@ -11,7 +11,11 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.Signature;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -23,6 +27,8 @@ class ModpackSyncServiceTest {
 
     @TempDir
     Path tempDirectory;
+
+    private final KeyPair manifestSigningKey = generateManifestSigningKey();
 
     @Test
     void syncDownloadsFilesAndAppliesManifestLauncherSettings() throws Exception {
@@ -44,7 +50,7 @@ class ModpackSyncServiceTest {
         config.setLaunchTemplate("");
 
         List<String> logLines = new ArrayList<String>();
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncResult result = service.sync(config, logLines::add);
 
         assertTrue(Files.exists(tempDirectory.resolve("client/forge-1.12.2-14.23.5.2847.jar")));
@@ -93,7 +99,7 @@ class ModpackSyncServiceTest {
         config.setManifestUrl(manifest.toUri().toURL().toString());
         config.setGameDirectory(clientDirectory.toString());
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         service.sync(config, null);
         writeFile(clientDirectory, "mods/examplemod.jar", "stale-value");
 
@@ -127,7 +133,7 @@ class ModpackSyncServiceTest {
         config.setGameDirectory(tempDirectory.resolve("client-progress").toString());
 
         List<ModpackSyncProgress> progressEvents = Collections.synchronizedList(new ArrayList<ModpackSyncProgress>());
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncResult result = service.sync(config, null, progressEvents::add);
 
         assertTrue(containsPhase(progressEvents, ModpackSyncProgress.Phase.CHECKING));
@@ -170,7 +176,7 @@ class ModpackSyncServiceTest {
         config.setManifestUrl(manifest.toUri().toURL().toString());
         config.setGameDirectory(clientDirectory.toString());
 
-        ModpackSyncResult result = new ModpackSyncService(new ModpackManifestClient()).sync(config, null);
+        ModpackSyncResult result = new ModpackSyncService(manifestClient(manifest)).sync(config, null);
 
         assertTrue(Files.exists(clientDirectory.resolve("mods/current.jar")));
         assertFalse(Files.exists(clientDirectory.resolve("mods/old.jar")));
@@ -206,7 +212,7 @@ class ModpackSyncServiceTest {
         config.setManifestUrl(manifest.toUri().toURL().toString());
         config.setGameDirectory(clientDirectory.toString());
 
-        ModpackSyncPreviewResult previewResult = new ModpackSyncService(new ModpackManifestClient()).preview(config, null);
+        ModpackSyncPreviewResult previewResult = new ModpackSyncService(manifestClient(manifest)).preview(config, null);
 
         assertEquals(1, previewResult.getDownloadFiles());
         assertTrue(Files.exists(clientDirectory.resolve("mods/old.jar")));
@@ -236,7 +242,7 @@ class ModpackSyncServiceTest {
         config.setManifestUrl(manifest.toUri().toURL().toString());
         config.setGameDirectory(tempDirectory.resolve("client").toString());
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
 
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
@@ -267,7 +273,7 @@ class ModpackSyncServiceTest {
         config.setManifestUrl(manifest.toUri().toURL().toString());
         config.setGameDirectory(clientDirectory.toString());
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncPreviewResult previewResult = service.preview(config, null);
 
         assertEquals(2, previewResult.getDownloadFiles());
@@ -310,7 +316,7 @@ class ModpackSyncServiceTest {
         config.setManifestUrl(manifest.toUri().toURL().toString());
         config.setGameDirectory(clientDirectory.toString());
 
-        ModpackSyncPreviewResult previewResult = new ModpackSyncService(new ModpackManifestClient()).preview(config, null);
+        ModpackSyncPreviewResult previewResult = new ModpackSyncService(manifestClient(manifest)).preview(config, null);
         ModpackSyncPreviewEntry entry = findPreviewEntry(previewResult, "mods/examplemod.jar");
 
         assertEquals(ModpackSyncPreviewEntry.State.DOWNLOAD, entry.getState());
@@ -337,7 +343,7 @@ class ModpackSyncServiceTest {
         config.setAuthBaseUrl("");
         config.setServerId("");
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncPreviewResult previewResult = service.preview(config, null);
 
         assertEquals(LauncherConfig.DEFAULT_SERVER_HOST, previewResult.getResolvedConfig().getServerHost());
@@ -367,7 +373,7 @@ class ModpackSyncServiceTest {
         config.setGameDirectory(tempDirectory.resolve("client").toString());
         config.setJavaCommand("");
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncResult result = service.sync(config, null);
 
         Path resolvedJava = Paths.get(result.getResolvedConfig().getJavaCommand());
@@ -459,7 +465,7 @@ class ModpackSyncServiceTest {
         config.setGameDirectory(clientDirectory.toString());
         config.setLaunchTemplate("");
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncResult result = service.sync(config, null);
 
         assertTrue(Files.exists(clientDirectory.resolve("mods/examplemod.jar")));
@@ -573,7 +579,7 @@ class ModpackSyncServiceTest {
         config.setGameDirectory(clientDirectory.toString());
         config.setLaunchTemplate("");
 
-        ModpackSyncService service = new ModpackSyncService(new ModpackManifestClient());
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
         ModpackSyncResult result = service.sync(config, null);
 
         Path versionJson = clientDirectory.resolve("versions/1.12.2-forge-14.23.5.2847/1.12.2-forge-14.23.5.2847.json");
@@ -757,6 +763,26 @@ class ModpackSyncServiceTest {
             + "      \"sha256\": \"" + ChecksumUtils.sha256(file) + "\",\n"
             + "      \"size\": " + Files.size(file) + "\n"
             + "    }";
+    }
+
+    private ModpackManifestClient manifestClient(Path manifest) throws Exception {
+        Signature signer = Signature.getInstance("Ed25519");
+        signer.initSign(manifestSigningKey.getPrivate());
+        signer.update(Files.readAllBytes(manifest));
+        Files.writeString(
+            Path.of(manifest.toString() + ".sig"),
+            Base64.getEncoder().encodeToString(signer.sign()),
+            StandardCharsets.US_ASCII
+        );
+        return new ModpackManifestClient(new ManifestSignatureVerifier(manifestSigningKey.getPublic()));
+    }
+
+    private static KeyPair generateManifestSigningKey() {
+        try {
+            return KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        } catch (Exception exception) {
+            throw new ExceptionInInitializerError(exception);
+        }
     }
 
     private static ModpackSyncPreviewEntry findPreviewEntry(ModpackSyncPreviewResult previewResult, String path) {

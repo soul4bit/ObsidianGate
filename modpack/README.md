@@ -28,7 +28,8 @@ modpack/
 3. Скрипт пересчитывает `manifest.files[]` по фактическим файлам из `dist/client/`.
 4. Скрипт собирает launcher jar и кладет его в `dist/launcher/`.
 5. Скрипт подготавливает серверные файлы в `dist/server/`.
-6. `scripts/deploy-modpack.ps1` выкладывает `dist/client/`, `dist/server/`, `dist/launcher/` и `dist/manifest.json` на сервер.
+6. `scripts/release-modpack.ps1` подписывает точные байты `dist/manifest.json` ключом Ed25519.
+7. `scripts/deploy-modpack.ps1` выкладывает `dist/client/`, `dist/server/`, `dist/launcher/`, `dist/manifest.json` и `dist/manifest.json.sig` на сервер.
 
 ## Быстрый сценарий
 

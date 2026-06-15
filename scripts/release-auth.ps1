@@ -2,7 +2,8 @@
 param(
     [string]$ManifestPath = "examples/manifest.json",
     [string]$DistDir = "dist",
-    [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd")
+    [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
+    [string]$ManifestPrivateKeyPath = $env:OBSIDIANGATE_MANIFEST_PRIVATE_KEY
 )
 
 Set-StrictMode -Version Latest
@@ -146,6 +147,12 @@ Copy-Item $commonJar.FullName (Join-Path $distFullPath $commonJar.Name)
 Copy-Item $clientJar.FullName (Join-Path $distFullPath $clientJar.Name)
 Copy-Item $serverJar.FullName (Join-Path $distFullPath $serverJar.Name)
 Copy-Item $manifestFullPath (Join-Path $distFullPath "manifest.json")
+& (Join-Path $PSScriptRoot "sign-manifest.ps1") `
+    -ManifestPath (Join-Path $distFullPath "manifest.json") `
+    -PrivateKeyPath $ManifestPrivateKeyPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Manifest signing failed."
+}
 
 $metadata = [pscustomobject][ordered]@{
     generatedAt = (Get-Date).ToString("o")
@@ -153,6 +160,7 @@ $metadata = [pscustomobject][ordered]@{
         sourcePath = $ManifestPath
         version = $manifest.version
         distPath = "manifest.json"
+        signatureDistPath = "manifest.json.sig"
     }
     artifacts = [pscustomobject][ordered]@{
         common = $commonRecord
