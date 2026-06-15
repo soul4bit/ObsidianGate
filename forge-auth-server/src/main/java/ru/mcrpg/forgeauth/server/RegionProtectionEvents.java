@@ -279,8 +279,10 @@ final class RegionProtectionEvents {
         if (currentName != null) {
             ServerChat.status(player, ServerChat.Tone.INFO, SUBJECT, "вы вошли в регион " + ServerChat.value(currentName) + ", владелец " + ServerChat.value(current.ownerName) + ".");
             playerRegions.put(playerId, currentName);
+            RegionCommand.showRegionHud(player, currentName);
         } else {
             playerRegions.remove(playerId);
+            RegionCommand.hideRegionHud(player);
         }
     }
 

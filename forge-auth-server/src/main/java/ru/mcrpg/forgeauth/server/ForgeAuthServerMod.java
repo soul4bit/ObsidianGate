@@ -69,6 +69,12 @@ public final class ForgeAuthServerMod {
             1,
             net.minecraftforge.fml.relauncher.Side.CLIENT
         );
+        networkChannel.registerMessage(
+            RegionHudMessageNoopHandler.class,
+            RegionHudMessage.class,
+            2,
+            net.minecraftforge.fml.relauncher.Side.CLIENT
+        );
         SPAWN_PROTECTION.load();
         ITEM_CLEANUP.load();
         RANDOM_LIGHTNING.load();

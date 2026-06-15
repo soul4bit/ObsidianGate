@@ -58,6 +58,17 @@ class RegionProtectionServiceTest {
     }
 
     @Test
+    void expandsSelectionWithShortVerticalAliases() {
+        RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
+        select(service, "owner", 0, 10, 10, 20, 20);
+
+        RegionProtectionService.Selection expanded = service.expandSelection("owner", 10, "u", "d");
+
+        assertEquals(54, expanded.first.y);
+        assertEquals(80, expanded.second.y);
+    }
+
+    @Test
     void loadsLegacyRegionsAtFullWorldHeight() throws Exception {
         Path path = tempDirectory.resolve("legacy-regions.properties");
         Files.write(

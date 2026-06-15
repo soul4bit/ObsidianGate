@@ -114,6 +114,11 @@ final class RegionProtectionService {
         Set<String> directions = new LinkedHashSet<String>();
         for (String rawDirection : rawDirections) {
             String direction = rawDirection == null ? "" : rawDirection.trim().toLowerCase(Locale.ROOT);
+            if ("u".equals(direction)) {
+                direction = "up";
+            } else if ("d".equals(direction)) {
+                direction = "down";
+            }
             if (!directions.add(direction)) {
                 continue;
             }

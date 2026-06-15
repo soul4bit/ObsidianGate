@@ -444,16 +444,28 @@ final class RegionCommand {
         if (ForgeAuthServerMod.networkChannel() == null) {
             return;
         }
-        sendSelectionMessage(player, RegionSelectionMessage.visible(selection.first, selection.second));
+        sendToPlayer(player, RegionSelectionMessage.visible(selection.first, selection.second));
     }
 
     static void hideSelection(Object player) {
         if (player != null && ForgeAuthServerMod.networkChannel() != null) {
-            sendSelectionMessage(player, RegionSelectionMessage.hidden());
+            sendToPlayer(player, RegionSelectionMessage.hidden());
         }
     }
 
-    private static void sendSelectionMessage(Object player, RegionSelectionMessage message) {
+    static void showRegionHud(Object player, String regionName) {
+        if (player != null && ForgeAuthServerMod.networkChannel() != null) {
+            sendToPlayer(player, RegionHudMessage.show(regionName));
+        }
+    }
+
+    static void hideRegionHud(Object player) {
+        if (player != null && ForgeAuthServerMod.networkChannel() != null) {
+            sendToPlayer(player, RegionHudMessage.hidden());
+        }
+    }
+
+    private static void sendToPlayer(Object player, Object message) {
         Object channel = ForgeAuthServerMod.networkChannel();
         for (Method method : channel.getClass().getMethods()) {
             if ("sendTo".equals(method.getName()) && method.getParameterTypes().length == 2) {
