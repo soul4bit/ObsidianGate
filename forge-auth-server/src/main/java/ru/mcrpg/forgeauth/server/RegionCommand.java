@@ -349,14 +349,15 @@ final class RegionCommand {
             }
             int y = Math.max(1, Math.min(254, (int) Math.floor(TeleportSupport.playerY(player))));
             Object manager = ServerReflection.invoke(server, new String[] { "getCommandManager", "func_71187_D" });
+            Object sender = silentCommandSender(player);
             int step = Math.max(1, Math.max(region.maxX - region.minX, region.maxZ - region.minZ) / 32);
             for (int x = region.minX; x <= region.maxX; x += step) {
-                particle(manager, player, x, y, region.minZ);
-                particle(manager, player, x, y, region.maxZ);
+                particle(manager, sender, player, x, y, region.minZ);
+                particle(manager, sender, player, x, y, region.maxZ);
             }
             for (int z = region.minZ; z <= region.maxZ; z += step) {
-                particle(manager, player, region.minX, y, z);
-                particle(manager, player, region.maxX, y, z);
+                particle(manager, sender, player, region.minX, y, z);
+                particle(manager, sender, player, region.maxX, y, z);
             }
             ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "границы " + ServerChat.value(region.name) + " показаны частицами.");
         }
@@ -423,11 +424,11 @@ final class RegionCommand {
         return result.toString();
     }
 
-    private static void particle(Object manager, Object player, int x, int y, int z) {
+    private static void particle(Object manager, Object sender, Object player, int x, int y, int z) {
         ServerReflection.invoke(
             manager,
             new String[] { "executeCommand", "func_71556_a" },
-            player,
+            sender,
             "particle reddust " + x + " " + y + " " + z + " 0 0 0 0 1 force " + PlayerIdentity.name(player)
         );
     }
@@ -441,8 +442,9 @@ final class RegionCommand {
         if (manager == null) {
             return;
         }
+        Object sender = silentCommandSender(player);
         if (selection.second == null || selection.first.dimension != selection.second.dimension) {
-            selectionPoint(manager, player, selection.first);
+            selectionPoint(manager, sender, player, selection.first);
             return;
         }
         int minX = Math.min(selection.first.x, selection.second.x);
@@ -453,30 +455,66 @@ final class RegionCommand {
         int maxZ = Math.max(selection.first.z, selection.second.z);
         int step = Math.max(1, Math.max(Math.max(maxX - minX, maxY - minY), maxZ - minZ) / 16);
         for (int x = minX; x <= maxX; x += step) {
-            particle(manager, player, x, minY, minZ);
-            particle(manager, player, x, minY, maxZ);
-            particle(manager, player, x, maxY, minZ);
-            particle(manager, player, x, maxY, maxZ);
+            particle(manager, sender, player, x, minY, minZ);
+            particle(manager, sender, player, x, minY, maxZ);
+            particle(manager, sender, player, x, maxY, minZ);
+            particle(manager, sender, player, x, maxY, maxZ);
         }
         for (int y = minY; y <= maxY; y += step) {
-            particle(manager, player, minX, y, minZ);
-            particle(manager, player, minX, y, maxZ);
-            particle(manager, player, maxX, y, minZ);
-            particle(manager, player, maxX, y, maxZ);
+            particle(manager, sender, player, minX, y, minZ);
+            particle(manager, sender, player, minX, y, maxZ);
+            particle(manager, sender, player, maxX, y, minZ);
+            particle(manager, sender, player, maxX, y, maxZ);
         }
         for (int z = minZ; z <= maxZ; z += step) {
-            particle(manager, player, minX, minY, z);
-            particle(manager, player, minX, maxY, z);
-            particle(manager, player, maxX, minY, z);
-            particle(manager, player, maxX, maxY, z);
+            particle(manager, sender, player, minX, minY, z);
+            particle(manager, sender, player, minX, maxY, z);
+            particle(manager, sender, player, maxX, minY, z);
+            particle(manager, sender, player, maxX, maxY, z);
         }
-        selectionPoint(manager, player, selection.first);
-        selectionPoint(manager, player, selection.second);
+        selectionPoint(manager, sender, player, selection.first);
+        selectionPoint(manager, sender, player, selection.second);
     }
 
-    private static void selectionPoint(Object manager, Object player, RegionProtectionService.Position position) {
+    private static void selectionPoint(Object manager, Object sender, Object player, RegionProtectionService.Position position) {
         for (int offset = 0; offset < 3; offset++) {
-            particle(manager, player, position.x, Math.min(255, position.y + offset), position.z);
+            particle(manager, sender, player, position.x, Math.min(255, position.y + offset), position.z);
+        }
+    }
+
+    private static Object silentCommandSender(final Object player) {
+        try {
+            Class<?> senderType = Class.forName("net.minecraft.command.ICommandSender");
+            return Proxy.newProxyInstance(
+                senderType.getClassLoader(),
+                new Class<?>[] { senderType },
+                (proxy, method, args) -> {
+                    String name = method.getName();
+                    if ("sendMessage".equals(name) || "func_145747_a".equals(name)) {
+                        return null;
+                    }
+                    if ("sendCommandFeedback".equals(name) || "func_174792_t".equals(name)) {
+                        return Boolean.FALSE;
+                    }
+                    if ("equals".equals(name)) {
+                        return Boolean.valueOf(args != null && args.length > 0 && proxy == args[0]);
+                    }
+                    if ("hashCode".equals(name)) {
+                        return Integer.valueOf(System.identityHashCode(proxy));
+                    }
+                    if ("toString".equals(name)) {
+                        return "ObsidianGateSelectionSender";
+                    }
+                    try {
+                        method.setAccessible(true);
+                        return method.invoke(player, args == null ? new Object[0] : args);
+                    } catch (ReflectiveOperationException exception) {
+                        return defaultValue(method.getReturnType());
+                    }
+                }
+            );
+        } catch (ClassNotFoundException | LinkageError exception) {
+            return player;
         }
     }
 
