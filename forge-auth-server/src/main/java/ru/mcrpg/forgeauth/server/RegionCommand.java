@@ -434,52 +434,38 @@ final class RegionCommand {
     }
 
     static void showSelection(Object player, RegionProtectionService.Selection selection) {
-        if (player == null || selection == null || selection.first == null) {
+        if (player == null) {
             return;
         }
-        Object server = ServerReflection.invoke(player, new String[] { "getServer", "func_184102_h" });
-        Object manager = ServerReflection.invoke(server, new String[] { "getCommandManager", "func_71187_D" });
-        if (manager == null) {
+        if (selection == null || selection.first == null) {
+            hideSelection(player);
             return;
         }
-        Object sender = silentCommandSender(player);
-        if (selection.second == null || selection.first.dimension != selection.second.dimension) {
-            selectionPoint(manager, sender, player, selection.first);
+        if (ForgeAuthServerMod.networkChannel() == null) {
             return;
         }
-        int minX = Math.min(selection.first.x, selection.second.x);
-        int minY = Math.max(0, Math.min(selection.first.y, selection.second.y));
-        int minZ = Math.min(selection.first.z, selection.second.z);
-        int maxX = Math.max(selection.first.x, selection.second.x);
-        int maxY = Math.min(255, Math.max(selection.first.y, selection.second.y));
-        int maxZ = Math.max(selection.first.z, selection.second.z);
-        int step = Math.max(1, Math.max(Math.max(maxX - minX, maxY - minY), maxZ - minZ) / 16);
-        for (int x = minX; x <= maxX; x += step) {
-            particle(manager, sender, player, x, minY, minZ);
-            particle(manager, sender, player, x, minY, maxZ);
-            particle(manager, sender, player, x, maxY, minZ);
-            particle(manager, sender, player, x, maxY, maxZ);
-        }
-        for (int y = minY; y <= maxY; y += step) {
-            particle(manager, sender, player, minX, y, minZ);
-            particle(manager, sender, player, minX, y, maxZ);
-            particle(manager, sender, player, maxX, y, minZ);
-            particle(manager, sender, player, maxX, y, maxZ);
-        }
-        for (int z = minZ; z <= maxZ; z += step) {
-            particle(manager, sender, player, minX, minY, z);
-            particle(manager, sender, player, minX, maxY, z);
-            particle(manager, sender, player, maxX, minY, z);
-            particle(manager, sender, player, maxX, maxY, z);
-        }
-        selectionPoint(manager, sender, player, selection.first);
-        selectionPoint(manager, sender, player, selection.second);
+        sendSelectionMessage(player, RegionSelectionMessage.visible(selection.first, selection.second));
     }
 
-    private static void selectionPoint(Object manager, Object sender, Object player, RegionProtectionService.Position position) {
-        for (int offset = 0; offset < 3; offset++) {
-            particle(manager, sender, player, position.x, Math.min(255, position.y + offset), position.z);
+    static void hideSelection(Object player) {
+        if (player != null && ForgeAuthServerMod.networkChannel() != null) {
+            sendSelectionMessage(player, RegionSelectionMessage.hidden());
         }
+    }
+
+    private static void sendSelectionMessage(Object player, RegionSelectionMessage message) {
+        Object channel = ForgeAuthServerMod.networkChannel();
+        for (Method method : channel.getClass().getMethods()) {
+            if ("sendTo".equals(method.getName()) && method.getParameterTypes().length == 2) {
+                try {
+                    method.invoke(channel, message, player);
+                    return;
+                } catch (ReflectiveOperationException exception) {
+                    throw new IllegalStateException("Unable to send region selection to player.", exception);
+                }
+            }
+        }
+        throw new IllegalStateException("Forge network channel does not expose sendTo.");
     }
 
     private static Object silentCommandSender(final Object player) {

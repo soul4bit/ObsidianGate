@@ -254,7 +254,9 @@ final class RegionProtectionEvents {
                 RegionCommand.showSelection(player, regions.selection(playerId));
             }
         } else {
-            lastSelectionShows.remove(playerId);
+            if (lastSelectionShows.remove(playerId) != null) {
+                RegionCommand.hideSelection(player);
+            }
         }
         Long previousCheck = lastRegionChecks.put(playerId, Long.valueOf(now));
         if (previousCheck != null && now - previousCheck.longValue() < 1000L) {

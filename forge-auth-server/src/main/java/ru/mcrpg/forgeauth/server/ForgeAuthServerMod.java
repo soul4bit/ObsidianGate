@@ -31,6 +31,7 @@ public final class ForgeAuthServerMod {
     }
 
     private static final Logger LOGGER = Logger.getLogger(MOD_NAME);
+    private static SimpleNetworkWrapper networkChannel;
     private static final PlayerAchievementService ACHIEVEMENTS = new PlayerAchievementService(LOGGER);
     private static final ForgeAuthServerLifecycle LIFECYCLE = new ForgeAuthServerLifecycle(LOGGER, ACHIEVEMENTS);
     private static final SpawnProtectionService SPAWN_PROTECTION = new SpawnProtectionService(LOGGER);
@@ -60,8 +61,14 @@ public final class ForgeAuthServerMod {
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        SimpleNetworkWrapper channel = NetworkRegistry.INSTANCE.newSimpleChannel(NETWORK_CHANNEL);
-        channel.registerMessage(AuthTicketMessageHandler.class, AuthTicketMessage.class, 0, net.minecraftforge.fml.relauncher.Side.SERVER);
+        networkChannel = NetworkRegistry.INSTANCE.newSimpleChannel(NETWORK_CHANNEL);
+        networkChannel.registerMessage(AuthTicketMessageHandler.class, AuthTicketMessage.class, 0, net.minecraftforge.fml.relauncher.Side.SERVER);
+        networkChannel.registerMessage(
+            RegionSelectionMessageNoopHandler.class,
+            RegionSelectionMessage.class,
+            1,
+            net.minecraftforge.fml.relauncher.Side.CLIENT
+        );
         SPAWN_PROTECTION.load();
         ITEM_CLEANUP.load();
         RANDOM_LIGHTNING.load();
@@ -121,5 +128,9 @@ public final class ForgeAuthServerMod {
     public void onServerStopping(FMLServerStoppingEvent event) {
         ACHIEVEMENTS.shutdown();
         LIFECYCLE.shutdown();
+    }
+
+    static SimpleNetworkWrapper networkChannel() {
+        return networkChannel;
     }
 }
