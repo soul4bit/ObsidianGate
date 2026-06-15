@@ -1,9 +1,10 @@
 package ru.mcrpg.forgeauth.server;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraftforge.event.entity.living.EnderTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
@@ -27,6 +28,7 @@ final class RegionProtectionEvents {
     private final Map<String, Long> lastRegionChecks = new ConcurrentHashMap<String, Long>();
     private final Map<String, Long> lastSelectionShows = new ConcurrentHashMap<String, Long>();
     private final Map<String, Long> lastRegionHudSyncs = new ConcurrentHashMap<String, Long>();
+    private int serverTickCounter;
 
     RegionProtectionEvents(RegionProtectionService regions, RegionAuditService audit) {
         this.regions = regions;
@@ -260,8 +262,29 @@ final class RegionProtectionEvents {
         if (player == null) {
             return;
         }
-        String playerId = PlayerIdentity.id(player);
+        syncPlayerRegionState(player, System.currentTimeMillis());
+    }
+
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        serverTickCounter++;
+        if (serverTickCounter % 20 != 0) {
+            return;
+        }
         long now = System.currentTimeMillis();
+        for (Object player : onlinePlayers(minecraftServer())) {
+            syncPlayerRegionState(player, now);
+        }
+    }
+
+    private void syncPlayerRegionState(Object player, long now) {
+        if (player == null) {
+            return;
+        }
+        String playerId = PlayerIdentity.id(player);
         if (isWand(player, null)) {
             Long previousShow = lastSelectionShows.get(playerId);
             if (previousShow == null || now - previousShow.longValue() >= 1500L) {
@@ -310,6 +333,48 @@ final class RegionProtectionEvents {
             lastRegionHudSyncs.put(playerId, Long.valueOf(now));
             RegionCommand.hideRegionHud(player);
         }
+    }
+
+    private static List<Object> onlinePlayers(Object server) {
+        List<Object> result = new ArrayList<Object>();
+        Object playerList = ServerReflection.invoke(server, new String[] { "getPlayerList", "func_184103_al" });
+        Object players = ServerReflection.invoke(playerList, new String[] { "getPlayers", "func_181057_v" });
+        if (!(players instanceof Iterable<?>)) {
+            players = ServerReflection.field(playerList, "playerEntityList", "field_72404_b");
+        }
+        if (!(players instanceof Iterable<?>)) {
+            return result;
+        }
+        for (Object player : (Iterable<?>) players) {
+            if (TeleportSupport.isPlayer(player)) {
+                result.add(player);
+            }
+        }
+        return result;
+    }
+
+    private static Object minecraftServer() {
+        try {
+            Class<?> handlerType = Class.forName("net.minecraftforge.fml.common.FMLCommonHandler");
+            Object handler = null;
+            for (java.lang.reflect.Method method : handlerType.getMethods()) {
+                if ("instance".equals(method.getName()) && method.getParameterTypes().length == 0) {
+                    handler = method.invoke(null);
+                    break;
+                }
+            }
+            if (handler == null) {
+                return null;
+            }
+            for (java.lang.reflect.Method method : handler.getClass().getMethods()) {
+                if ("getMinecraftServerInstance".equals(method.getName()) && method.getParameterTypes().length == 0) {
+                    return method.invoke(handler);
+                }
+            }
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+        return null;
     }
 
     private void clearPlayerState(Object player) {
