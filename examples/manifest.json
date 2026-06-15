@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.15.23",
+    "version":  "2026.06.15.24",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Приваты и защита территорий",
@@ -1661,8 +1661,8 @@
                   },
                   {
                       "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "8ec8ccbddd5703ac55ee175558f671dec1bcdbd5537353993956aa1dda3b2500",
-                      "size":  47491,
+                      "sha256":  "4d27d061f773d4a98335fc457ccd711a8da0e7ba35199fd956a493d90bf7e76d",
+                      "size":  47348,
                       "executable":  false
                   },
                   {

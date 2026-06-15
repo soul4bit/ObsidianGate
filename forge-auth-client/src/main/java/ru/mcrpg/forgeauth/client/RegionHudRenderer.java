@@ -1,6 +1,5 @@
 package ru.mcrpg.forgeauth.client;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -25,9 +24,9 @@ final class RegionHudRenderer {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onOverlay(RenderGameOverlayEvent.Post event) {
+    public void onOverlay(RenderGameOverlayEvent.Text event) {
         String displayName = regionName;
-        if (event.getType() != RenderGameOverlayEvent.ElementType.ALL || displayName.isEmpty()) {
+        if (displayName.isEmpty()) {
             return;
         }
 
@@ -37,16 +36,15 @@ final class RegionHudRenderer {
             return;
         }
 
+        int screenWidth = scaledWidth(event, minecraft);
         String text = displayName;
-        int screenWidth = scaledWidth(minecraft, event);
         int availableTextWidth = screenWidth <= 0
             ? 160
             : Math.max(20, screenWidth - MARGIN * 2 - ICON_WIDTH - ICON_GAP);
         text = fitText(font, text, availableTextWidth);
-        int width = integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, text));
-        int left = screenWidth <= 0
-            ? MARGIN
-            : Math.max(MARGIN, screenWidth - width - ICON_WIDTH - ICON_GAP - MARGIN);
+        int width = stringWidth(font, text);
+        int totalWidth = ICON_WIDTH + ICON_GAP + width;
+        int left = screenWidth <= 0 ? MARGIN : Math.max(MARGIN, (screenWidth - totalWidth) / 2);
         int top = MARGIN;
         drawShield(left, top + 1);
         invoke(
@@ -68,15 +66,14 @@ final class RegionHudRenderer {
     }
 
     private static String fitText(Object font, String text, int maxWidth) {
-        if (integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, text)) <= maxWidth) {
+        if (stringWidth(font, text) <= maxWidth) {
             return text;
         }
         String suffix = "...";
-        int suffixWidth = integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, suffix));
+        int suffixWidth = stringWidth(font, suffix);
         int bodyWidth = Math.max(0, maxWidth - suffixWidth);
         String result = text;
-        while (!result.isEmpty()
-            && integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, result)) > bodyWidth) {
+        while (!result.isEmpty() && stringWidth(font, result) > bodyWidth) {
             result = result.substring(0, result.length() - 1);
         }
         return result.isEmpty() ? suffix : result + suffix;
@@ -118,7 +115,7 @@ final class RegionHudRenderer {
         return null;
     }
 
-    private static int scaledWidth(Object minecraft, Object event) {
+    private static int scaledWidth(Object event, Object minecraft) {
         int eventWidth = scaledWidthFrom(invoke(event, new String[] { "getResolution" }));
         if (eventWidth > 0) {
             return eventWidth;
@@ -127,26 +124,25 @@ final class RegionHudRenderer {
         if (fieldWidth > 0) {
             return fieldWidth;
         }
-        if (minecraft == null) {
+        int displayWidth = integer(field(minecraft, "displayWidth", "field_71443_c"));
+        int guiScale = integer(field(field(minecraft, "gameSettings", "field_71474_y"), "guiScale", "field_74335_Z"));
+        if (displayWidth <= 0) {
             return 0;
         }
-        try {
-            Class<?> resolutionType = Class.forName("net.minecraft.client.gui.ScaledResolution");
-            for (Constructor<?> constructor : resolutionType.getConstructors()) {
-                if (constructor.getParameterTypes().length == 1
-                    && constructor.getParameterTypes()[0].isAssignableFrom(minecraft.getClass())) {
-                    Object resolution = constructor.newInstance(minecraft);
-                    return scaledWidthFrom(resolution);
-                }
-            }
-        } catch (ReflectiveOperationException | IllegalArgumentException ignored) {
-            return 0;
+        int scaleFactor = 1;
+        int targetScale = guiScale == 0 ? 1000 : guiScale;
+        while (scaleFactor < targetScale && displayWidth / (scaleFactor + 1) >= 320) {
+            scaleFactor++;
         }
-        return 0;
+        return displayWidth / scaleFactor;
     }
 
     private static int scaledWidthFrom(Object resolution) {
         return integer(invoke(resolution, new String[] { "getScaledWidth", "func_78326_a" }));
+    }
+
+    private static int stringWidth(Object font, String text) {
+        return integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, text));
     }
 
     private static Object invokeStatic(String className, String... names) {

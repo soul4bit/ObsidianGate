@@ -318,9 +318,11 @@ final class RegionCommand {
                 )
                 : regions.region(name);
             if (region == null) {
+                RegionCommand.hideRegionHud(player);
                 ServerChat.status(player, ServerChat.Tone.INFO, SUBJECT, "в этой точке региона нет.");
                 return;
             }
+            RegionCommand.showRegionHud(player, region.name);
             ServerChat.status(
                 player,
                 ServerChat.Tone.INFO,
