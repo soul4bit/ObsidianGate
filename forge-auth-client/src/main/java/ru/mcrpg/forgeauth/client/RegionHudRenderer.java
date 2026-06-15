@@ -11,22 +11,40 @@ final class RegionHudRenderer {
     private static final int MARGIN = 8;
     private static final int ICON_WIDTH = 10;
     private static final int ICON_GAP = 5;
-    private static final int TEXT_COLOR = 0xFFFFD86B;
+    private static final int TEXT_OWNER = 0xFFFFD86B;
+    private static final int TEXT_MEMBER = 0xFF7EE8FF;
+    private static final int TEXT_VISITOR = 0xFFFFA0A0;
     private static volatile Method drawRectMethod;
     private static volatile String regionName = "";
+    private static volatile String ownerName = "";
+    private static volatile int relation = RegionHudMessage.RELATION_VISITOR;
 
     static void update(String value) {
-        regionName = normalize(value);
+        update(value, "", RegionHudMessage.RELATION_VISITOR);
+    }
+
+    static void update(String regionValue, String ownerValue, int relationValue) {
+        String normalizedRegion = normalize(regionValue);
+        if (normalizedRegion.isEmpty()) {
+            clear();
+            return;
+        }
+        regionName = normalizedRegion;
+        ownerName = normalizeOwner(ownerValue);
+        relation = normalizeRelation(relationValue);
     }
 
     static void clear() {
         regionName = "";
+        ownerName = "";
+        relation = RegionHudMessage.RELATION_VISITOR;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onOverlay(RenderGameOverlayEvent.Text event) {
-        String displayName = regionName;
-        if (displayName.isEmpty()) {
+        String displayName = displayText(regionName, ownerName);
+        int displayRelation = relation;
+        if (regionName.isEmpty()) {
             return;
         }
 
@@ -46,14 +64,14 @@ final class RegionHudRenderer {
         int totalWidth = ICON_WIDTH + ICON_GAP + width;
         int left = screenWidth <= 0 ? MARGIN : Math.max(MARGIN, (screenWidth - totalWidth) / 2);
         int top = MARGIN;
-        drawShield(left, top + 1);
+        drawShield(left, top + 1, displayRelation);
         invoke(
             font,
             new String[] { "drawStringWithShadow", "func_175063_a" },
             text,
             Float.valueOf(left + ICON_WIDTH + ICON_GAP),
             Float.valueOf(top + 2.0F),
-            Integer.valueOf(TEXT_COLOR)
+            Integer.valueOf(textColor(displayRelation))
         );
     }
 
@@ -63,6 +81,24 @@ final class RegionHudRenderer {
             return "";
         }
         return normalized;
+    }
+
+    private static String normalizeOwner(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static int normalizeRelation(int value) {
+        if (value == RegionHudMessage.RELATION_OWNER || value == RegionHudMessage.RELATION_MEMBER) {
+            return value;
+        }
+        return RegionHudMessage.RELATION_VISITOR;
+    }
+
+    private static String displayText(String region, String owner) {
+        if (owner == null || owner.trim().isEmpty()) {
+            return region;
+        }
+        return region + " \u00b7 owner " + owner.trim();
     }
 
     private static String fitText(Object font, String text, int maxWidth) {
@@ -79,13 +115,47 @@ final class RegionHudRenderer {
         return result.isEmpty() ? suffix : result + suffix;
     }
 
-    private static void drawShield(int x, int y) {
-        drawRect(x + 2, y, x + 8, y + 1, 0xFFB6ECFF);
-        drawRect(x + 1, y + 1, x + 9, y + 3, 0xFF37B8FF);
-        drawRect(x, y + 3, x + 10, y + 6, 0xFF166CEB);
-        drawRect(x + 1, y + 6, x + 9, y + 8, 0xFF124BB7);
-        drawRect(x + 3, y + 8, x + 7, y + 10, 0xFF0D2E82);
-        drawRect(x + 4, y + 10, x + 6, y + 11, 0xFF0D2E82);
+    private static int textColor(int relation) {
+        if (relation == RegionHudMessage.RELATION_OWNER) {
+            return TEXT_OWNER;
+        }
+        if (relation == RegionHudMessage.RELATION_MEMBER) {
+            return TEXT_MEMBER;
+        }
+        return TEXT_VISITOR;
+    }
+
+    private static void drawShield(int x, int y, int relation) {
+        int highlight;
+        int upper;
+        int middle;
+        int lower;
+        int dark;
+        if (relation == RegionHudMessage.RELATION_OWNER) {
+            highlight = 0xFFFFF4B8;
+            upper = 0xFFFFC247;
+            middle = 0xFFD68A16;
+            lower = 0xFF9D5D0B;
+            dark = 0xFF6F3B06;
+        } else if (relation == RegionHudMessage.RELATION_MEMBER) {
+            highlight = 0xFFB6ECFF;
+            upper = 0xFF37B8FF;
+            middle = 0xFF166CEB;
+            lower = 0xFF124BB7;
+            dark = 0xFF0D2E82;
+        } else {
+            highlight = 0xFFFFD1D1;
+            upper = 0xFFFF6B6B;
+            middle = 0xFFD43D3D;
+            lower = 0xFF962828;
+            dark = 0xFF641818;
+        }
+        drawRect(x + 2, y, x + 8, y + 1, highlight);
+        drawRect(x + 1, y + 1, x + 9, y + 3, upper);
+        drawRect(x, y + 3, x + 10, y + 6, middle);
+        drawRect(x + 1, y + 6, x + 9, y + 8, lower);
+        drawRect(x + 3, y + 8, x + 7, y + 10, dark);
+        drawRect(x + 4, y + 10, x + 6, y + 11, dark);
         drawRect(x + 4, y + 2, x + 6, y + 7, 0x66FFFFFF);
     }
 

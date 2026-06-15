@@ -8,7 +8,7 @@ public final class RegionHudMessageHandler implements IMessageHandler<RegionHudM
 
     @Override
     public IMessage onMessage(RegionHudMessage message, MessageContext context) {
-        RegionHudRenderer.update(message.regionName);
+        RegionHudRenderer.update(message.regionName, message.ownerName, message.relation);
         return null;
     }
 }

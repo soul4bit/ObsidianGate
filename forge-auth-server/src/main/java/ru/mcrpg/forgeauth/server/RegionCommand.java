@@ -192,28 +192,42 @@ final class RegionCommand {
                 } else if ("redefine".equals(action) && args.length == 2) {
                     RegionProtectionService.Region region = regions.redefine(args[1], PlayerIdentity.id(player), isOperator(player));
                     ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "Границы региона " + ServerChat.value(region.name) + " изменены.");
+                    audit.recordAction(player, "redefine", region, boundsSummary(region));
                 } else if ("transfer".equals(action) && args.length == 3) {
                     transfer(server, player, args[1], args[2]);
                 } else if ("setpriority".equals(action) && args.length == 3 && isOperator(player)) {
                     RegionProtectionService.Region region = regions.setPriority(args[1], Integer.parseInt(args[2]));
                     ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "приоритет региона: " + region.priority + ".");
+                    audit.recordAction(player, "setpriority", region, "priority=" + region.priority);
                 } else if ("rollback".equals(action) && args.length >= 2 && args.length <= 4) {
                     rollback(server, player, args);
                 } else if ("flag".equals(action) && args.length == 4) {
                     boolean allowed = parseState(args[3]);
-                    regions.setFlag(args[1], PlayerIdentity.id(player), args[2], allowed, isOperator(player));
+                    boolean changed = regions.setFlag(args[1], PlayerIdentity.id(player), args[2], allowed, isOperator(player));
+                    RegionProtectionService.Region region = regions.region(args[1]);
                     ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "флаг " + args[2] + " = " + (allowed ? "allow" : "deny") + ".");
+                    if (changed) {
+                        audit.recordAction(player, "flag", region, args[2] + "=" + (allowed ? "allow" : "deny"));
+                    }
                 } else if ("show".equals(action) && args.length <= 2) {
                     show(server, player, args.length == 2 ? args[1] : null);
                 } else if (("addmember".equals(action) || "add".equals(action)) && args.length == 3) {
                     boolean changed = regions.addMember(args[1], PlayerIdentity.id(player), args[2], isOperator(player));
                     result(player, changed, "Игрок добавлен.", "Игрок уже является участником.");
+                    if (changed) {
+                        audit.recordAction(player, "addmember", regions.region(args[1]), "member=" + args[2]);
+                    }
                 } else if (("removemember".equals(action) || "remove".equals(action)) && args.length == 3) {
                     boolean changed = regions.removeMember(args[1], PlayerIdentity.id(player), args[2], isOperator(player));
                     result(player, changed, "Игрок удален из участников.", "Игрок не был участником.");
+                    if (changed) {
+                        audit.recordAction(player, "removemember", regions.region(args[1]), "member=" + args[2]);
+                    }
                 } else if (("delete".equals(action) || "remove".equals(action)) && args.length == 2) {
+                    RegionProtectionService.Region region = regions.region(args[1]);
                     regions.delete(args[1], PlayerIdentity.id(player), isOperator(player));
                     ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион удален.");
+                    audit.recordAction(player, "delete", region, "archived=true");
                 } else if ("list".equals(action)) {
                     list(player);
                 } else if ("info".equals(action)) {
@@ -249,6 +263,7 @@ final class RegionCommand {
                 "регион " + ServerChat.value(result.region.name) + " создан, площадь "
                     + ServerChat.value(result.region.horizontalArea()) + "."
             );
+            audit.recordAction(player, "claim", result.region, boundsSummary(result.region));
         }
 
         private void transfer(Object server, Object player, String regionName, String targetName) {
@@ -266,6 +281,7 @@ final class RegionCommand {
             );
             ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион передан игроку " + ServerChat.value(region.ownerName) + ".");
             ServerChat.status(target, ServerChat.Tone.SUCCESS, SUBJECT, "вам передан регион " + ServerChat.value(region.name) + ".");
+            audit.recordAction(player, "transfer", region, "owner=" + region.ownerName);
         }
 
         private void rollback(Object server, Object player, String[] args) {
@@ -290,6 +306,12 @@ final class RegionCommand {
             }
             int restored = audit.rollback(server, player, region, playerFilter, limit);
             ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "восстановлено изменений: " + ServerChat.value(restored) + ".");
+            audit.recordAction(
+                player,
+                "rollback",
+                region,
+                "restored=" + restored + " limit=" + limit + (playerFilter == null ? "" : " player=" + playerFilter)
+            );
         }
 
         private void list(Object player) {
@@ -322,18 +344,49 @@ final class RegionCommand {
                 ServerChat.status(player, ServerChat.Tone.INFO, SUBJECT, "в этой точке региона нет.");
                 return;
             }
-            RegionCommand.showRegionHud(player, region.name);
+            RegionCommand.showRegionHud(player, region);
+            ServerChat.helpTitle(
+                player,
+                "\u0420\u0435\u0433\u0438\u043e\u043d " + region.name,
+                "\u0432\u043b\u0430\u0434\u0435\u043b\u0435\u0446 " + region.ownerName
+            );
             ServerChat.status(
                 player,
-                ServerChat.Tone.INFO,
                 SUBJECT,
-                ServerChat.value(region.name) + ", владелец " + ServerChat.value(region.ownerName)
-                    + ", участники " + ServerChat.value(region.members.isEmpty() ? "нет" : region.members)
-                    + ", флаги " + ServerChat.value(flagSummary(region))
-                    + ", приоритет " + region.priority
-                    + ", границы X " + region.minX + ".." + region.maxX
-                    + ", Y " + region.minY + ".." + region.maxY
-                    + ", Z " + region.minZ + ".." + region.maxZ + "."
+                "\u0443\u0447\u0430\u0441\u0442\u043d\u0438\u043a\u0438 " + ServerChat.value(membersSummary(region))
+                    + " \u00b7 \u0440\u0430\u0437\u043c\u0435\u0440 " + ServerChat.value(region.horizontalArea())
+                    + " \u0431\u043b\u043e\u043a\u043e\u0432"
+            );
+            ServerChat.status(
+                player,
+                SUBJECT,
+                "\u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 " + ServerChat.value(region.priority)
+                    + " \u00b7 \u0433\u0440\u0430\u043d\u0438\u0446\u044b " + ServerChat.value(boundsSummary(region))
+            );
+            ServerChat.status(player, SUBJECT, "\u0444\u043b\u0430\u0433\u0438 " + ServerChat.value(flagSummary(region)) + ".");
+            ServerChat.helpCommand(
+                player,
+                "/rg show " + region.name,
+                "\u043f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0433\u0440\u0430\u043d\u0438\u0446\u044b",
+                "/rg show " + region.name
+            );
+            ServerChat.helpCommand(
+                player,
+                "/rg addmember " + region.name + " <player>",
+                "\u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0443\u0447\u0430\u0441\u0442\u043d\u0438\u043a\u0430",
+                "/rg addmember " + region.name + " "
+            );
+            ServerChat.helpCommand(
+                player,
+                "/rg flag " + region.name + " <flag> <allow|deny>",
+                "\u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0444\u043b\u0430\u0433",
+                "/rg flag " + region.name + " doors allow"
+            );
+            ServerChat.helpCommand(
+                player,
+                "/rg transfer " + region.name + " <player>",
+                "\u043f\u0435\u0440\u0435\u0434\u0430\u0442\u044c \u0440\u0435\u0433\u0438\u043e\u043d",
+                "/rg transfer " + region.name + " "
             );
         }
 
@@ -372,13 +425,17 @@ final class RegionCommand {
                 return;
             }
             if ("delete".equals(adminAction)) {
+                RegionProtectionService.Region region = regions.region(args[2]);
                 regions.delete(args[2], PlayerIdentity.id(player), true);
                 ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион удален в архив.");
+                audit.recordAction(player, "admin-delete", region, "archived=true");
                 return;
             }
             if ("restore".equals(adminAction)) {
                 regions.restore(args[2]);
+                RegionProtectionService.Region region = regions.region(args[2]);
                 ServerChat.status(player, ServerChat.Tone.SUCCESS, SUBJECT, "регион восстановлен.");
+                audit.recordAction(player, "admin-restore", region, "restored=true");
                 return;
             }
             throw new IllegalArgumentException("Админ-команды: find, delete, restore.");
@@ -410,6 +467,26 @@ final class RegionCommand {
             result.append(flag.id).append('=').append(region.flag(flag) ? "allow" : "deny");
         }
         return result.toString();
+    }
+
+    private static String membersSummary(RegionProtectionService.Region region) {
+        if (region.members.isEmpty()) {
+            return "\u043d\u0435\u0442";
+        }
+        StringBuilder result = new StringBuilder();
+        for (String member : region.members) {
+            if (result.length() > 0) {
+                result.append(", ");
+            }
+            result.append(member);
+        }
+        return result.toString();
+    }
+
+    private static String boundsSummary(RegionProtectionService.Region region) {
+        return "X " + region.minX + ".." + region.maxX
+            + ", Y " + region.minY + ".." + region.maxY
+            + ", Z " + region.minZ + ".." + region.maxZ;
     }
 
     private static String regionNames(List<RegionProtectionService.Region> regions) {
@@ -461,10 +538,27 @@ final class RegionCommand {
         }
     }
 
+    static void showRegionHud(Object player, RegionProtectionService.Region region) {
+        if (player != null && region != null && ForgeAuthServerMod.networkChannel() != null) {
+            sendToPlayer(player, RegionHudMessage.show(region.name, region.ownerName, hudRelation(player, region)));
+        }
+    }
+
     static void hideRegionHud(Object player) {
         if (player != null && ForgeAuthServerMod.networkChannel() != null) {
             sendToPlayer(player, RegionHudMessage.hidden());
         }
+    }
+
+    private static int hudRelation(Object player, RegionProtectionService.Region region) {
+        String playerId = PlayerIdentity.id(player);
+        if (region.ownerId.equals(playerId)) {
+            return RegionHudMessage.RELATION_OWNER;
+        }
+        if (region.allows(playerId, PlayerIdentity.name(player))) {
+            return RegionHudMessage.RELATION_MEMBER;
+        }
+        return RegionHudMessage.RELATION_VISITOR;
     }
 
     private static void sendToPlayer(Object player, Object message) {

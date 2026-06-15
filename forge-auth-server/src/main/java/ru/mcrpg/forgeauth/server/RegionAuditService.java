@@ -22,6 +22,7 @@ final class RegionAuditService {
 
     private final Logger logger;
     private final Path storagePath;
+    private final Path actionPath;
     private boolean rollingBack;
     private int recordsSinceTrim;
 
@@ -32,6 +33,7 @@ final class RegionAuditService {
     RegionAuditService(Logger logger, Path storagePath) {
         this.logger = logger;
         this.storagePath = storagePath;
+        this.actionPath = actionPathFor(storagePath);
     }
 
     synchronized void record(Object world, Object pos, Object player, RegionProtectionService.Region region) {
@@ -45,6 +47,20 @@ final class RegionAuditService {
         Object state = ServerReflection.invoke(snapshot, new String[] { "getReplacedBlock" });
         Object nbt = ServerReflection.invoke(snapshot, new String[] { "getNbt" });
         record(world, pos, player, region, state, nbt == null ? null : String.valueOf(nbt));
+    }
+
+    synchronized void recordAction(Object actor, String action, RegionProtectionService.Region region, String detail) {
+        String actorName = actor == null ? "server" : PlayerIdentity.name(actor);
+        String actorId = actor == null ? "server" : PlayerIdentity.id(actor);
+        String regionName = region == null ? "" : region.name;
+        String line = "ACTION"
+            + "\t" + System.currentTimeMillis()
+            + "\t" + encode(actorName)
+            + "\t" + encode(actorId)
+            + "\t" + encode(action == null ? "" : action)
+            + "\t" + encode(regionName)
+            + "\t" + encode(detail == null ? "" : detail);
+        appendLine(actionPath, line, false);
     }
 
     private void record(
@@ -142,28 +158,43 @@ final class RegionAuditService {
     }
 
     private void append(Record record) {
+        appendLine(storagePath, record.serialize(), true);
+    }
+
+    private void appendLine(Path path, String line, boolean trimBlockLog) {
         try {
-            Path parent = storagePath.getParent();
+            Path parent = path.getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
             }
             Files.write(
-                storagePath,
-                (record.serialize() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+                path,
+                (line + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
             );
+            if (!trimBlockLog) {
+                return;
+            }
             recordsSinceTrim++;
             if (recordsSinceTrim >= 1000) {
                 recordsSinceTrim = 0;
-                List<String> lines = Files.readAllLines(storagePath, StandardCharsets.UTF_8);
+                List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
                 if (lines.size() > MAX_RECORDS) {
-                    Files.write(storagePath, lines.subList(lines.size() - MAX_RECORDS, lines.size()), StandardCharsets.UTF_8);
+                    Files.write(path, lines.subList(lines.size() - MAX_RECORDS, lines.size()), StandardCharsets.UTF_8);
                 }
             }
         } catch (IOException exception) {
             logger.log(Level.WARNING, "Could not persist region audit record.", exception);
         }
+    }
+
+    private static Path actionPathFor(Path storagePath) {
+        Path parent = storagePath.getParent();
+        if (parent == null) {
+            return Paths.get("region-actions.log");
+        }
+        return parent.resolve("region-actions.log");
     }
 
     private List<Record> readAll() {

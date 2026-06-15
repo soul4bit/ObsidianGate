@@ -19,6 +19,7 @@ param(
     [string]$RemoteWebRoot = "/var/www/mc-rpg",
     [string]$ServiceName = "mc-rpg.service",
     [string]$RemoteDeployCommand = "/usr/local/bin/obsidiangate-deploy",
+    [int]$HealthCheckSeconds = 45,
     [switch]$LegacyPromptSudo,
     [switch]$DisableRsync,
     [switch]$SkipConnectivityCheck,
@@ -83,6 +84,7 @@ if ($LASTEXITCODE -ne 0) {
     -RemoteWebRoot $RemoteWebRoot `
     -ServiceName $ServiceName `
     -RemoteDeployCommand $RemoteDeployCommand `
+    -HealthCheckSeconds $HealthCheckSeconds `
     -LegacyPromptSudo:$LegacyPromptSudo `
     -DisableRsync:$DisableRsync `
     -SkipRestart:$SkipRestart `

@@ -9,6 +9,7 @@ param(
     [string]$RemoteWebRoot = "/var/www/mc-rpg",
     [string]$ServiceName = "mc-rpg.service",
     [string]$RemoteDeployCommand = "/usr/local/bin/obsidiangate-deploy",
+    [int]$HealthCheckSeconds = 45,
     [switch]$LegacyPromptSudo,
     [switch]$DisableRsync,
     [switch]$SkipRestart
@@ -233,7 +234,7 @@ if ($LegacyPromptSudo) {
     $remoteScript = $remoteCommands -join "`n"
 } else {
     $skipRestartFlag = if ($SkipRestart) { "1" } else { "0" }
-    $remoteScript = "if [ -f '$RemoteStageDir/server/server-icon.png' ]; then install -m 644 '$RemoteStageDir/server/server-icon.png' '$RemoteServerRoot/server-icon.png'; fi; sudo -n '$RemoteDeployCommand' '$RemoteStageDir' '$serverFileName' '$RemoteServerModsDir' '$RemoteWebRoot' '$ServiceName' '$skipRestartFlag' '$RemoteServerRoot'"
+    $remoteScript = "if [ -f '$RemoteStageDir/server/server-icon.png' ]; then install -m 644 '$RemoteStageDir/server/server-icon.png' '$RemoteServerRoot/server-icon.png'; fi; sudo -n '$RemoteDeployCommand' '$RemoteStageDir' '$serverFileName' '$RemoteServerModsDir' '$RemoteWebRoot' '$ServiceName' '$skipRestartFlag' '$RemoteServerRoot' '$HealthCheckSeconds'"
 }
 
 Invoke-External -Command "ssh" -Arguments @(

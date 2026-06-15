@@ -274,6 +274,9 @@ manifest.json.sig
 .\scripts\deploy-modpack.ps1 -Target mc-rpg-deploy
 ```
 
+По умолчанию деплой ждёт 45 секунд после рестарта `mc-rpg.service`. Если сервис не
+остаётся `active`, удалённая обёртка восстанавливает предыдущий релиз из бэкапа.
+
 Полный цикл одной командой:
 
 ```powershell
@@ -287,6 +290,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup-deploy-access.ps1 -Targ
 ```
 
 После изменения `scripts/obsidiangate-remote-deploy.sh` повтори настройку, потому что сервер хранит свою копию обертки в `/usr/local/bin/obsidiangate-deploy`.
+
+Действия с приватами пишутся в `obsidiangate/region-actions.log`, а история блоков
+для `/rg rollback` остаётся в `obsidiangate/region-audit.log`.
 
 ## Приватные адреса
 

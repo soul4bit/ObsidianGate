@@ -316,7 +316,7 @@ final class RegionProtectionEvents {
                 if (currentName == null) {
                     RegionCommand.hideRegionHud(player);
                 } else {
-                    RegionCommand.showRegionHud(player, currentName);
+                    RegionCommand.showRegionHud(player, current);
                 }
             }
             return;
@@ -324,7 +324,7 @@ final class RegionProtectionEvents {
         if (currentName != null) {
             playerRegions.put(playerId, currentName);
             lastRegionHudSyncs.put(playerId, Long.valueOf(now));
-            RegionCommand.showRegionHud(player, currentName);
+            RegionCommand.showRegionHud(player, current);
         } else {
             playerRegions.remove(playerId);
             lastRegionHudSyncs.put(playerId, Long.valueOf(now));

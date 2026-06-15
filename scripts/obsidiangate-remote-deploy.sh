@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-WRAPPER_VERSION="2026.05.29-config-merge.1"
+WRAPPER_VERSION="2026.06.15-health-rollback.1"
 
 if [ "${1:-}" = "--self-test" ]; then
     echo "obsidiangate-remote-deploy: ok $WRAPPER_VERSION"
@@ -15,6 +15,14 @@ WEB_ROOT="${4:?web root is required}"
 SERVICE_NAME="${5:?service name is required}"
 SKIP_RESTART="${6:-0}"
 SERVER_ROOT="${7:-$(dirname "$SERVER_MODS_DIR")}"
+HEALTH_CHECK_SECONDS="${8:-45}"
+
+case "$HEALTH_CHECK_SECONDS" in
+    ''|*[!0-9]*)
+        echo "Health check seconds must be a non-negative integer: $HEALTH_CHECK_SECONDS" >&2
+        exit 2
+        ;;
+esac
 
 canonicalize_path() {
     if command -v realpath >/dev/null 2>&1; then
@@ -77,6 +85,81 @@ if [ ! -f "$STAGE_DIR/$SERVER_JAR" ]; then
     exit 3
 fi
 
+BACKUP_BASE="$SERVER_ROOT/obsidiangate-deploy-backups"
+BACKUP_DIR="$BACKUP_BASE/$(date -u +%Y%m%dT%H%M%SZ)"
+SYSTEMD_UNITS=""
+
+backup_item() {
+    source_path="$1"
+    backup_name="$2"
+    if [ -e "$source_path" ]; then
+        install -d "$(dirname "$BACKUP_DIR/$backup_name")"
+        cp -a "$source_path" "$BACKUP_DIR/$backup_name"
+    fi
+}
+
+restore_item() {
+    backup_name="$1"
+    target_path="$2"
+    if [ -e "$BACKUP_DIR/$backup_name" ]; then
+        rm -rf "$target_path"
+        install -d "$(dirname "$target_path")"
+        cp -a "$BACKUP_DIR/$backup_name" "$target_path"
+    else
+        rm -rf "$target_path"
+    fi
+}
+
+remember_systemd_unit() {
+    unit_name="$1"
+    case " $SYSTEMD_UNITS " in
+        *" $unit_name "*) ;;
+        *) SYSTEMD_UNITS="$SYSTEMD_UNITS $unit_name" ;;
+    esac
+}
+
+prepare_rollback_backup() {
+    rm -rf "$BACKUP_DIR"
+    install -d "$BACKUP_DIR"
+    backup_item "$SERVER_MODS_DIR" "server-mods"
+    backup_item "$SERVER_ROOT/config" "server-config"
+    backup_item "$SERVER_ROOT/scripts" "server-scripts"
+    backup_item "$SERVER_ROOT/server-icon.png" "server-icon.png"
+    backup_item "$WEB_ROOT/client" "web-client"
+    backup_item "$WEB_ROOT/launcher" "web-launcher"
+    backup_item "$WEB_ROOT/manifest.json" "manifest.json"
+    backup_item "$WEB_ROOT/manifest.json.sig" "manifest.json.sig"
+}
+
+restore_previous_release() {
+    echo "Health check failed; restoring previous ObsidianGate release from $BACKUP_DIR" >&2
+    restore_item "server-mods" "$SERVER_MODS_DIR"
+    restore_item "server-config" "$SERVER_ROOT/config"
+    restore_item "server-scripts" "$SERVER_ROOT/scripts"
+    restore_item "server-icon.png" "$SERVER_ROOT/server-icon.png"
+    restore_item "web-client" "$WEB_ROOT/client"
+    restore_item "web-launcher" "$WEB_ROOT/launcher"
+    restore_item "manifest.json" "$WEB_ROOT/manifest.json"
+    restore_item "manifest.json.sig" "$WEB_ROOT/manifest.json.sig"
+    for unit_name in $SYSTEMD_UNITS; do
+        restore_item "systemd/$unit_name" "/etc/systemd/system/$unit_name"
+    done
+    if [ -n "$SYSTEMD_UNITS" ]; then
+        systemctl daemon-reload
+    fi
+    systemctl restart "$SERVICE_NAME" || true
+    systemctl status "$SERVICE_NAME" --no-pager -l || true
+    exit 7
+}
+
+cleanup_old_backups() {
+    if [ -d "$BACKUP_BASE" ]; then
+        ls -1dt "$BACKUP_BASE"/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+    fi
+}
+
+prepare_rollback_backup
+
 install -d "$SERVER_MODS_DIR"
 
 if [ -d "$STAGE_DIR/server/mods" ]; then
@@ -113,6 +196,8 @@ if [ -d "$STAGE_DIR/server/systemd" ]; then
                 exit 4
                 ;;
         esac
+        remember_systemd_unit "$unit_name"
+        backup_item "/etc/systemd/system/$unit_name" "systemd/$unit_name"
         install -m 644 "$unit" "/etc/systemd/system/$unit_name"
     done
 
@@ -150,5 +235,13 @@ sha256sum "$WEB_ROOT/manifest.json.sig"
 
 if [ "$SKIP_RESTART" != "1" ]; then
     systemctl restart "$SERVICE_NAME"
+    if [ "$HEALTH_CHECK_SECONDS" -gt 0 ]; then
+        echo "Waiting ${HEALTH_CHECK_SECONDS}s for $SERVICE_NAME health check..."
+        sleep "$HEALTH_CHECK_SECONDS"
+    fi
+    if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+        restore_previous_release
+    fi
     systemctl status "$SERVICE_NAME" --no-pager -l
+    cleanup_old_backups
 fi
