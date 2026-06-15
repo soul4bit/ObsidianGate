@@ -1,5 +1,6 @@
 package ru.mcrpg.forgeauth.client;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -36,17 +37,16 @@ final class RegionHudRenderer {
             return;
         }
 
-        Object resolution = invoke(event, new String[] { "getResolution" });
-        int screenWidth = integer(invoke(resolution, new String[] { "getScaledWidth", "func_78326_a" }));
-        if (screenWidth <= 0) {
-            return;
-        }
-
         String text = displayName;
-        int availableTextWidth = Math.max(20, screenWidth - MARGIN * 2 - ICON_WIDTH - ICON_GAP);
+        int screenWidth = scaledWidth(minecraft, event);
+        int availableTextWidth = screenWidth <= 0
+            ? 160
+            : Math.max(20, screenWidth - MARGIN * 2 - ICON_WIDTH - ICON_GAP);
         text = fitText(font, text, availableTextWidth);
         int width = integer(invoke(font, new String[] { "getStringWidth", "func_78256_a" }, text));
-        int left = Math.max(MARGIN, screenWidth - width - ICON_WIDTH - ICON_GAP - MARGIN);
+        int left = screenWidth <= 0
+            ? MARGIN
+            : Math.max(MARGIN, screenWidth - width - ICON_WIDTH - ICON_GAP - MARGIN);
         int top = MARGIN;
         drawShield(left, top + 1);
         invoke(
@@ -118,6 +118,37 @@ final class RegionHudRenderer {
         return null;
     }
 
+    private static int scaledWidth(Object minecraft, Object event) {
+        int eventWidth = scaledWidthFrom(invoke(event, new String[] { "getResolution" }));
+        if (eventWidth > 0) {
+            return eventWidth;
+        }
+        int fieldWidth = scaledWidthFrom(field(event, "resolution"));
+        if (fieldWidth > 0) {
+            return fieldWidth;
+        }
+        if (minecraft == null) {
+            return 0;
+        }
+        try {
+            Class<?> resolutionType = Class.forName("net.minecraft.client.gui.ScaledResolution");
+            for (Constructor<?> constructor : resolutionType.getConstructors()) {
+                if (constructor.getParameterTypes().length == 1
+                    && constructor.getParameterTypes()[0].isAssignableFrom(minecraft.getClass())) {
+                    Object resolution = constructor.newInstance(minecraft);
+                    return scaledWidthFrom(resolution);
+                }
+            }
+        } catch (ReflectiveOperationException | IllegalArgumentException ignored) {
+            return 0;
+        }
+        return 0;
+    }
+
+    private static int scaledWidthFrom(Object resolution) {
+        return integer(invoke(resolution, new String[] { "getScaledWidth", "func_78326_a" }));
+    }
+
     private static Object invokeStatic(String className, String... names) {
         try {
             Class<?> type = Class.forName(className);
@@ -136,9 +167,13 @@ final class RegionHudRenderer {
         if (target == null) {
             return null;
         }
-        for (Method method : target.getClass().getMethods()) {
-            if (matches(method.getName(), names) && method.getParameterTypes().length == args.length) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            for (Method method : type.getDeclaredMethods()) {
+                if (!matches(method.getName(), names) || method.getParameterTypes().length != args.length) {
+                    continue;
+                }
                 try {
+                    method.setAccessible(true);
                     return method.invoke(target, args);
                 } catch (ReflectiveOperationException | IllegalArgumentException ignored) {
                     // Try another mapped name or overload.
