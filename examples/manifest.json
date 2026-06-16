@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.17.2",
+    "version":  "2026.06.17.3",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Спокойнее генерация и Судная ночь",
@@ -546,7 +546,7 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.06.17.2",
+                           "version":  "2026.06.17.3",
                            "url":  "launcher/obsidian-gate-launcher.jar",
                            "sha256":  "9217de76c26cc9ec9ac2c147b98e0fa398762c2f772aded288234a0c9070829c",
                            "size":  18143523,
@@ -1262,7 +1262,7 @@
                   },
                   {
                       "path":  "config/foamfix.cfg",
-                      "sha256":  "5c672429ceb5fc3ce71a60f941de040ddb482c661fb64bf813f776df7dc2f16c",
+                      "sha256":  "b3278b3f33a695f2a8b46a079a4533ccd8e224a0cb188edc5417a586b8043cdb",
                       "size":  6141,
                       "executable":  false
                   },
@@ -1388,8 +1388,8 @@
                   },
                   {
                       "path":  "config/splash.properties",
-                      "sha256":  "a3da383041c608be3ae441956a6388afed23822d504832333edb5d1c32fc7411",
-                      "size":  375,
+                      "sha256":  "a2cf4b4edb87422a469f87bf23e89f56aa0bc4b9ad53f693fd9faa3dce45fed3",
+                      "size":  360,
                       "executable":  false
                   },
                   {
