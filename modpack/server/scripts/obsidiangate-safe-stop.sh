@@ -14,12 +14,20 @@ if [ ! -x "$RCON_COMMAND" ]; then
     exit 1
 fi
 
+if ! "$RCON_COMMAND" "list" >/dev/null 2>&1; then
+    log "Minecraft RCON is offline; letting systemd signal the process."
+    exit 0
+fi
+
 log "Saving world before shutdown..."
 "$RCON_COMMAND" "save-all" >/dev/null || log "WARN: save-all failed before shutdown"
 sleep 2
 
 log "Stopping Minecraft server via RCON..."
-"$RCON_COMMAND" "stop" >/dev/null
+if ! "$RCON_COMMAND" "stop" >/dev/null; then
+    log "WARN: stop failed; letting systemd signal the process."
+    exit 0
+fi
 
 deadline=$(( $(date +%s) + WAIT_SECONDS ))
 while [ "$(date +%s)" -lt "$deadline" ]; do
