@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import ru.mcrpg.authapi.domain.entity.AccountEntity;
+import ru.mcrpg.authapi.service.AuthRateLimiter;
 import ru.mcrpg.authapi.service.AvatarCatalog;
 import ru.mcrpg.authapi.service.AuthService;
 import ru.mcrpg.authapi.service.RequestAuthService;
@@ -24,16 +25,24 @@ public class AuthController {
     private final AuthService authService;
     private final RequestAuthService requestAuthService;
     private final AvatarCatalog avatarCatalog;
+    private final AuthRateLimiter authRateLimiter;
 
-    public AuthController(AuthService authService, RequestAuthService requestAuthService, AvatarCatalog avatarCatalog) {
+    public AuthController(
+        AuthService authService,
+        RequestAuthService requestAuthService,
+        AvatarCatalog avatarCatalog,
+        AuthRateLimiter authRateLimiter
+    ) {
         this.authService = authService;
         this.requestAuthService = requestAuthService;
         this.avatarCatalog = avatarCatalog;
+        this.authRateLimiter = authRateLimiter;
     }
 
     @PostMapping("/auth/register")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthSessionResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest servletRequest) {
+        authRateLimiter.checkRegister(clientAddress(servletRequest), request.username());
         return toSessionResponse(authService.register(
             request.username(),
             request.email(),
@@ -45,6 +54,7 @@ public class AuthController {
 
     @PostMapping("/auth/login")
     public AuthSessionResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+        authRateLimiter.checkLogin(clientAddress(servletRequest), request.login());
         return toSessionResponse(authService.login(
             request.login(),
             request.password(),
@@ -54,7 +64,8 @@ public class AuthController {
     }
 
     @PostMapping("/auth/refresh")
-    public AuthSessionResponse refresh(@Valid @RequestBody RefreshRequest request) {
+    public AuthSessionResponse refresh(@Valid @RequestBody RefreshRequest request, HttpServletRequest servletRequest) {
+        authRateLimiter.checkRefresh(clientAddress(servletRequest));
         return toSessionResponse(authService.refresh(request.refreshToken()));
     }
 
@@ -105,5 +116,9 @@ public class AuthController {
         return ServletUriComponentsBuilder.fromCurrentContextPath()
             .pathSegment("avatars", avatar)
             .toUriString();
+    }
+
+    private static String clientAddress(HttpServletRequest request) {
+        return request.getRemoteAddr();
     }
 }

@@ -6,7 +6,7 @@
 
     <groupId>ru.mcrpg</groupId>
     <artifactId>obsidiangate-forge-auth-server</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>ObsidianGate Forge Auth Server</name>
     <description>Forge 1.12.2 server auth bridge for launcher-issued tickets.</description>
 
@@ -17,7 +17,7 @@
         <junit.version>5.10.2</junit.version>
         <forge.version>1.12.2-14.23.5.2847</forge.version>
         <log4j.version>2.8.1</log4j.version>
-        <game.auth.version>0.1.0-SNAPSHOT</game.auth.version>
+        <game.auth.version>0.1.0</game.auth.version>
     </properties>
 
     <repositories>

@@ -21,7 +21,7 @@ mvn -f auth-api/pom.xml clean package
 Готовый jar:
 
 ```text
-auth-api/target/obsidiangate-auth-api-0.1.0-SNAPSHOT.jar
+auth-api/target/obsidiangate-auth-api-0.1.0.jar
 ```
 
 ## Конфигурация
@@ -44,6 +44,11 @@ cp auth-api/.env.example auth-api/.env
 - `REFRESH_TOKEN_TTL_DAYS`
 - `GAME_TICKET_TTL_SECONDS`
 - `SERVER_ID`
+- `AUTH_RATE_LIMIT_ENABLED`
+- `AUTH_RATE_LIMIT_WINDOW_SECONDS`
+- `AUTH_LOGIN_RATE_LIMIT`
+- `AUTH_REGISTER_RATE_LIMIT`
+- `AUTH_REFRESH_RATE_LIMIT`
 
 `SERVER_ID` должен совпадать с `launcher.serverId` в `manifest.json` и с `-Dobsidiangate.serverId=...` у серверного Forge-мода.
 

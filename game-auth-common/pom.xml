@@ -6,7 +6,7 @@
 
     <groupId>ru.mcrpg</groupId>
     <artifactId>obsidiangate-game-auth-common</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>ObsidianGate Game Auth Common</name>
     <description>Java 8-compatible shared protocol for launcher session files and game ticket verification.</description>
 

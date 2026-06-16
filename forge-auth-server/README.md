@@ -57,7 +57,7 @@ mvn -f forge-auth-server/pom.xml clean package
 Готовый jar:
 
 ```text
-forge-auth-server/target/obsidiangate-forge-auth-server-0.1.0-SNAPSHOT.jar
+forge-auth-server/target/obsidiangate-forge-auth-server-0.1.0.jar
 ```
 
 ## Установка
@@ -65,7 +65,7 @@ forge-auth-server/target/obsidiangate-forge-auth-server-0.1.0-SNAPSHOT.jar
 Скопируй jar в папку модов выделенного Forge-сервера:
 
 ```text
-<server>/mods/obsidiangate-forge-auth-server-0.1.0-SNAPSHOT.jar
+<server>/mods/obsidiangate-forge-auth-server-0.1.0.jar
 ```
 
 ## Диагностика киков

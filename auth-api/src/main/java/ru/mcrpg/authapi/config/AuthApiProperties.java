@@ -14,6 +14,11 @@ public class AuthApiProperties {
     private long usedGameTicketRetentionSeconds = 86_400L;
     private long revokedSessionRetentionDays = 7L;
     private String serverId = "obsidiangate-main";
+    private boolean rateLimitEnabled = true;
+    private long rateLimitWindowSeconds = 60L;
+    private int loginRateLimit = 10;
+    private int registerRateLimit = 5;
+    private int refreshRateLimit = 60;
 
     public String getJwtSecret() {
         return jwtSecret;
@@ -85,5 +90,45 @@ public class AuthApiProperties {
 
     public void setServerId(String serverId) {
         this.serverId = serverId;
+    }
+
+    public boolean isRateLimitEnabled() {
+        return rateLimitEnabled;
+    }
+
+    public void setRateLimitEnabled(boolean rateLimitEnabled) {
+        this.rateLimitEnabled = rateLimitEnabled;
+    }
+
+    public long getRateLimitWindowSeconds() {
+        return rateLimitWindowSeconds;
+    }
+
+    public void setRateLimitWindowSeconds(long rateLimitWindowSeconds) {
+        this.rateLimitWindowSeconds = rateLimitWindowSeconds;
+    }
+
+    public int getLoginRateLimit() {
+        return loginRateLimit;
+    }
+
+    public void setLoginRateLimit(int loginRateLimit) {
+        this.loginRateLimit = loginRateLimit;
+    }
+
+    public int getRegisterRateLimit() {
+        return registerRateLimit;
+    }
+
+    public void setRegisterRateLimit(int registerRateLimit) {
+        this.registerRateLimit = registerRateLimit;
+    }
+
+    public int getRefreshRateLimit() {
+        return refreshRateLimit;
+    }
+
+    public void setRefreshRateLimit(int refreshRateLimit) {
+        this.refreshRateLimit = refreshRateLimit;
     }
 }

@@ -86,7 +86,7 @@ mvn package
 Запуск собранного лаунчера:
 
 ```bash
-java -jar target/obsidian-gate-launcher-0.1.6-test.jar
+java -jar target/obsidian-gate-launcher-0.1.6.jar
 ```
 
 Сборка Auth API:

@@ -29,3 +29,8 @@ auth:
   used-game-ticket-retention-seconds: ${AUTH_USED_GAME_TICKET_RETENTION_SECONDS:86400}
   revoked-session-retention-days: ${AUTH_REVOKED_SESSION_RETENTION_DAYS:7}
   server-id: ${SERVER_ID:obsidiangate-main}
+  rate-limit-enabled: ${AUTH_RATE_LIMIT_ENABLED:true}
+  rate-limit-window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
+  login-rate-limit: ${AUTH_LOGIN_RATE_LIMIT:10}
+  register-rate-limit: ${AUTH_REGISTER_RATE_LIMIT:5}
+  refresh-rate-limit: ${AUTH_REFRESH_RATE_LIMIT:60}

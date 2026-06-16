@@ -36,4 +36,8 @@ public class ApiException extends RuntimeException {
     public static ApiException conflict(String error, String message) {
         return new ApiException(HttpStatus.CONFLICT, error, message);
     }
+
+    public static ApiException tooManyRequests(String error, String message) {
+        return new ApiException(HttpStatus.TOO_MANY_REQUESTS, error, message);
+    }
 }

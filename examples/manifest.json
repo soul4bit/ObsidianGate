@@ -547,11 +547,11 @@
                  },
     "launcherUpdate":  {
                            "version":  "2026.06.16.1",
-                           "url":  "launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "712d837144deef67cb3070ff7167b874264853a659d74d21eca9444ab75b4b0e",
-                           "size":  18141794,
+                           "url":  "client/launcher/obsidian-gate-launcher.jar",
+                           "sha256":  "7b980b48a78c095a5eee281cd02676412b159fcca61ce6122b62fe5060119893",
+                           "size":  18141972,
                            "required":  true,
-                           "artifactVersion":  "0.1.6-test",
+                           "artifactVersion":  "0.1.6",
                            "fileName":  "obsidian-gate-launcher.jar"
                        },
     "runtime":  {
@@ -1681,9 +1681,9 @@
                       "executable":  false
                   },
                   {
-                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar",
-                      "sha256":  "dd9841ade2ab13170688fa3420575650abbfe8b65f91dcfa54315b4d997990c5",
-                      "size":  48954,
+                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0.jar",
+                      "sha256":  "d6c552f0c6f5b5d004c40e3bff3ca0befb05b267298f5aafe78e3a60e5c3dd7c",
+                      "size":  48896,
                       "executable":  false
                   },
                   {

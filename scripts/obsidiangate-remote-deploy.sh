@@ -162,6 +162,7 @@ prepare_rollback_backup
 
 install -d "$SERVER_MODS_DIR"
 
+find "$SERVER_MODS_DIR" -mindepth 1 -maxdepth 1 -name 'obsidiangate-forge-auth-server-*.jar' -exec rm -rf {} +
 if [ -d "$STAGE_DIR/server/mods" ]; then
     find "$SERVER_MODS_DIR" -mindepth 1 -maxdepth 1 ! -name 'obsidiangate-forge-auth-server-*.jar' -exec rm -rf {} +
     cp -a "$STAGE_DIR/server/mods/." "$SERVER_MODS_DIR/"

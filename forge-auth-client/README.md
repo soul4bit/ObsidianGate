@@ -26,7 +26,7 @@ mvn -f forge-auth-client/pom.xml clean package
 Готовый jar:
 
 ```text
-forge-auth-client/target/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar
+forge-auth-client/target/obsidiangate-forge-auth-client-0.1.0.jar
 ```
 
 ## Установка
@@ -34,7 +34,7 @@ forge-auth-client/target/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar
 Обычно jar попадает в `dist/client/mods/` через скрипты релиза и скачивается лаунчером в:
 
 ```text
-<game directory>/mods/obsidiangate-forge-auth-client-0.1.0-SNAPSHOT.jar
+<game directory>/mods/obsidiangate-forge-auth-client-0.1.0.jar
 ```
 
 ## Важно

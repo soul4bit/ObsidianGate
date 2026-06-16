@@ -24,7 +24,7 @@ public final class ForgeAuthServerMod {
 
     public static final String MOD_ID = "obsidiangateauthserver";
     public static final String MOD_NAME = "ObsidianGate Auth Server";
-    public static final String VERSION = "0.1.0-SNAPSHOT";
+    public static final String VERSION = "0.1.0";
     public static final String NETWORK_CHANNEL = "ogauth";
 
     static {

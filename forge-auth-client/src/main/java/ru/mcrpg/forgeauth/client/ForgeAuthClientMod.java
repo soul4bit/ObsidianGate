@@ -19,7 +19,7 @@ public final class ForgeAuthClientMod {
 
     public static final String MOD_ID = "obsidiangateauthclient";
     public static final String MOD_NAME = "ObsidianGate Auth Client";
-    public static final String VERSION = "0.1.0-SNAPSHOT";
+    public static final String VERSION = "0.1.0";
     public static final String NETWORK_CHANNEL = "ogauth";
 
     private static final Logger LOGGER = Logger.getLogger(MOD_NAME);

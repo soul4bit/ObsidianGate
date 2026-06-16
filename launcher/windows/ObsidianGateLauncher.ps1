@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
     [string]$LauncherJar = "obsidian-gate-launcher.jar",
-    [string]$LauncherUrl = "http://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
-    [string]$LauncherSha256 = "0722f29223444a171f77a36f127d6cb5c6317a58b7b96ef3159a208ba12e0245",
+    [string]$LauncherUrl = "https://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
+    [string]$LauncherFallbackUrl = "http://obsidiangates.duckdns.org:8080/launcher/obsidian-gate-launcher.jar",
+    [string]$LauncherSha256 = "7b980b48a78c095a5eee281cd02676412b159fcca61ce6122b62fe5060119893",
     [int]$MinimumJavaMajor = 17,
     [string]$RuntimeUrl = "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse"
 )
@@ -257,6 +258,7 @@ function Resolve-LauncherJar {
         [Parameter(Mandatory = $true)][string]$InstallDirectory,
         [Parameter(Mandatory = $true)][string]$JarName,
         [Parameter(Mandatory = $true)][string]$DownloadUrl,
+        [string]$FallbackDownloadUrl,
         [string]$ExpectedSha256
     )
 
@@ -269,18 +271,33 @@ function Resolve-LauncherJar {
     New-Item -ItemType Directory -Force -Path $InstallDirectory | Out-Null
     $installedJar = Join-Path $InstallDirectory $JarName
     $tempJar = Join-Path $InstallDirectory ($JarName + ".download")
-    Write-Step "Downloading launcher jar..."
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    try {
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $tempJar -UseBasicParsing
-        Test-FileSha256 -Path $tempJar -ExpectedSha256 $ExpectedSha256
-        Move-Item -LiteralPath $tempJar -Destination $installedJar -Force
-    } finally {
-        if (Test-Path -LiteralPath $tempJar) {
-            Remove-Item -LiteralPath $tempJar -Force
+
+    $downloadUrls = New-Object System.Collections.Generic.List[string]
+    $downloadUrls.Add($DownloadUrl)
+    if ($FallbackDownloadUrl -and $FallbackDownloadUrl.Trim() -and $FallbackDownloadUrl.Trim() -ne $DownloadUrl.Trim()) {
+        $downloadUrls.Add($FallbackDownloadUrl.Trim())
+    }
+
+    $lastError = $null
+    foreach ($url in $downloadUrls) {
+        Write-Step "Downloading launcher jar..."
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $tempJar -UseBasicParsing
+            Test-FileSha256 -Path $tempJar -ExpectedSha256 $ExpectedSha256
+            Move-Item -LiteralPath $tempJar -Destination $installedJar -Force
+            return $installedJar
+        } catch {
+            $lastError = $_.Exception
+            Write-Step "Launcher jar download failed from ${url}: $($lastError.Message)"
+        } finally {
+            if (Test-Path -LiteralPath $tempJar) {
+                Remove-Item -LiteralPath $tempJar -Force
+            }
         }
     }
-    return $installedJar
+
+    throw "Launcher jar download failed: $($lastError.Message)"
 }
 
 try {
@@ -294,7 +311,7 @@ try {
     $javaCachePath = Join-Path $installDirectory "java-cache.json"
 
     $java = Resolve-Java -RuntimeDirectory $runtimeDirectory -DownloadUrl $RuntimeUrl -CachePath $javaCachePath -MinimumMajor $MinimumJavaMajor
-    $jar = Resolve-LauncherJar -ScriptDirectory $scriptDirectory -InstallDirectory $installDirectory -JarName $LauncherJar -DownloadUrl $LauncherUrl -ExpectedSha256 $LauncherSha256
+    $jar = Resolve-LauncherJar -ScriptDirectory $scriptDirectory -InstallDirectory $installDirectory -JarName $LauncherJar -DownloadUrl $LauncherUrl -FallbackDownloadUrl $LauncherFallbackUrl -ExpectedSha256 $LauncherSha256
 
     Write-Step "Starting launcher..."
     & $java -jar $jar @args

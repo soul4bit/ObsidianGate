@@ -6,7 +6,7 @@
 
     <groupId>ru.mcrpg</groupId>
     <artifactId>obsidiangate-forge-auth-client</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>ObsidianGate Forge Auth Client</name>
     <description>Forge 1.12.2 client auth bridge for ObsidianGate launcher tickets.</description>
 
@@ -16,7 +16,7 @@
         <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
         <junit.version>5.10.2</junit.version>
         <forge.version>1.12.2-14.23.5.2847</forge.version>
-        <game.auth.version>0.1.0-SNAPSHOT</game.auth.version>
+        <game.auth.version>0.1.0</game.auth.version>
     </properties>
 
     <repositories>

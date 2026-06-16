@@ -13,7 +13,7 @@
 
     <groupId>ru.mcrpg</groupId>
     <artifactId>obsidiangate-auth-api</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>ObsidianGate Auth API</name>
     <description>Authentication backend for the ObsidianGate launcher and game tickets.</description>
 
