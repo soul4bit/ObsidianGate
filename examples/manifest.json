@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.16.2",
+    "version":  "2026.06.17",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Спокойнее генерация и Судная ночь",
@@ -546,10 +546,10 @@
                      "launchTemplate":  ""
                  },
     "launcherUpdate":  {
-                           "version":  "2026.06.16.2",
+                           "version":  "2026.06.17",
                            "url":  "launcher/obsidian-gate-launcher.jar",
-                           "sha256":  "15aca1a81b94d60e8c0e3200198244a16e198f15407a6636863cdcefa51a88cf",
-                           "size":  18142078,
+                           "sha256":  "deafff5832b9e158d109f3415ad846eda5547ee2d45203b204ad2bb0fe4ae546",
+                           "size":  18143218,
                            "required":  true,
                            "artifactVersion":  "0.1.6",
                            "fileName":  "obsidian-gate-launcher.jar"
@@ -1435,9 +1435,21 @@
                       "executable":  false
                   },
                   {
+                      "path":  "defaultconfigs/xaero/minimap/client.cfg",
+                      "sha256":  "80c77d2c2882d29b5ae19be7588b19fd6e9ef6ef1a9b66feda121bde76943263",
+                      "size":  236,
+                      "executable":  false
+                  },
+                  {
                       "path":  "defaultconfigs/xaero/minimap/xaerominimap.txt",
                       "sha256":  "5fdb6321e9dec4ae4638dc218d63a0c0afd54f120459bb26436f5374819597fd",
                       "size":  141,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "defaultconfigs/xaero/world-map/client.cfg",
+                      "sha256":  "5becce9b6f4a7c83c4ffd6568562b81f613f14b9ea0455981478e42eb1aef1f5",
+                      "size":  467,
                       "executable":  false
                   },
                   {
@@ -1825,15 +1837,15 @@
                       "executable":  false
                   },
                   {
-                      "path":  "mods/xaerominimap-forge-1.12.2-25.3.13.jar",
-                      "sha256":  "d802b3f714a7633c1810511d4079975c681d930c6f6c2039cd7664df35c62a3d",
-                      "size":  1992503,
+                      "path":  "mods/xaerominimap-forge-1.12.2-26.1.0.jar",
+                      "sha256":  "40b2ad25c39440d8ada18d5276a176486bd5c1d0b26af7ab7954e04183170bf8",
+                      "size":  1992708,
                       "executable":  false
                   },
                   {
-                      "path":  "mods/xaeroworldmap-forge-1.12.2-1.40.16.jar",
-                      "sha256":  "b5382be704ec8b213bd03dcd37ae2666346fedd6582702cb2a5463f3ba281775",
-                      "size":  924972,
+                      "path":  "mods/xaeroworldmap-forge-1.12.2-1.41.0.jar",
+                      "sha256":  "fa2e4849d6615e1aa7e854da3a95359cde90cc406f7dfb3aa2d8498cf12f7958",
+                      "size":  925463,
                       "executable":  false
                   },
                   {
