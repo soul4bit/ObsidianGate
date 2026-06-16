@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -55,6 +57,26 @@ class KitCommandTest {
         executeStart(player, service, "");
 
         assertTrue(inventory.items.isEmpty());
+    }
+
+    @Test
+    void startKitCanBeClaimedAgainAfterMonthlyCooldown() throws Exception {
+        String accountId = "acc-789";
+        EntityPlayerMP player = new EntityPlayerMP(java.util.UUID.randomUUID(), "Knight", 0, 0.0D, 64.0D, 0.0D);
+        FakeInventory inventory = new FakeInventory();
+        player.inventory = inventory;
+
+        KitService service = service();
+        service.recordStartClaim(
+            "account:" + accountId,
+            "Knight",
+            accountId,
+            player.getUniqueID().toString(),
+            Instant.now().minus(Duration.ofDays(31))
+        );
+        executeStart(player, service, accountId);
+
+        assertEquals(9, inventory.items.size());
     }
 
     private KitService service() {

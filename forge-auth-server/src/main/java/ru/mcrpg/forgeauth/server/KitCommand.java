@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +53,7 @@ final class KitCommand {
                 return COMMAND_NAME;
             }
             if ("getUsage".equals(name) || "func_71518_a".equals(name)) {
-                return "/" + COMMAND_NAME + " start";
+                return "/" + COMMAND_NAME + " [start]";
             }
             if ("getAliases".equals(name) || "func_71514_a".equals(name)) {
                 return Collections.emptyList();
@@ -102,8 +103,12 @@ final class KitCommand {
         }
 
         String[] args = arguments instanceof String[] ? (String[]) arguments : new String[0];
+        if (args.length == 0) {
+            showKitList(player, service, auth);
+            return;
+        }
         if (args.length != 1 || !"start".equalsIgnoreCase(args[0])) {
-            ServerChat.usage(sender, "/kit start");
+            ServerChat.usage(sender, "/kit [start]");
             return;
         }
 
@@ -115,8 +120,14 @@ final class KitCommand {
         }
 
         String claimId = accountClaimId(accountId);
-        if (service.hasClaimedStart(claimId)) {
-            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "уже был получен на этом аккаунте.");
+        KitService.StartKitStatus status = service.startStatus(claimId);
+        if (!status.isAvailable()) {
+            ServerChat.status(
+                player,
+                ServerChat.Tone.WARNING,
+                SUBJECT,
+                "можно будет взять через " + formatRemaining(status.getRemaining()) + "."
+            );
             return;
         }
 
@@ -132,6 +143,31 @@ final class KitCommand {
         } catch (RuntimeException exception) {
             ServerChat.status(player, ServerChat.Tone.ERROR, SUBJECT, "не удалось выдать: " + exception.getMessage());
         }
+    }
+
+    private static void showKitList(Object player, KitService service, PlayerRoleLookup auth) {
+        String accountId = auth == null ? "" : auth.accountIdFor(player);
+        if (accountId == null || accountId.trim().isEmpty()) {
+            ServerChat.status(player, ServerChat.Tone.WARNING, SUBJECT, "доступен после подтверждения авторизации лаунчера.");
+            return;
+        }
+
+        KitService.StartKitStatus status = service.startStatus(accountClaimId(accountId));
+        if (status.isAvailable()) {
+            ServerChat.status(
+                player,
+                SUBJECT,
+                ServerChat.command("/kit start") + " §7- доступен сейчас."
+            );
+            return;
+        }
+
+        ServerChat.status(
+            player,
+            ServerChat.Tone.WARNING,
+            SUBJECT,
+            "§m/kit start§r §7- можно будет взять через " + formatRemaining(status.getRemaining()) + "."
+        );
     }
 
     private static List<Object> createStartKit() {
@@ -255,6 +291,40 @@ final class KitCommand {
     private static String playerUuid(Object player) {
         Object uniqueId = invokeZeroArgIfPresent(player, "getUniqueID", "func_110124_au");
         return uniqueId instanceof UUID ? uniqueId.toString() : "";
+    }
+
+    private static String formatRemaining(Duration remaining) {
+        long totalMinutes = Math.max(1L, (remaining == null ? Duration.ZERO : remaining).toMinutes());
+        long days = totalMinutes / (24L * 60L);
+        long hours = (totalMinutes % (24L * 60L)) / 60L;
+        long minutes = totalMinutes % 60L;
+
+        List<String> parts = new ArrayList<String>(3);
+        if (days > 0L) {
+            parts.add(days + " " + plural(days, "день", "дня", "дней"));
+        }
+        if (hours > 0L) {
+            parts.add(hours + " " + plural(hours, "час", "часа", "часов"));
+        }
+        if (parts.isEmpty() || minutes > 0L) {
+            parts.add(minutes + " " + plural(minutes, "минуту", "минуты", "минут"));
+        }
+        return String.join(" ", parts);
+    }
+
+    private static String plural(long value, String one, String few, String many) {
+        long lastTwoDigits = Math.abs(value) % 100L;
+        if (lastTwoDigits >= 11L && lastTwoDigits <= 14L) {
+            return many;
+        }
+        long lastDigit = Math.abs(value) % 10L;
+        if (lastDigit == 1L) {
+            return one;
+        }
+        if (lastDigit >= 2L && lastDigit <= 4L) {
+            return few;
+        }
+        return many;
     }
 
     private static int compareTo(Object other) {

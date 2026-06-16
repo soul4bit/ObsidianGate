@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -15,6 +16,7 @@ final class KitService {
 
     private static final Path DEFAULT_CLAIMS_PATH = Paths.get("obsidiangate", "kit-claims.properties");
     private static final String START_KIT_PREFIX = "start.";
+    private static final Duration START_KIT_COOLDOWN = Duration.ofDays(30);
 
     private final Logger logger;
     private final Path claimsPath;
@@ -48,19 +50,58 @@ final class KitService {
         return claims.containsKey(startKitKey(playerId));
     }
 
+    synchronized StartKitStatus startStatus(String playerId) {
+        return startStatus(playerId, Instant.now());
+    }
+
+    synchronized StartKitStatus startStatus(String playerId, Instant now) {
+        ensureLoaded();
+        Instant safeNow = now == null ? Instant.now() : now;
+        String key = startKitKey(playerId);
+        if (!claims.containsKey(key)) {
+            return StartKitStatus.available();
+        }
+
+        Instant claimedAt = claimInstant(key, safeNow);
+        Instant nextAvailableAt = claimedAt.plus(START_KIT_COOLDOWN);
+        if (!nextAvailableAt.isAfter(safeNow)) {
+            return StartKitStatus.available(claimedAt, nextAvailableAt);
+        }
+        return StartKitStatus.cooldown(claimedAt, nextAvailableAt, Duration.between(safeNow, nextAvailableAt));
+    }
+
     synchronized void recordStartClaim(String playerId, String playerName) {
         recordStartClaim(playerId, playerName, "", "");
     }
 
     synchronized void recordStartClaim(String playerId, String playerName, String accountId, String playerUuid) {
+        recordStartClaim(playerId, playerName, accountId, playerUuid, Instant.now());
+    }
+
+    synchronized void recordStartClaim(String playerId, String playerName, String accountId, String playerUuid, Instant claimedAt) {
         ensureLoaded();
         String key = startKitKey(playerId);
         claims.setProperty(key, playerName == null ? "" : playerName);
         claims.setProperty(key + ".accountId", accountId == null ? "" : accountId.trim());
         claims.setProperty(key + ".playerName", playerName == null ? "" : playerName.trim());
         claims.setProperty(key + ".playerUuid", playerUuid == null ? "" : playerUuid.trim());
-        claims.setProperty(key + ".claimedAt", Instant.now().toString());
+        claims.setProperty(key + ".claimedAt", (claimedAt == null ? Instant.now() : claimedAt).toString());
         save();
+    }
+
+    private Instant claimInstant(String key, Instant fallback) {
+        String raw = claims.getProperty(key + ".claimedAt", "").trim();
+        if (!raw.isEmpty()) {
+            try {
+                return Instant.parse(raw);
+            } catch (RuntimeException ignored) {
+            }
+        }
+
+        Instant repaired = fallback == null ? Instant.now() : fallback;
+        claims.setProperty(key + ".claimedAt", repaired.toString());
+        save();
+        return repaired;
     }
 
     private void ensureLoaded() {
@@ -99,5 +140,47 @@ final class KitService {
             throw new IllegalArgumentException("playerId не должен быть пустым.");
         }
         return START_KIT_PREFIX + playerId.trim().toLowerCase();
+    }
+
+    static final class StartKitStatus {
+        private final boolean available;
+        private final Instant claimedAt;
+        private final Instant nextAvailableAt;
+        private final Duration remaining;
+
+        private StartKitStatus(boolean available, Instant claimedAt, Instant nextAvailableAt, Duration remaining) {
+            this.available = available;
+            this.claimedAt = claimedAt;
+            this.nextAvailableAt = nextAvailableAt;
+            this.remaining = remaining == null ? Duration.ZERO : remaining;
+        }
+
+        static StartKitStatus available() {
+            return new StartKitStatus(true, null, null, Duration.ZERO);
+        }
+
+        static StartKitStatus available(Instant claimedAt, Instant nextAvailableAt) {
+            return new StartKitStatus(true, claimedAt, nextAvailableAt, Duration.ZERO);
+        }
+
+        static StartKitStatus cooldown(Instant claimedAt, Instant nextAvailableAt, Duration remaining) {
+            return new StartKitStatus(false, claimedAt, nextAvailableAt, remaining);
+        }
+
+        boolean isAvailable() {
+            return available;
+        }
+
+        Instant getClaimedAt() {
+            return claimedAt;
+        }
+
+        Instant getNextAvailableAt() {
+            return nextAvailableAt;
+        }
+
+        Duration getRemaining() {
+            return remaining;
+        }
     }
 }
