@@ -3,6 +3,7 @@ param(
     [string]$ManifestPath = "examples/manifest.json",
     [string]$ClientSourceDir = "modpack/client",
     [string]$ServerSourceDir = "modpack/server",
+    [string]$ServerModListPath = "modpack/server/server-mods.txt",
     [string]$DistDir = "dist",
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
     [string]$LauncherUpdatePath = "launcher/obsidian-gate-launcher.jar",
@@ -38,59 +39,13 @@ function Resolve-InputPath {
 $manifestFullPath = Resolve-InputPath $ManifestPath
 $clientSourceFullPath = Resolve-InputPath $ClientSourceDir
 $serverSourceFullPath = Resolve-InputPath $ServerSourceDir
+$serverModListFullPath = Resolve-InputPath $ServerModListPath
 $distFullPath = Resolve-InputPath $DistDir
 $authMetadataPath = Join-Path $distFullPath "auth-release.json"
 $distManifestPath = Join-Path $distFullPath "manifest.json"
 $modpackMetadataPath = Join-Path $distFullPath "modpack-release.json"
 $distServerRoot = Join-Path $distFullPath "server"
 $distLauncherRoot = Join-Path $distFullPath "launcher"
-
-$serverModPaths = @(
-    "mods/[___MixinCompat-1.1-1.12.2___].jar",
-    "mods/AdvSolarPatch-1.2.1.jar",
-    "mods/Advanced Solar Panels-4.3.0.jar",
-    "mods/appliedenergistics2-rv6-stable-7.jar",
-    "mods/AutoRegLib-1.3-32.jar",
-    "mods/Baubles-1.12-1.5.2.jar",
-    "mods/bettercaves-1.12.2-1.6.0.jar",
-    "mods/BetterQuesting-3.5.329.jar",
-    "mods/bewitchment-1.12.2-0.0.22.65.jar",
-    "mods/BiblioCraft[v2.4.5][MC1.12.2].jar",
-    "mods/BiomesOPlenty_1.12.2_7.0.1.2444_universal.jar",
-    "mods/Botania+r1.10-364.4.jar",
-    "mods/CarbonConfig-1.12.2-1.2.4.jar",
-    "mods/Chunk-Pregenerator-1.12.2-4.4.9.1.jar",
-    "mods/Clumps-3.1.2.jar",
-    "mods/crafttweaker2-1.12-4.1.20.jar",
-    "mods/DivineRPG-1.7.1.jar",
-    "mods/DynamicSurroundings-1.12.2-3.6.1.0.jar",
-    "mods/DynamicTrees-1.12.2-0.9.7.jar",
-    "mods/DynamicTreesBOP-1.12.2-1.4.1e.jar",
-    "mods/Erebus-1.0.32.jar",
-    "mods/foamfix-0.10.10-1.12.2.jar",
-    "mods/ImmersiveEngineering-0.12-98.jar",
-    "mods/industrialcraft-2-2.8.222-ex112.jar",
-    "mods/ironchest-1.12.2-7.0.71.846.jar",
-    "mods/IvToolkit-1.3.3-1.12.jar",
-    "mods/Mantle-1.12-1.3.3.55.jar",
-    "mods/OreLib-1.12.2-3.6.0.1.jar",
-    "mods/Patchouli-1.0-23.6.jar",
-    "mods/Quark-r1.6-179.jar",
-    "mods/randompatches-1.12.2-1.21.0.0.jar",
-    "mods/RecurrentComplex-1.4.8.6.jar",
-    "mods/RoguelikeDungeons-1.12.2-1.8.0.jar",
-    "mods/savemystronghold-1.12.2-1.0.0.jar",
-    "mods/SereneSeasons_1.12.2_1.2.18_universal.jar",
-    "mods/spark-unforged-1.11.140-forge.jar",
-    "mods/StandardExpansion-3.4.173.jar",
-    "mods/TConstruct-1.12.2-2.13.0.183.jar",
-    "mods/Thaumcraft-1.12.2-6.1.BETA26.jar",
-    "mods/ThaumicAugmentation-1.12.2-2.1.14.jar",
-    "mods/thaumicenergistics-2.2.4.jar",
-    "mods/ThaumicInventoryScanning_1.12.2-2.0.10.jar",
-    "mods/twilightforest-1.12.2-3.11.1021-universal.jar",
-    "mods/TravelersBackpack-1.12.2-1.0.35.jar"
-)
 
 if (-not (Test-Path $manifestFullPath)) {
     throw "Manifest not found: $manifestFullPath"
@@ -143,6 +98,50 @@ function Test-HasText {
 
     return -not [string]::IsNullOrWhiteSpace($Value)
 }
+
+function Read-ServerModPaths {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Server mod list not found: $Path"
+    }
+
+    $paths = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $lineNumber = 0
+
+    foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
+        $lineNumber++
+        $trimmed = $line.Trim()
+        if (-not (Test-HasText $trimmed) -or $trimmed.StartsWith("#")) {
+            continue
+        }
+
+        $normalizedPath = Normalize-ManifestPath $trimmed
+        if (-not (Test-RelativeContentPath $normalizedPath)) {
+            throw "Server mod list line $lineNumber must be a relative path: $trimmed"
+        }
+        if (-not $normalizedPath.StartsWith("mods/", [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Server mod list line $lineNumber must point inside mods/: $trimmed"
+        }
+        if (-not $seen.Add($normalizedPath)) {
+            throw "Duplicate server mod list entry on line ${lineNumber}: $normalizedPath"
+        }
+
+        $paths.Add($normalizedPath)
+    }
+
+    if ($paths.Count -eq 0) {
+        throw "Server mod list is empty: $Path"
+    }
+
+    return $paths.ToArray()
+}
+
+$serverModPaths = Read-ServerModPaths -Path $serverModListFullPath
 
 function Apply-PublicManifestOverrides {
     param(
@@ -670,6 +669,7 @@ $metadata = [pscustomobject][ordered]@{
     server = [pscustomobject][ordered]@{
         sourcePath = $ClientSourceDir
         serverSourcePath = $ServerSourceDir
+        serverModListPath = $ServerModListPath
         distPath = "server"
         modCount = $serverModPaths.Count
         fileCount = $serverFiles.Count

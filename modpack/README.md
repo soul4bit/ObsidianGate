@@ -17,9 +17,12 @@ modpack/
     mods/
     scripts/
     systemd/
+    server-mods.txt
 ```
 
 `client/` попадает в web root для скачивания лаунчером. `server/` содержит файлы, которые нужны выделенному серверу.
+`server/server-mods.txt` перечисляет клиентские `mods/...`, которые копируются в серверный релиз; в `server/mods/`
+остаются только server-only добавки.
 
 ## Как собирается релиз
 

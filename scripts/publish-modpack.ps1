@@ -3,6 +3,7 @@ param(
     [string]$ManifestPath = "examples/manifest.json",
     [string]$ClientSourceDir = "modpack/client",
     [string]$ServerSourceDir = "modpack/server",
+    [string]$ServerModListPath = "modpack/server/server-mods.txt",
     [string]$DistDir = "dist",
     [string]$ManifestVersion = (Get-Date -Format "yyyy.MM.dd"),
     [string]$PublicBaseUrl = $env:OBSIDIANGATE_PUBLIC_BASE_URL,
@@ -61,6 +62,7 @@ if (-not $WhatIfPreference -and -not $SkipConnectivityCheck) {
     -ManifestPath $ManifestPath `
     -ClientSourceDir $ClientSourceDir `
     -ServerSourceDir $ServerSourceDir `
+    -ServerModListPath $ServerModListPath `
     -DistDir $DistDir `
     -ManifestVersion $ManifestVersion `
     -PublicBaseUrl $PublicBaseUrl `
