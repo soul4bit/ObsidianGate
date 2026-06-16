@@ -42,6 +42,35 @@ class XaeroUpdateNotificationOptionsTest {
     }
 
     @Test
+    void disablesCarbonConfigNotificationsAndPreservesOtherOptions() throws IOException {
+        Path minimapDirectory = Files.createDirectories(tempDirectory.resolve("config/xaero/minimap"));
+        Path worldMapDirectory = Files.createDirectories(tempDirectory.resolve("config/xaero/world-map"));
+        Path minimap = minimapDirectory.resolve("client.cfg");
+        Path worldMap = worldMapDirectory.resolve("client.cfg");
+        Files.write(
+            minimap,
+            List.of("current_profile = default", "update_notifications = true", "ignored_update = 0"),
+            StandardCharsets.UTF_8
+        );
+        Files.write(
+            worldMap,
+            List.of("current_profile = default", "ignored_update = 0", "update_notifications = true"),
+            StandardCharsets.UTF_8
+        );
+
+        assertTrue(XaeroUpdateNotificationOptions.disable(tempDirectory));
+
+        assertEquals(
+            List.of("current_profile = default", "update_notifications = false", "ignored_update = 0"),
+            Files.readAllLines(minimap, StandardCharsets.UTF_8)
+        );
+        assertEquals(
+            List.of("current_profile = default", "ignored_update = 0", "update_notifications = false"),
+            Files.readAllLines(worldMap, StandardCharsets.UTF_8)
+        );
+    }
+
+    @Test
     void createsMinimalConfigsWhenMissing() throws IOException {
         assertTrue(XaeroUpdateNotificationOptions.disable(tempDirectory));
 
@@ -53,11 +82,21 @@ class XaeroUpdateNotificationOptionsTest {
             List.of("update_notifications:false"),
             Files.readAllLines(tempDirectory.resolve("config/xaero/xaeroworldmap.txt"), StandardCharsets.UTF_8)
         );
+        assertEquals(
+            List.of("update_notifications = false"),
+            Files.readAllLines(tempDirectory.resolve("config/xaero/minimap/client.cfg"), StandardCharsets.UTF_8)
+        );
+        assertEquals(
+            List.of("update_notifications = false"),
+            Files.readAllLines(tempDirectory.resolve("config/xaero/world-map/client.cfg"), StandardCharsets.UTF_8)
+        );
     }
 
     @Test
     void doesNothingWhenNotificationsAreAlreadyDisabled() throws IOException {
         Path configDirectory = Files.createDirectories(tempDirectory.resolve("config/xaero"));
+        Path minimapDirectory = Files.createDirectories(tempDirectory.resolve("config/xaero/minimap"));
+        Path worldMapDirectory = Files.createDirectories(tempDirectory.resolve("config/xaero/world-map"));
         Files.write(
             configDirectory.resolve("xaerominimap.txt"),
             List.of("update_notifications:false"),
@@ -66,6 +105,16 @@ class XaeroUpdateNotificationOptionsTest {
         Files.write(
             configDirectory.resolve("xaeroworldmap.txt"),
             List.of("update_notifications:false"),
+            StandardCharsets.UTF_8
+        );
+        Files.write(
+            minimapDirectory.resolve("client.cfg"),
+            List.of("update_notifications = false"),
+            StandardCharsets.UTF_8
+        );
+        Files.write(
+            worldMapDirectory.resolve("client.cfg"),
+            List.of("update_notifications = false"),
             StandardCharsets.UTF_8
         );
 
