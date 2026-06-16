@@ -521,6 +521,7 @@ public final class LauncherShellController extends AbstractScreenController {
         }
 
         Platform.runLater(() -> applyLaunchStep("Настраиваем сервер", "Добавляем ObsidianGate в список серверов Minecraft", "server", "#fbbf24"));
+        disableXaeroUpdateNotifications(launchConfig);
         serverListWriter.upsert(launchConfig);
 
         Platform.runLater(() -> applyLaunchStep("Проверяем сессию", "Обновляем вход в аккаунт", "profile", "#fbbf24"));
@@ -553,6 +554,13 @@ public final class LauncherShellController extends AbstractScreenController {
             throw new LaunchFailureException("Minecraft завершился сразу с кодом " + process.exitValue() + ".", logFile, null);
         }
         return new LaunchStartResult(process.pid(), logFile, syncResult);
+    }
+
+    private static void disableXaeroUpdateNotifications(LauncherConfig launchConfig) throws IOException {
+        if (launchConfig == null || !hasText(launchConfig.getGameDirectory())) {
+            return;
+        }
+        XaeroUpdateNotificationOptions.disable(Paths.get(launchConfig.getGameDirectory()));
     }
 
     private ModpackSyncService.LaunchModpackSyncPreview previewModpackSync(
