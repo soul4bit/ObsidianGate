@@ -3,6 +3,9 @@ package ru.mcrpg.launcher;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public final class AuthService {
@@ -51,13 +54,22 @@ public final class AuthService {
     }
 
     public GameTicket createGameTicket(LauncherConfig config, AuthSession session) throws IOException {
+        return createGameTickets(config, session, 1).get(0);
+    }
+
+    public List<GameTicket> createGameTickets(LauncherConfig config, AuthSession session, int count) throws IOException {
+        int resolvedCount = Math.max(1, count);
         AuthSession refreshed = refreshIfNeeded(config, session);
         persist(refreshed);
-        return withSessionRecovery(() -> authApiClient.createGameTicket(
-            config.getAuthBaseUrl(),
-            refreshed.getAccessToken(),
-            config.getServerId()
-        ));
+        List<GameTicket> tickets = new ArrayList<GameTicket>(resolvedCount);
+        for (int index = 0; index < resolvedCount; index++) {
+            tickets.add(withSessionRecovery(() -> authApiClient.createGameTicket(
+                config.getAuthBaseUrl(),
+                refreshed.getAccessToken(),
+                config.getServerId()
+            )));
+        }
+        return Collections.unmodifiableList(tickets);
     }
 
     public void logoutQuietly(LauncherConfig config, AuthSession session) {

@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -71,6 +73,45 @@ class AuthServiceTest {
         }
     }
 
+    @Test
+    void createGameTicketsRequestsConfiguredAmount() throws Exception {
+        AtomicInteger requests = new AtomicInteger();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/game/tickets", exchange -> {
+            assertEquals("Bearer access-1", exchange.getRequestHeaders().getFirst("Authorization"));
+            int number = requests.incrementAndGet();
+            byte[] body = (
+                "{\"ticket\":\"ticket-" + number + "\","
+                    + "\"username\":\"Knight\","
+                    + "\"uuid\":\"uuid-1\","
+                    + "\"serverId\":\"obsidiangate-main\","
+                    + "\"expiresAt\":\"2026-05-07T13:06:01Z\"}"
+            ).getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(201, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            AuthSessionStore store = new AuthSessionStore(tempDirectory.resolve("session.json"));
+            AuthService service = new AuthService(new AuthApiClient(HttpClient.newHttpClient()), store);
+            LauncherConfig config = LauncherConfig.defaults();
+            config.setAuthBaseUrl("http://127.0.0.1:" + server.getAddress().getPort());
+            config.setServerId("obsidiangate-main");
+
+            List<GameTicket> tickets = service.createGameTickets(config, activeSession(false), 3);
+
+            assertEquals(3, requests.get());
+            assertEquals(3, tickets.size());
+            assertEquals("ticket-1", tickets.get(0).getTicket());
+            assertEquals("ticket-2", tickets.get(1).getTicket());
+            assertEquals("ticket-3", tickets.get(2).getTicket());
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private HttpServer startRefreshServer(int statusCode, String responseBody) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/auth/refresh", exchange -> {
@@ -87,5 +128,10 @@ class AuthServiceTest {
     private static AuthSession expiringSession(boolean persisted) {
         AuthAccount account = new AuthAccount("acc-1", "Knight", "knight@example.com", "player", "active");
         return new AuthSession(account, "access-1", "refresh-1", Instant.now().plusSeconds(5), persisted);
+    }
+
+    private static AuthSession activeSession(boolean persisted) {
+        AuthAccount account = new AuthAccount("acc-1", "Knight", "knight@example.com", "player", "active");
+        return new AuthSession(account, "access-1", "refresh-1", Instant.now().plusSeconds(300), persisted);
     }
 }

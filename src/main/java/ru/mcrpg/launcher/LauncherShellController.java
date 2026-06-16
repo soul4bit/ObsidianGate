@@ -59,6 +59,7 @@ public final class LauncherShellController extends AbstractScreenController {
     private static final int SERVER_STATUS_REFRESH_SECONDS = 5;
     private static final int NEWS_REFRESH_SECONDS = 60;
     private static final int NEWS_ITEM_LIMIT = 3;
+    private static final int LAUNCH_GAME_TICKET_COUNT = 12;
     private static final String FALLBACK_MODPACK_NAME = "Glass";
     private static final String UNKNOWN_VALUE = "-";
     private static final String STATUS_ONLINE = "server-state-online";
@@ -532,10 +533,15 @@ public final class LauncherShellController extends AbstractScreenController {
         state().setSession(refreshedSession);
         launchConfig.setUsername(refreshedSession.getAccount().getUsername());
 
-        Platform.runLater(() -> applyLaunchStep("Получаем билет входа", "Готовим одноразовый ticket для сервера", "shield", "#fbbf24"));
-        GameTicket ticket = context().getAuthService().createGameTicket(launchConfig, refreshedSession);
+        Platform.runLater(() -> applyLaunchStep("Получаем билет входа", "Готовим запас одноразовых tickets для реконнекта", "shield", "#fbbf24"));
+        List<GameTicket> tickets = context().getAuthService().createGameTickets(
+            launchConfig,
+            refreshedSession,
+            LAUNCH_GAME_TICKET_COUNT
+        );
+        GameTicket ticket = tickets.get(0);
         Platform.runLater(() -> applyLaunchStep("Запускаем Minecraft", "Передаем профиль и session.json клиенту", "play", "#fbbf24"));
-        Path sessionFile = context().getSessionFileWriter().write(launchConfig, ticket);
+        Path sessionFile = context().getSessionFileWriter().write(launchConfig, tickets);
         LaunchIdentity identity = LaunchIdentity.authenticated(
             ticket.getUsername(),
             ticket.getUuid(),
