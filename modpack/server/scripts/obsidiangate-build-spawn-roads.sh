@@ -8,7 +8,8 @@ ROAD_WIDTH="${ROAD_WIDTH:-4}"
 CHUNK_LENGTH="${CHUNK_LENGTH:-512}"
 LIGHT_EVERY="${LIGHT_EVERY:-12}"
 MAX_LENGTH="${MAX_LENGTH:-20000}"
-CLEAR_BELOW_DEPTH="${CLEAR_BELOW_DEPTH:-3}"
+FOUNDATION_DEPTH="${FOUNDATION_DEPTH:-4}"
+CLEAR_ABOVE_HEIGHT="${CLEAR_ABOVE_HEIGHT:-10}"
 
 usage() {
     echo "Usage: $0 <center-x> <surface-y> <center-z> [length]" >&2
@@ -153,7 +154,7 @@ if [ "$#" -eq 4 ]; then
     ROAD_LENGTH="$4"
 fi
 
-for value in "$CX" "$Y" "$CZ" "$ROAD_LENGTH" "$CLEAR_BELOW_DEPTH"; do
+for value in "$CX" "$Y" "$CZ" "$ROAD_LENGTH" "$FOUNDATION_DEPTH" "$CLEAR_ABOVE_HEIGHT"; do
     if ! is_int "$value"; then
         usage
         exit 2
@@ -170,8 +171,13 @@ if [ "$ROAD_LENGTH" -le 0 ] || [ "$ROAD_LENGTH" -gt "$MAX_LENGTH" ]; then
     exit 2
 fi
 
-if [ "$CLEAR_BELOW_DEPTH" -lt 0 ] || [ "$CLEAR_BELOW_DEPTH" -gt 16 ]; then
-    echo "CLEAR_BELOW_DEPTH must be between 0 and 16." >&2
+if [ "$FOUNDATION_DEPTH" -lt 1 ] || [ "$FOUNDATION_DEPTH" -gt 32 ]; then
+    echo "FOUNDATION_DEPTH must be between 1 and 32." >&2
+    exit 2
+fi
+
+if [ "$CLEAR_ABOVE_HEIGHT" -lt 1 ] || [ "$CLEAR_ABOVE_HEIGHT" -gt 32 ]; then
+    echo "CLEAR_ABOVE_HEIGHT must be between 1 and 32." >&2
     exit 2
 fi
 
@@ -180,45 +186,34 @@ X2=$((CX + 1))
 Z1=$((CZ - 2))
 Z2=$((CZ + 1))
 SUPPORT_Y=$((Y - 1))
+FOUNDATION_Y1=$((Y - FOUNDATION_DEPTH))
 HEAD_Y1=$((Y + 1))
-HEAD_Y2=$((Y + 4))
-BELOW_Y1=$((Y - CLEAR_BELOW_DEPTH - 1))
-BELOW_Y2=$((Y - 2))
+HEAD_Y2=$((Y + CLEAR_ABOVE_HEIGHT))
 
 echo "Building four 4-wide roads from $CX $Y $CZ, length $ROAD_LENGTH..."
-echo "Top: red wool/glowstone at y=$Y; support: dirt at y=$SUPPORT_Y; cleared below: $CLEAR_BELOW_DEPTH blocks."
+echo "Top: red wool/glowstone at y=$Y; foundation: dirt y=$FOUNDATION_Y1..$SUPPORT_Y; cleared above: $CLEAR_ABOVE_HEIGHT blocks."
 
-if [ "$CLEAR_BELOW_DEPTH" -gt 0 ]; then
-    fill_chunked "$X1" "$BELOW_Y1" "$CZ" "$X2" "$BELOW_Y2" "$((CZ + ROAD_LENGTH))" minecraft:air 0
-fi
-fill_chunked "$X1" "$SUPPORT_Y" "$CZ" "$X2" "$SUPPORT_Y" "$((CZ + ROAD_LENGTH))" minecraft:dirt 0
+fill_chunked "$X1" "$FOUNDATION_Y1" "$CZ" "$X2" "$SUPPORT_Y" "$((CZ + ROAD_LENGTH))" minecraft:dirt 0
 fill_chunked "$X1" "$Y" "$CZ" "$X2" "$Y" "$((CZ + ROAD_LENGTH))" minecraft:wool 14
-fill_chunked "$X1" "$HEAD_Y1" "$((CZ + 1))" "$X2" "$HEAD_Y2" "$((CZ + ROAD_LENGTH))" minecraft:air 0
+fill_chunked "$X1" "$HEAD_Y1" "$CZ" "$X2" "$HEAD_Y2" "$((CZ + ROAD_LENGTH))" minecraft:air 0
 place_lights_z "$X1" "$X2" "$Y" "$CZ" "$((CZ + ROAD_LENGTH))"
 
-if [ "$CLEAR_BELOW_DEPTH" -gt 0 ]; then
-    fill_chunked "$X1" "$BELOW_Y1" "$CZ" "$X2" "$BELOW_Y2" "$((CZ - ROAD_LENGTH))" minecraft:air 0
-fi
-fill_chunked "$X1" "$SUPPORT_Y" "$CZ" "$X2" "$SUPPORT_Y" "$((CZ - ROAD_LENGTH))" minecraft:dirt 0
+fill_chunked "$X1" "$FOUNDATION_Y1" "$CZ" "$X2" "$SUPPORT_Y" "$((CZ - ROAD_LENGTH))" minecraft:dirt 0
 fill_chunked "$X1" "$Y" "$CZ" "$X2" "$Y" "$((CZ - ROAD_LENGTH))" minecraft:wool 14
-fill_chunked "$X1" "$HEAD_Y1" "$((CZ - 1))" "$X2" "$HEAD_Y2" "$((CZ - ROAD_LENGTH))" minecraft:air 0
+fill_chunked "$X1" "$HEAD_Y1" "$CZ" "$X2" "$HEAD_Y2" "$((CZ - ROAD_LENGTH))" minecraft:air 0
 place_lights_z "$X1" "$X2" "$Y" "$CZ" "$((CZ - ROAD_LENGTH))"
 
-if [ "$CLEAR_BELOW_DEPTH" -gt 0 ]; then
-    fill_chunked "$CX" "$BELOW_Y1" "$Z1" "$((CX + ROAD_LENGTH))" "$BELOW_Y2" "$Z2" minecraft:air 0
-fi
-fill_chunked "$CX" "$SUPPORT_Y" "$Z1" "$((CX + ROAD_LENGTH))" "$SUPPORT_Y" "$Z2" minecraft:dirt 0
+fill_chunked "$CX" "$FOUNDATION_Y1" "$Z1" "$((CX + ROAD_LENGTH))" "$SUPPORT_Y" "$Z2" minecraft:dirt 0
 fill_chunked "$CX" "$Y" "$Z1" "$((CX + ROAD_LENGTH))" "$Y" "$Z2" minecraft:wool 14
-fill_chunked "$((CX + 1))" "$HEAD_Y1" "$Z1" "$((CX + ROAD_LENGTH))" "$HEAD_Y2" "$Z2" minecraft:air 0
+fill_chunked "$CX" "$HEAD_Y1" "$Z1" "$((CX + ROAD_LENGTH))" "$HEAD_Y2" "$Z2" minecraft:air 0
 place_lights_x "$Z1" "$Z2" "$Y" "$CX" "$((CX + ROAD_LENGTH))"
 
-if [ "$CLEAR_BELOW_DEPTH" -gt 0 ]; then
-    fill_chunked "$CX" "$BELOW_Y1" "$Z1" "$((CX - ROAD_LENGTH))" "$BELOW_Y2" "$Z2" minecraft:air 0
-fi
-fill_chunked "$CX" "$SUPPORT_Y" "$Z1" "$((CX - ROAD_LENGTH))" "$SUPPORT_Y" "$Z2" minecraft:dirt 0
+fill_chunked "$CX" "$FOUNDATION_Y1" "$Z1" "$((CX - ROAD_LENGTH))" "$SUPPORT_Y" "$Z2" minecraft:dirt 0
 fill_chunked "$CX" "$Y" "$Z1" "$((CX - ROAD_LENGTH))" "$Y" "$Z2" minecraft:wool 14
-fill_chunked "$((CX - 1))" "$HEAD_Y1" "$Z1" "$((CX - ROAD_LENGTH))" "$HEAD_Y2" "$Z2" minecraft:air 0
+fill_chunked "$CX" "$HEAD_Y1" "$Z1" "$((CX - ROAD_LENGTH))" "$HEAD_Y2" "$Z2" minecraft:air 0
 place_lights_x "$Z1" "$Z2" "$Y" "$CX" "$((CX - ROAD_LENGTH))"
 
+run_rcon "fill $((CX - 3)) $HEAD_Y1 $((CZ - 3)) $((CX + 3)) $HEAD_Y2 $((CZ + 3)) minecraft:air 0 replace"
+run_rcon "fill $((CX - 3)) $FOUNDATION_Y1 $((CZ - 3)) $((CX + 3)) $SUPPORT_Y $((CZ + 3)) minecraft:dirt 0 replace"
 run_rcon "fill $((CX - 3)) $Y $((CZ - 3)) $((CX + 3)) $Y $((CZ + 3)) minecraft:glowstone 0 replace"
 echo "Done."
