@@ -18,11 +18,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "modpack/server/config/worldedit/schematics/obsidiangate_castle_spawn.schematic"
 
-W, H, L = 96, 38, 96
+W, H, L = 96, 39, 96
 CENTER_X, CENTER_Z = W // 2, L // 2
 
 AIR = 0
 GRASS = 2
+DIRT = 3
 COBBLE = 4
 PLANKS = 5
 WATER = 9
@@ -250,6 +251,14 @@ def lamp_post(x: int, z: int, lamp_id: int) -> None:
         setb(x + dx, 4, z + dz, TORCH)
 
 
+def arcane_obelisk(x: int, z: int, lamp_id: int) -> None:
+    fill(x - 1, 1, z - 1, x + 1, 1, z + 1, DRPG_DARKSTONE_BRICKS)
+    fill(x, 2, z, x, 6, z, TC_PILLAR_ARCANE)
+    setb(x, 7, z, lamp_id)
+    for dx, dz in ((2, 0), (-2, 0), (0, 2), (0, -2)):
+        setb(x + dx, 1, z + dz, DRPG_ANCIENT_TILE)
+
+
 def carve_roads() -> None:
     road_offsets = (-2, -1, 0, 1)
     clear_offsets = (-3, -2, -1, 0, 1, 2)
@@ -272,8 +281,39 @@ def carve_roads() -> None:
 
     # Keep the center visibly special after both roads cross.
     fill(CENTER_X - 3, 0, CENTER_Z - 3, CENTER_X + 3, 0, CENTER_Z + 3, GLOWSTONE)
-    fill(CENTER_X - 1, 1, CENTER_Z - 1, CENTER_X + 1, 1, CENTER_Z + 1, DRPG_BLOODGEM_BLOCK)
-    setb(CENTER_X, 2, CENTER_Z, TC_LAMP_ARCANE)
+    fill(CENTER_X - 1, 1, CENTER_Z - 1, CENTER_X + 1, 5, CENTER_Z + 1, AIR)
+    for x, z, lamp in (
+        (CENTER_X - 5, CENTER_Z - 5, TC_LAMP_ARCANE),
+        (CENTER_X + 5, CENTER_Z - 5, DRPG_ARLEMITE_LAMP),
+        (CENTER_X - 5, CENTER_Z + 5, DRPG_BLUEFIRE_LAMP),
+        (CENTER_X + 5, CENTER_Z + 5, DRPG_DIVINE_LAMP),
+    ):
+        arcane_obelisk(x, z, lamp)
+
+
+def raise_scene_with_foundation() -> None:
+    for y in range(H - 2, -1, -1):
+        for z in range(L):
+            for x in range(W):
+                src = index(x, y, z)
+                dst = index(x, y + 1, z)
+                ids[dst] = ids[src]
+                data[dst] = data[src]
+
+    for z in range(L):
+        for x in range(W):
+            ids[index(x, 0, z)] = AIR
+            data[index(x, 0, z)] = 0
+
+    road_blocks = {WOOL, GLOWSTONE}
+    support_blocks = {GRASS, WATER, TC_PAVING_BARRIER, TC_PAVING_TRAVEL, DRPG_DIVINE_ROCK, DRPG_ANCIENT_TILE}
+    for z in range(L):
+        for x in range(W):
+            surface = ids[index(x, 1, z)]
+            if surface in road_blocks:
+                setb(x, 0, z, DIRT)
+            elif surface in support_blocks:
+                setb(x, 0, z, DIRT if surface in (GRASS, WATER) else TC_STONE_ARCANE)
 
 
 def build_scene() -> None:
@@ -292,11 +332,13 @@ def build_scene() -> None:
             dx = x - CENTER_X
             dz = z - CENTER_Z
             d2 = dx * dx + dz * dz
-            if d2 <= 16 * 16:
+            if d2 <= 24 * 24:
                 setb(x, 0, z, TC_PAVING_TRAVEL)
-            if 9 * 9 <= d2 <= 10 * 10:
+            if 15 * 15 <= d2 <= 16 * 16:
                 setb(x, 0, z, DRPG_ANCIENT_TILE)
-            if d2 <= 4 * 4:
+            if 21 * 21 <= d2 <= 22 * 22:
+                setb(x, 0, z, TC_STONE_ELDRITCH_TILE)
+            if d2 <= 5 * 5:
                 setb(x, 0, z, DRPG_DIVINE_ROCK)
 
     wall_line_horizontal(12, 15)
@@ -328,23 +370,32 @@ def build_scene() -> None:
         setb(x, 14, 31, TC_LAMP_ARCANE)
 
     for x, z, lamp in (
-        (31, 31, TC_LAMP_ARCANE),
-        (65, 31, DRPG_ARLEMITE_LAMP),
-        (31, 65, DRPG_BLUEFIRE_LAMP),
-        (65, 65, DRPG_DIVINE_LAMP),
-        (48, 24, TC_LAMP_ARCANE),
-        (48, 72, DRPG_DIVINE_LAMP),
-        (24, 48, DRPG_ARLEMITE_LAMP),
-        (72, 48, DRPG_BLUEFIRE_LAMP),
+        (29, 29, TC_LAMP_ARCANE),
+        (67, 29, DRPG_ARLEMITE_LAMP),
+        (29, 67, DRPG_BLUEFIRE_LAMP),
+        (67, 67, DRPG_DIVINE_LAMP),
+        (36, 36, TC_LAMP_ARCANE),
+        (60, 36, DRPG_ARLEMITE_LAMP),
+        (36, 60, DRPG_BLUEFIRE_LAMP),
+        (60, 60, DRPG_DIVINE_LAMP),
     ):
         lamp_post(x, z, lamp)
 
-    tree(27, 27, TC_LOG_GREATWOOD)
-    tree(69, 27, TC_LOG_SILVERWOOD)
-    tree(27, 69, LOG)
-    tree(69, 69, TC_LOG_GREATWOOD)
+    for x, z, lamp in (
+        (32, 40, TC_LAMP_ARCANE),
+        (64, 40, DRPG_ARLEMITE_LAMP),
+        (32, 56, DRPG_BLUEFIRE_LAMP),
+        (64, 56, DRPG_DIVINE_LAMP),
+    ):
+        arcane_obelisk(x, z, lamp)
+
+    tree(24, 24, TC_LOG_GREATWOOD)
+    tree(72, 24, TC_LOG_SILVERWOOD)
+    tree(24, 72, LOG)
+    tree(72, 72, TC_LOG_GREATWOOD)
 
     carve_roads()
+    raise_scene_with_foundation()
 
 
 def write_nbt_string(out: bytearray, value: str) -> None:
@@ -411,7 +462,7 @@ def write_schematic() -> None:
     tag_int("WEOriginY", 64)
     tag_int("WEOriginZ", 0)
     tag_int("WEOffsetX", -CENTER_X)
-    tag_int("WEOffsetY", -1)
+    tag_int("WEOffsetY", -2)
     tag_int("WEOffsetZ", -CENTER_Z)
     out.append(0)
 
@@ -419,7 +470,7 @@ def write_schematic() -> None:
     OUTPUT.write_bytes(gzip.compress(bytes(out), compresslevel=9))
     print(OUTPUT)
     print(f"dimensions={W}x{H}x{L}")
-    print(f"offset={-CENTER_X},-1,{-CENTER_Z}")
+    print(f"offset={-CENTER_X},-2,{-CENTER_Z}")
     print(f"size={OUTPUT.stat().st_size}")
     print(f"add_blocks={uses_add_blocks}")
 
