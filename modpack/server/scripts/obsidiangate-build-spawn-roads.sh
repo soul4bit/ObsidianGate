@@ -5,8 +5,8 @@ SERVER_ROOT="${SERVER_ROOT:-/home/minecraft/mc-rpg}"
 RCON_COMMAND="${RCON_COMMAND:-$SERVER_ROOT/scripts/obsidiangate-rcon-command.sh}"
 ROAD_LENGTH="${4:-200}"
 ROAD_WIDTH="${ROAD_WIDTH:-4}"
-CHUNK_LENGTH="${CHUNK_LENGTH:-512}"
-LIGHT_EVERY="${LIGHT_EVERY:-12}"
+CHUNK_LENGTH="${CHUNK_LENGTH:-16}"
+LIGHT_EVERY="${LIGHT_EVERY:-16}"
 MAX_LENGTH="${MAX_LENGTH:-20000}"
 FOUNDATION_DEPTH="${FOUNDATION_DEPTH:-4}"
 CLEAR_ABOVE_HEIGHT="${CLEAR_ABOVE_HEIGHT:-10}"
@@ -103,15 +103,17 @@ place_lights_z() {
     y="$3"
     start="$4"
     end="$5"
+    light_x1=$((x1 + 1))
+    light_x2=$((x2 - 1))
     cur="$start"
     if [ "$start" -le "$end" ]; then
         while [ "$cur" -le "$end" ]; do
-            run_rcon "fill $x1 $y $cur $x2 $y $cur minecraft:glowstone 0 replace"
+            run_rcon "fill $light_x1 $y $cur $light_x2 $y $cur minecraft:glowstone 0 replace"
             cur=$((cur + LIGHT_EVERY))
         done
     else
         while [ "$cur" -ge "$end" ]; do
-            run_rcon "fill $x1 $y $cur $x2 $y $cur minecraft:glowstone 0 replace"
+            run_rcon "fill $light_x1 $y $cur $light_x2 $y $cur minecraft:glowstone 0 replace"
             cur=$((cur - LIGHT_EVERY))
         done
     fi
@@ -123,15 +125,17 @@ place_lights_x() {
     y="$3"
     start="$4"
     end="$5"
+    light_z1=$((z1 + 1))
+    light_z2=$((z2 - 1))
     cur="$start"
     if [ "$start" -le "$end" ]; then
         while [ "$cur" -le "$end" ]; do
-            run_rcon "fill $cur $y $z1 $cur $y $z2 minecraft:glowstone 0 replace"
+            run_rcon "fill $cur $y $light_z1 $cur $y $light_z2 minecraft:glowstone 0 replace"
             cur=$((cur + LIGHT_EVERY))
         done
     else
         while [ "$cur" -ge "$end" ]; do
-            run_rcon "fill $cur $y $z1 $cur $y $z2 minecraft:glowstone 0 replace"
+            run_rcon "fill $cur $y $light_z1 $cur $y $light_z2 minecraft:glowstone 0 replace"
             cur=$((cur - LIGHT_EVERY))
         done
     fi
@@ -215,5 +219,6 @@ place_lights_x "$Z1" "$Z2" "$Y" "$CX" "$((CX - ROAD_LENGTH))"
 
 run_rcon "fill $((CX - 3)) $HEAD_Y1 $((CZ - 3)) $((CX + 3)) $HEAD_Y2 $((CZ + 3)) minecraft:air 0 replace"
 run_rcon "fill $((CX - 3)) $FOUNDATION_Y1 $((CZ - 3)) $((CX + 3)) $SUPPORT_Y $((CZ + 3)) minecraft:dirt 0 replace"
-run_rcon "fill $((CX - 3)) $Y $((CZ - 3)) $((CX + 3)) $Y $((CZ + 3)) minecraft:glowstone 0 replace"
+run_rcon "fill $((CX - 3)) $Y $((CZ - 3)) $((CX + 3)) $Y $((CZ + 3)) minecraft:wool 14 replace"
+run_rcon "fill $((CX - 1)) $Y $((CZ - 1)) $CX $Y $CZ minecraft:glowstone 0 replace"
 echo "Done."
