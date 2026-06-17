@@ -26,7 +26,22 @@ is_int() {
 
 run_rcon() {
     printf '%s\n' "$*"
-    "$RCON_COMMAND" "$@" >/dev/null
+    attempts=0
+    err_file="$(mktemp)"
+    while :; do
+        attempts=$((attempts + 1))
+        if "$RCON_COMMAND" "$@" >/dev/null 2>"$err_file"; then
+            rm -f "$err_file"
+            return 0
+        fi
+        if [ "$attempts" -ge 3 ]; then
+            cat "$err_file" >&2
+            echo "RCON command failed after $attempts attempts: $*" >&2
+            rm -f "$err_file"
+            return 1
+        fi
+        sleep 1
+    done
 }
 
 fill_chunked() {
