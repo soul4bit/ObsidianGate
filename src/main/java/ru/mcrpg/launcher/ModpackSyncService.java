@@ -245,6 +245,15 @@ public final class ModpackSyncService {
         if (XaeroUpdateNotificationOptions.disable(gameDirectory)) {
             log(logSink, "Уведомления Xaero об обновлениях отключены.");
         }
+        XaeroUserDataReset.Result xaeroReset = XaeroUserDataReset.resetOnce(gameDirectory);
+        if (xaeroReset.hasMovedEntries()) {
+            log(
+                logSink,
+                "Локальные метки и кеш Xaero сброшены: " + xaeroReset.movedCount()
+                    + ". Резервная копия: "
+                    + gameDirectory.relativize(xaeroReset.getBackupDirectory()).toString().replace('\\', '/')
+            );
+        }
         if (removedFiles > 0) {
             log(logSink, "Устаревших модов убрано: " + removedFiles);
         }

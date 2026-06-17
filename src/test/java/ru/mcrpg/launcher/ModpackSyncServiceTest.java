@@ -191,6 +191,54 @@ class ModpackSyncServiceTest {
     }
 
     @Test
+    void syncMovesXaeroUserDataOnlyOnce() throws Exception {
+        Path sourceDirectory = Files.createDirectories(tempDirectory.resolve("source-xaero-reset"));
+        Path currentMod = writeFile(sourceDirectory, "mods/current.jar", "current-mod");
+
+        Path manifest = tempDirectory.resolve("manifest-xaero-reset.json");
+        String manifestJson = "{\n"
+            + "  \"schemaVersion\": 1,\n"
+            + "  \"id\": \"mc-rpg\",\n"
+            + "  \"version\": \"2026.06.17\",\n"
+            + "  \"baseUrl\": \"" + sourceDirectory.toUri().toURL().toString() + "\",\n"
+            + "  \"files\": [\n"
+            + fileJson("mods/current.jar", currentMod) + "\n"
+            + "  ]\n"
+            + "}\n";
+        Files.write(manifest, manifestJson.getBytes(StandardCharsets.UTF_8));
+
+        Path clientDirectory = Files.createDirectories(tempDirectory.resolve("client-xaero-reset"));
+        writeFile(clientDirectory, "XaeroWaypoints/Multiplayer_server/dim%0/waypoints.txt", "waypoint:home");
+        writeFile(clientDirectory, "xaero/minimap/Multiplayer_server/config.txt", "usingMultiworldDetection:false");
+        writeFile(clientDirectory, "xaero/world-map/Multiplayer_server/dim%0/0_0.xaero", "map-cache");
+        writeFile(clientDirectory, "config/xaero/minimap/client.cfg", "update_notifications = true");
+
+        LauncherConfig config = LauncherConfig.defaults();
+        config.setManifestUrl(manifest.toUri().toURL().toString());
+        config.setGameDirectory(clientDirectory.toString());
+
+        ModpackSyncService service = new ModpackSyncService(manifestClient(manifest));
+        service.sync(config, null);
+
+        assertFalse(Files.exists(clientDirectory.resolve("XaeroWaypoints")));
+        assertFalse(Files.exists(clientDirectory.resolve("xaero/minimap")));
+        assertFalse(Files.exists(clientDirectory.resolve("xaero/world-map")));
+        assertTrue(Files.exists(clientDirectory.resolve("config/xaero/minimap/client.cfg")));
+        assertTrue(XaeroUserDataReset.hasResetMarker(clientDirectory));
+
+        Path backupDirectory = onlyChild(clientDirectory.resolve(".xaero-reset-backups"));
+        assertTrue(Files.exists(backupDirectory.resolve("XaeroWaypoints/Multiplayer_server/dim%0/waypoints.txt")));
+        assertTrue(Files.exists(backupDirectory.resolve("xaero/minimap/Multiplayer_server/config.txt")));
+        assertTrue(Files.exists(backupDirectory.resolve("xaero/world-map/Multiplayer_server/dim%0/0_0.xaero")));
+
+        writeFile(clientDirectory, "XaeroWaypoints/after-reset/dim%0/waypoints.txt", "waypoint:new");
+        service.sync(config, null);
+
+        assertTrue(Files.exists(clientDirectory.resolve("XaeroWaypoints/after-reset/dim%0/waypoints.txt")));
+        assertEquals(backupDirectory, onlyChild(clientDirectory.resolve(".xaero-reset-backups")));
+    }
+
+    @Test
     void previewLeavesObsoleteModEntriesInPlace() throws Exception {
         Path sourceDirectory = Files.createDirectories(tempDirectory.resolve("source"));
         Path currentMod = writeFile(sourceDirectory, "mods/current.jar", "current-mod");
