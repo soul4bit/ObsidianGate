@@ -175,8 +175,8 @@ if [ "$ROAD_LENGTH" -le 0 ] || [ "$ROAD_LENGTH" -gt "$MAX_LENGTH" ]; then
     exit 2
 fi
 
-if [ "$FOUNDATION_DEPTH" -lt 1 ] || [ "$FOUNDATION_DEPTH" -gt 32 ]; then
-    echo "FOUNDATION_DEPTH must be between 1 and 32." >&2
+if [ "$FOUNDATION_DEPTH" -lt 1 ] || [ "$FOUNDATION_DEPTH" -gt 255 ]; then
+    echo "FOUNDATION_DEPTH must be between 1 and 255." >&2
     exit 2
 fi
 
@@ -191,6 +191,9 @@ Z1=$((CZ - 2))
 Z2=$((CZ + 1))
 SUPPORT_Y=$((Y - 1))
 FOUNDATION_Y1=$((Y - FOUNDATION_DEPTH))
+if [ "$FOUNDATION_Y1" -lt 0 ]; then
+    FOUNDATION_Y1=0
+fi
 HEAD_Y1=$((Y + 1))
 HEAD_Y2=$((Y + CLEAR_ABOVE_HEIGHT))
 
