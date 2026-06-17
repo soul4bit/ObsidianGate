@@ -111,6 +111,9 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/jei
 Just Enough Resources
 Official page: https://www.curseforge.com/minecraft/mc-mods/just-enough-resources-jer
 
+LootTweaker
+Official page: https://www.curseforge.com/minecraft/mc-mods/loottweaker
+
 Mantle
 Official page: https://modrinth.com/mod/mantle
 
