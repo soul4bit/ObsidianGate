@@ -209,6 +209,35 @@ final class TeleportSupport {
         return currentPlayer;
     }
 
+    static Location worldSpawnLocation(Object world) {
+        Object spawn = invokeZeroArgIfPresent(world, "getSpawnPoint", "func_175694_M", "T");
+        if (spawn == null) {
+            throw new IllegalStateException("Точка спавна мира не найдена.");
+        }
+
+        int x = (int) Math.floor(readBlockCoordinate(spawn, "getX", "func_177958_n", "p"));
+        int y = (int) Math.floor(readBlockCoordinate(spawn, "getY", "func_177956_o", "q"));
+        int z = (int) Math.floor(readBlockCoordinate(spawn, "getZ", "func_177952_p", "r"));
+        prepareDestinationChunk(world, x + 0.5D, z + 0.5D);
+
+        Location exact = safeStandingLocation(world, x, y, z);
+        if (exact != null) {
+            return exact;
+        }
+
+        Object top = invokeIfPresent(world, new Object[] { blockPos(x, 0, z) }, "getTopSolidOrLiquidBlock", "func_175672_r");
+        if (top != null) {
+            int topY = (int) Math.floor(readBlockCoordinate(top, "getY", "func_177956_o", "q"));
+            Location surface = safeStandingLocation(world, x, topY, z);
+            if (surface != null) {
+                return surface;
+            }
+            return centeredLocation(x, topY, z);
+        }
+
+        return centeredLocation(x, y, z);
+    }
+
     static Object changeDimension(Object player, int destinationDimension, double x, double y, double z, float yaw, float pitch) {
         if (player == null) {
             throw new IllegalArgumentException("Игрок для телепортации не найден.");
@@ -355,6 +384,44 @@ final class TeleportSupport {
         } catch (ReflectiveOperationException exception) {
             return null;
         }
+    }
+
+    private static Location safeStandingLocation(Object world, int x, int y, int z) {
+        if (y < 1 || y > 254) {
+            return null;
+        }
+
+        Object feet = blockPos(x, y, z);
+        Object head = blockPos(x, y + 1, z);
+        Object below = blockPos(x, y - 1, z);
+        if (isAir(world, feet) && isAir(world, head) && !isAir(world, below) && !isLiquid(world, feet) && !isLiquid(world, below)) {
+            return centeredLocation(x, y, z);
+        }
+        return null;
+    }
+
+    private static Location centeredLocation(int x, int y, int z) {
+        return new Location(x + 0.5D, y, z + 0.5D);
+    }
+
+    private static boolean isAir(Object world, Object position) {
+        Object value = invokeIfPresent(world, new Object[] { position }, "isAirBlock", "func_175623_d");
+        return Boolean.TRUE.equals(value);
+    }
+
+    private static boolean isLiquid(Object world, Object position) {
+        Object state = invokeIfPresent(world, new Object[] { position }, "getBlockState", "func_180495_p");
+        Object material = invokeIfPresent(state, new Object[0], "getMaterial", "func_185904_a");
+        Object liquid = invokeIfPresent(material, new Object[0], "isLiquid", "func_76224_d");
+        return Boolean.TRUE.equals(liquid);
+    }
+
+    private static double readBlockCoordinate(Object blockPos, String... methodNames) {
+        Object value = invokeIfPresent(blockPos, new Object[0], methodNames);
+        if (!(value instanceof Number)) {
+            throw new IllegalStateException("Координата BlockPos не является числом.");
+        }
+        return ((Number) value).doubleValue();
     }
 
     private static Object forgeTeleporter(final double x, final double y, final double z, final float yaw, final float pitch) {
@@ -670,5 +737,17 @@ final class TeleportSupport {
             return Character.valueOf('\0');
         }
         return null;
+    }
+
+    static final class Location {
+        final double x;
+        final double y;
+        final double z;
+
+        private Location(double x, double y, double z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
     }
 }

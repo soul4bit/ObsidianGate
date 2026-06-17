@@ -70,6 +70,28 @@ class TeleportSupportTest {
         assertTrue(player.motionReset());
     }
 
+    @Test
+    void worldSpawnLocationKeepsSafeSpawnPointCentered() {
+        FakeSpawnWorld world = new FakeSpawnWorld(10, 64, -3, 80, true);
+
+        TeleportSupport.Location location = TeleportSupport.worldSpawnLocation(world);
+
+        assertEquals(10.5D, location.x);
+        assertEquals(64.0D, location.y);
+        assertEquals(-2.5D, location.z);
+    }
+
+    @Test
+    void worldSpawnLocationFallsBackToTopSurfaceWhenSpawnPointIsBlocked() {
+        FakeSpawnWorld world = new FakeSpawnWorld(10, 64, -3, 80, false);
+
+        TeleportSupport.Location location = TeleportSupport.worldSpawnLocation(world);
+
+        assertEquals(10.5D, location.x);
+        assertEquals(80.0D, location.y);
+        assertEquals(-2.5D, location.z);
+    }
+
     private static Object invokeZeroArg(Object target, String methodName) throws Exception {
         Method method = target.getClass().getMethod(methodName);
         return method.invoke(target);
@@ -157,6 +179,41 @@ class TeleportSupportTest {
 
         boolean motionReset() {
             return motionX == 0.0D && motionY == 0.0D && motionZ == 0.0D;
+        }
+    }
+
+    static final class FakeSpawnWorld {
+        private final net.minecraft.util.math.BlockPos spawn;
+        private final int topY;
+        private final boolean spawnSafe;
+        private final FakeChunkProvider provider = new FakeChunkProvider();
+
+        private FakeSpawnWorld(int x, int y, int z, int topY, boolean spawnSafe) {
+            this.spawn = new net.minecraft.util.math.BlockPos(x, y, z);
+            this.topY = topY;
+            this.spawnSafe = spawnSafe;
+        }
+
+        public net.minecraft.util.math.BlockPos getSpawnPoint() {
+            return spawn;
+        }
+
+        public FakeChunkProvider getChunkProvider() {
+            return provider;
+        }
+
+        public net.minecraft.util.math.BlockPos getTopSolidOrLiquidBlock(net.minecraft.util.math.BlockPos position) {
+            return new net.minecraft.util.math.BlockPos(position.getX(), topY, position.getZ());
+        }
+
+        public boolean isAirBlock(net.minecraft.util.math.BlockPos position) {
+            if (position.getX() != spawn.getX() || position.getZ() != spawn.getZ()) {
+                return false;
+            }
+            if (spawnSafe && (position.getY() == spawn.getY() || position.getY() == spawn.getY() + 1)) {
+                return true;
+            }
+            return position.getY() == topY || position.getY() == topY + 1;
         }
     }
 }

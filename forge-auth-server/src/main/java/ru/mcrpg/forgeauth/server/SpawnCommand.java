@@ -121,20 +121,11 @@ final class SpawnCommand {
                 return;
             }
 
-            Object spawn = invokeZeroArg(spawnWorld, "getSpawnPoint", "func_175694_M");
-            double x = readBlockCoordinate(spawn, "getX", "func_177958_n") + 0.5D;
-            double y = readBlockCoordinate(spawn, "getY", "func_177956_o");
-            double z = readBlockCoordinate(spawn, "getZ", "func_177952_p") + 0.5D;
-            if (y <= 0.0D) {
-                Object safeSpawn = invokeIfPresent(spawnWorld, new Object[] { spawn }, "getTopSolidOrLiquidBlock", "func_175672_r");
-                if (safeSpawn != null) {
-                    y = readBlockCoordinate(safeSpawn, "getY", "func_177956_o");
-                }
-            }
+            TeleportSupport.Location spawn = TeleportSupport.worldSpawnLocation(spawnWorld);
 
             float yaw = readFloatField(player, 0.0F, "rotationYaw", "field_70177_z");
             float pitch = readFloatField(player, 0.0F, "rotationPitch", "field_70125_A");
-            player = TeleportSupport.teleportToDimension(server, player, 0, x, y, z, yaw, pitch);
+            player = TeleportSupport.teleportToDimension(server, player, 0, spawn.x, spawn.y, spawn.z, yaw, pitch);
             guard.startCooldown(playerId, TeleportGuardService.CHANNEL_SPAWN, limits.spawnCooldownMillis());
             ServerChat.success(player, "Вы телепортированы на спавн.");
         } catch (RuntimeException exception) {

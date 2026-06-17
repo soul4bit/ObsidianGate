@@ -1,7 +1,7 @@
 {
     "schemaVersion":  1,
     "id":  "mc-rpg",
-    "version":  "2026.06.17.5",
+    "version":  "2026.06.17.6",
     "baseUrl":  "http://obsidiangates.duckdns.org:8080/client/",
     "news":  {
                  "title":  "Спокойнее генерация и Судная ночь",
@@ -1699,12 +1699,6 @@
                       "executable":  false
                   },
                   {
-                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0.jar",
-                      "sha256":  "d6c552f0c6f5b5d004c40e3bff3ca0befb05b267298f5aafe78e3a60e5c3dd7c",
-                      "size":  48896,
-                      "executable":  false
-                  },
-                  {
                       "path":  "mods/OreLib-1.12.2-3.6.0.1.jar",
                       "sha256":  "4483d8cc2b0334b82b7d0f5bb6354a2020a0e00ce63a48379e8ba5eb7d79eef9",
                       "size":  341728,
@@ -2038,6 +2032,12 @@
                       "path":  "THIRD_PARTY_MODS.txt",
                       "sha256":  "67ec8911111b993abba1247a18356daf5539488236092eda62621e5466006323",
                       "size":  5690,
+                      "executable":  false
+                  },
+                  {
+                      "path":  "mods/obsidiangate-forge-auth-client-0.1.0.jar",
+                      "sha256":  "d6c552f0c6f5b5d004c40e3bff3ca0befb05b267298f5aafe78e3a60e5c3dd7c",
+                      "size":  48896,
                       "executable":  false
                   }
               ]
