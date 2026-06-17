@@ -186,6 +186,9 @@ Official page: https://www.curseforge.com/minecraft/mc-mods/vanillafix
 WAWLA
 Official page: https://www.curseforge.com/minecraft/mc-mods/wawla-what-are-we-looking-at
 
+WorldEdit
+Official page: https://www.curseforge.com/minecraft/mc-mods/worldedit
+
 Xaero's Minimap
 Official page: https://modrinth.com/mod/xaeros-minimap
 
