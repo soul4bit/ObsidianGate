@@ -2,6 +2,9 @@ package ru.mcrpg.forgeauth.server;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -11,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 import org.junit.jupiter.api.Test;
 
@@ -125,14 +130,129 @@ class PlayerDataGuardServiceTest {
         assertEquals(3, PlayerDataGuardService.countLoadedItems(player));
     }
 
+    @Test
+    void delayedCheckAllowsInventoryThatAppearsAfterLogin() throws Exception {
+        UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
+        Path serverRoot = createServerRoot(uuid, playerdataWithInventory(2));
+        PlayerDataGuardService service = newGuard(serverRoot);
+        FakePlayer player = new FakePlayer("Knight", uuid);
+
+        service.protectIfLoadFailed(player);
+        assertNull(player.connection.lastMessage);
+
+        player.inventory.mainInventory = Collections.singletonList(new FakeStack(false));
+        runTicks(service, 100);
+
+        assertNull(player.connection.lastMessage);
+    }
+
+    @Test
+    void delayedCheckRestoresSnapshotWhenInventoryStaysEmpty() throws Exception {
+        UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
+        byte[] original = playerdataWithInventory(2);
+        Path serverRoot = createServerRoot(uuid, original);
+        Path playerFile = playerFile(serverRoot, uuid);
+        PlayerDataGuardService service = newGuard(serverRoot);
+        FakePlayer player = new FakePlayer("Knight", uuid);
+
+        service.protectIfLoadFailed(player);
+        runUntilDisconnected(service, player);
+
+        assertNotNull(player.connection.lastMessage);
+        assertTrue(player.connection.lastMessage.contains("PLAYERDATA_LOAD_FAILED"));
+
+        Files.write(playerFile, playerdataWithInventory(0));
+        runTicks(service, 100);
+
+        assertArrayEquals(original, Files.readAllBytes(playerFile));
+    }
+
+    @Test
+    void pendingRestoreRejectsEarlyReconnect() throws Exception {
+        UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
+        Path serverRoot = createServerRoot(uuid, playerdataWithInventory(2));
+        PlayerDataGuardService service = newGuard(serverRoot);
+        FakePlayer firstLogin = new FakePlayer("Knight", uuid);
+
+        service.protectIfLoadFailed(firstLogin);
+        runUntilDisconnected(service, firstLogin);
+
+        FakePlayer earlyReconnect = new FakePlayer("Knight", uuid);
+        service.protectIfLoadFailed(earlyReconnect);
+
+        assertNotNull(earlyReconnect.connection.lastMessage);
+        assertTrue(earlyReconnect.connection.lastMessage.contains("PLAYERDATA_RESTORE_PENDING"));
+    }
+
+    private static PlayerDataGuardService newGuard(Path serverRoot) {
+        return new PlayerDataGuardService(
+            Logger.getLogger("test"),
+            new MinecraftPlayerBridge(message -> message),
+            serverRoot
+        );
+    }
+
+    private static Path createServerRoot(UUID uuid, byte[] playerdata) throws Exception {
+        Path serverRoot = Files.createTempDirectory("playerdata-guard-server");
+        Files.write(serverRoot.resolve("server.properties"), Collections.singletonList("level-name=world"));
+        Path playerFile = playerFile(serverRoot, uuid);
+        Files.createDirectories(playerFile.getParent());
+        Files.write(playerFile, playerdata);
+        return serverRoot;
+    }
+
+    private static Path playerFile(Path serverRoot, UUID uuid) {
+        return serverRoot.resolve("world").resolve("playerdata").resolve(uuid.toString().toLowerCase() + ".dat");
+    }
+
+    private static void runTicks(PlayerDataGuardService service, int ticks) {
+        for (int index = 0; index < ticks; index++) {
+            service.runEndTick();
+        }
+    }
+
+    private static void runUntilDisconnected(PlayerDataGuardService service, FakePlayer player) {
+        for (int index = 0; index < 200 && player.connection.lastMessage == null; index++) {
+            service.runEndTick();
+        }
+    }
+
     static final class FakePlayer {
+        private final String username;
+        private final UUID uuid;
         public final FakeInventory inventory = new FakeInventory();
+        public final FakeConnection connection = new FakeConnection();
+
+        FakePlayer() {
+            this("Knight", UUID.fromString("12345678-1234-1234-1234-123456789abc"));
+        }
+
+        FakePlayer(String username, UUID uuid) {
+            this.username = username;
+            this.uuid = uuid;
+        }
+
+        public String getName() {
+            return username;
+        }
+
+        public UUID getUniqueID() {
+            return uuid;
+        }
     }
 
     static final class FakeInventory {
         public Iterable<FakeStack> mainInventory = Collections.emptyList();
         public Iterable<FakeStack> armorInventory = Collections.emptyList();
         public Iterable<FakeStack> offHandInventory = Collections.emptyList();
+    }
+
+    static final class FakeConnection {
+        private String lastMessage;
+
+        public void disconnect(Object textComponent) {
+            this.lastMessage = String.valueOf(textComponent);
+        }
     }
 
     static final class FakeStack {

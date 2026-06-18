@@ -36,15 +36,21 @@ final class PlayerDataGuardService {
     private static final DateTimeFormatter INCIDENT_TIME = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int MAX_DEPTH = 64;
     private static final int MAX_PLAYERDATA_BYTES = 16 * 1024 * 1024;
+    private static final int LOAD_CHECK_DELAY_TICKS = 20;
+    private static final int LOAD_CHECK_RETRY_TICKS = 20;
+    private static final int LOAD_CHECK_MAX_ATTEMPTS = 3;
     private static final int RESTORE_DELAY_TICKS = 40;
     private static final String DISCONNECT_REASON =
         "PLAYERDATA_LOAD_FAILED: сервер не загрузил ваш профиль. Файл сохранен; сообщите администратору.";
     private static final String AUTO_RESTORE_REASON =
         "PLAYERDATA_AUTO_RESTORED: профиль восстановлен из резервной копии. Подключитесь снова через несколько секунд.";
+    private static final String RESTORE_PENDING_REASON =
+        "PLAYERDATA_RESTORE_PENDING: профиль еще восстанавливается. Подключитесь снова через несколько секунд.";
 
     private final Logger logger;
     private final MinecraftPlayerBridge playerBridge;
     private final Path serverRoot;
+    private final Map<String, PendingLoadCheck> pendingLoadChecks = new ConcurrentHashMap<String, PendingLoadCheck>();
     private final Map<String, PendingRestore> pendingRestores = new ConcurrentHashMap<String, PendingRestore>();
     private long tick;
 
@@ -71,6 +77,11 @@ final class PlayerDataGuardService {
         }
 
         String normalizedUuid = uuid.toLowerCase();
+        if (pendingRestores.containsKey(normalizedUuid)) {
+            playerBridge.disconnectPlayer(player, RESTORE_PENDING_REASON);
+            return;
+        }
+
         String worldName = levelName();
         Path playerFile = serverRoot.resolve(worldName).resolve("playerdata").resolve(normalizedUuid + ".dat");
         if (!Files.isRegularFile(playerFile)) {
@@ -84,43 +95,25 @@ final class PlayerDataGuardService {
                 return;
             }
 
-            int savedItems;
             try {
-                savedItems = readInventoryCount(original);
-                if (savedItems <= 0) {
+                if (readInventoryCount(original) <= 0) {
                     return;
                 }
             } catch (IOException corruptPlayerdata) {
-                savedItems = -1;
                 logger.log(Level.SEVERE, "Playerdata is unreadable for " + username + ".", corruptPlayerdata);
             }
 
-            Path incidentFile = incidentDirectory().resolve(
-                INCIDENT_TIME.format(LocalDateTime.now()) + "-" + normalizedUuid + ".dat"
-            );
-            Files.createDirectories(incidentFile.getParent());
-            Files.write(incidentFile, original);
-
-            BackupCandidate backup = findLatestValidBackup(
-                serverRoot.resolve("backups").resolve("playerdata"),
-                worldName,
-                normalizedUuid,
-                original,
-                savedItems > 0
-            );
-            byte[] restoreData = backup == null ? original : backup.playerdata;
-            pendingRestores.put(normalizedUuid, new PendingRestore(playerFile, restoreData, tick + RESTORE_DELAY_TICKS));
-
-            logger.severe(String.format(
-                "Playerdata load guard stopped %s (%s): saved inventory has %s entries, loaded inventory is empty. "
-                    + "Original profile: %s. Restore source: %s",
+            pendingLoadChecks.put(normalizedUuid, new PendingLoadCheck(
+                player,
                 username,
                 uuid,
-                savedItems < 0 ? "unreadable" : Integer.toString(savedItems),
-                incidentFile,
-                backup == null ? "original protected file" : backup.archive
+                normalizedUuid,
+                worldName,
+                playerFile,
+                original,
+                tick + LOAD_CHECK_DELAY_TICKS,
+                1
             ));
-            playerBridge.disconnectPlayer(player, backup == null ? DISCONNECT_REASON : AUTO_RESTORE_REASON);
         } catch (Exception exception) {
             logger.log(Level.SEVERE, "Playerdata load guard failed for " + username + ".", exception);
         }
@@ -136,6 +129,89 @@ final class PlayerDataGuardService {
 
     void runEndTick() {
         tick++;
+        runPendingLoadChecks();
+        runPendingRestores();
+    }
+
+    private void runPendingLoadChecks() {
+        for (Map.Entry<String, PendingLoadCheck> entry : pendingLoadChecks.entrySet()) {
+            PendingLoadCheck pending = entry.getValue();
+            if (tick < pending.checkAtTick || !pendingLoadChecks.remove(entry.getKey(), pending)) {
+                continue;
+            }
+            protectPendingLoadIfFailed(pending);
+        }
+    }
+
+    private void protectPendingLoadIfFailed(PendingLoadCheck pending) {
+        try {
+            int loadedItems = countLoadedItems(pending.player);
+            if (loadedItems > 0) {
+                logger.info(String.format(
+                    "Playerdata load guard allowed %s (%s): inventory appeared after %d check(s).",
+                    pending.username,
+                    pending.uuid,
+                    pending.attempt
+                ));
+                return;
+            }
+
+            if (pending.attempt < LOAD_CHECK_MAX_ATTEMPTS) {
+                pendingLoadChecks.put(pending.normalizedUuid, pending.nextAttempt(tick + LOAD_CHECK_RETRY_TICKS));
+                return;
+            }
+
+            protectWithSnapshot(pending);
+        } catch (Exception exception) {
+            logger.log(Level.SEVERE, "Playerdata load guard failed for " + pending.username + ".", exception);
+        }
+    }
+
+    private void protectWithSnapshot(PendingLoadCheck pending) throws IOException {
+        int savedItems;
+        try {
+            savedItems = readInventoryCount(pending.originalPlayerdata);
+            if (savedItems <= 0) {
+                return;
+            }
+        } catch (IOException corruptPlayerdata) {
+            savedItems = -1;
+            logger.log(Level.SEVERE, "Playerdata is unreadable for " + pending.username + ".", corruptPlayerdata);
+        }
+
+        Path incidentFile = incidentDirectory().resolve(
+            INCIDENT_TIME.format(LocalDateTime.now()) + "-" + pending.normalizedUuid + ".dat"
+        );
+        Files.createDirectories(incidentFile.getParent());
+        Files.write(incidentFile, pending.originalPlayerdata);
+
+        BackupCandidate backup = findLatestValidBackup(
+            serverRoot.resolve("backups").resolve("playerdata"),
+            pending.worldName,
+            pending.normalizedUuid,
+            pending.originalPlayerdata,
+            savedItems > 0
+        );
+        byte[] restoreData = backup == null ? pending.originalPlayerdata : backup.playerdata;
+        pendingRestores.put(
+            pending.normalizedUuid,
+            new PendingRestore(pending.playerFile, restoreData, tick + RESTORE_DELAY_TICKS)
+        );
+
+        logger.severe(String.format(
+            "Playerdata load guard stopped %s (%s): saved inventory has %s entries, loaded inventory is empty after %d checks. "
+                + "Original profile: %s. Restore source: %s",
+            pending.username,
+            pending.uuid,
+            savedItems < 0 ? "unreadable" : Integer.toString(savedItems),
+            pending.attempt,
+            incidentFile,
+            backup == null ? "original protected file" : backup.archive
+        ));
+        playerBridge.disconnectPlayer(pending.player, backup == null ? DISCONNECT_REASON : AUTO_RESTORE_REASON);
+    }
+
+    private void runPendingRestores() {
         for (Map.Entry<String, PendingRestore> entry : pendingRestores.entrySet()) {
             PendingRestore pending = entry.getValue();
             if (tick < pending.restoreAtTick || !pendingRestores.remove(entry.getKey(), pending)) {
@@ -524,6 +600,54 @@ final class PlayerDataGuardService {
             this.playerFile = playerFile;
             this.playerdata = playerdata;
             this.restoreAtTick = restoreAtTick;
+        }
+    }
+
+    private static final class PendingLoadCheck {
+        private final Object player;
+        private final String username;
+        private final String uuid;
+        private final String normalizedUuid;
+        private final String worldName;
+        private final Path playerFile;
+        private final byte[] originalPlayerdata;
+        private final long checkAtTick;
+        private final int attempt;
+
+        private PendingLoadCheck(
+            Object player,
+            String username,
+            String uuid,
+            String normalizedUuid,
+            String worldName,
+            Path playerFile,
+            byte[] originalPlayerdata,
+            long checkAtTick,
+            int attempt
+        ) {
+            this.player = player;
+            this.username = username;
+            this.uuid = uuid;
+            this.normalizedUuid = normalizedUuid;
+            this.worldName = worldName;
+            this.playerFile = playerFile;
+            this.originalPlayerdata = originalPlayerdata;
+            this.checkAtTick = checkAtTick;
+            this.attempt = attempt;
+        }
+
+        private PendingLoadCheck nextAttempt(long nextCheckAtTick) {
+            return new PendingLoadCheck(
+                player,
+                username,
+                uuid,
+                normalizedUuid,
+                worldName,
+                playerFile,
+                originalPlayerdata,
+                nextCheckAtTick,
+                attempt + 1
+            );
         }
     }
 
