@@ -19,8 +19,37 @@ fail() {
     exit 1
 }
 
+sync_world_name_with_server_properties() {
+    properties_file="$SERVER_ROOT/server.properties"
+    if [ ! -f "$properties_file" ]; then
+        return
+    fi
+
+    configured_world_name="$(
+        sed -n 's/^level-name=//p' "$properties_file" |
+            tail -n 1 |
+            tr -d '\r'
+    )"
+    if [ -z "$configured_world_name" ]; then
+        return
+    fi
+
+    case "$configured_world_name" in
+        ""|*/*|*\\*)
+            fail "Invalid level-name in $properties_file: $configured_world_name"
+            ;;
+    esac
+
+    if [ "$WORLD_NAME" != "$configured_world_name" ]; then
+        log "WORLD_NAME=$WORLD_NAME does not match server.properties level-name=$configured_world_name; using active world."
+        WORLD_NAME="$configured_world_name"
+    fi
+}
+
+sync_world_name_with_server_properties
+
 case "$WORLD_NAME" in
-    ""|*/*)
+    ""|*/*|*\\*)
         fail "Invalid WORLD_NAME: $WORLD_NAME"
         ;;
 esac

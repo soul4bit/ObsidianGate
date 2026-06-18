@@ -90,17 +90,20 @@ final class PlayerDataGuardService {
 
         try {
             byte[] original = Files.readAllBytes(playerFile);
-            int loadedItems = countLoadedItems(player);
-            if (loadedItems > 0) {
-                return;
-            }
 
+            boolean originalReadable = true;
             try {
                 if (readInventoryCount(original) <= 0) {
                     return;
                 }
             } catch (IOException corruptPlayerdata) {
+                originalReadable = false;
                 logger.log(Level.SEVERE, "Playerdata is unreadable for " + username + ".", corruptPlayerdata);
+            }
+
+            int loadedItems = countLoadedItems(player);
+            if (originalReadable && loadedItems > 0) {
+                return;
             }
 
             pendingLoadChecks.put(normalizedUuid, new PendingLoadCheck(
@@ -111,6 +114,7 @@ final class PlayerDataGuardService {
                 worldName,
                 playerFile,
                 original,
+                originalReadable,
                 tick + LOAD_CHECK_DELAY_TICKS,
                 1
             ));
@@ -146,7 +150,7 @@ final class PlayerDataGuardService {
     private void protectPendingLoadIfFailed(PendingLoadCheck pending) {
         try {
             int loadedItems = countLoadedItems(pending.player);
-            if (loadedItems > 0) {
+            if (pending.originalReadable && loadedItems > 0) {
                 logger.info(String.format(
                     "Playerdata load guard allowed %s (%s): inventory appeared after %d check(s).",
                     pending.username,
@@ -611,6 +615,7 @@ final class PlayerDataGuardService {
         private final String worldName;
         private final Path playerFile;
         private final byte[] originalPlayerdata;
+        private final boolean originalReadable;
         private final long checkAtTick;
         private final int attempt;
 
@@ -622,6 +627,7 @@ final class PlayerDataGuardService {
             String worldName,
             Path playerFile,
             byte[] originalPlayerdata,
+            boolean originalReadable,
             long checkAtTick,
             int attempt
         ) {
@@ -632,6 +638,7 @@ final class PlayerDataGuardService {
             this.worldName = worldName;
             this.playerFile = playerFile;
             this.originalPlayerdata = originalPlayerdata;
+            this.originalReadable = originalReadable;
             this.checkAtTick = checkAtTick;
             this.attempt = attempt;
         }
@@ -645,6 +652,7 @@ final class PlayerDataGuardService {
                 worldName,
                 playerFile,
                 originalPlayerdata,
+                originalReadable,
                 nextCheckAtTick,
                 attempt + 1
             );

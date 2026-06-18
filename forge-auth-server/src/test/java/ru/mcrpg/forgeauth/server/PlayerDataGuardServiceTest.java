@@ -184,6 +184,33 @@ class PlayerDataGuardServiceTest {
         assertTrue(earlyReconnect.connection.lastMessage.contains("PLAYERDATA_RESTORE_PENDING"));
     }
 
+    @Test
+    void unreadablePlayerdataRestoresBackupEvenIfInventoryAppearsLater() throws Exception {
+        UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
+        byte[] backupPlayerdata = playerdataWithInventory(3);
+        Path serverRoot = createServerRoot(uuid, new byte[0]);
+        Path backupDirectory = serverRoot.resolve("backups").resolve("playerdata");
+        Files.createDirectories(backupDirectory);
+        writeTarArchive(
+            backupDirectory.resolve("playerdata-20260618-120000.tar.gz"),
+            "world/playerdata/" + uuid.toString().toLowerCase() + ".dat",
+            backupPlayerdata
+        );
+        PlayerDataGuardService service = newGuard(serverRoot);
+        FakePlayer player = new FakePlayer("Knight", uuid);
+
+        service.protectIfLoadFailed(player);
+        player.inventory.mainInventory = Collections.singletonList(new FakeStack(false));
+        runUntilDisconnected(service, player);
+
+        assertNotNull(player.connection.lastMessage);
+        assertTrue(player.connection.lastMessage.contains("PLAYERDATA_AUTO_RESTORED"));
+
+        runTicks(service, 100);
+
+        assertArrayEquals(backupPlayerdata, Files.readAllBytes(playerFile(serverRoot, uuid)));
+    }
+
     private static PlayerDataGuardService newGuard(Path serverRoot) {
         return new PlayerDataGuardService(
             Logger.getLogger("test"),
