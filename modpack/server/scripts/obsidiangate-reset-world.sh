@@ -7,6 +7,7 @@ BACKUP_ROOT="${BACKUP_ROOT:-$SERVER_ROOT/backups/world-resets}"
 RCON_COMMAND="${RCON_COMMAND:-$SERVER_ROOT/scripts/obsidiangate-rcon-command.sh}"
 ROAD_BUILDER="${ROAD_BUILDER:-$SERVER_ROOT/scripts/obsidiangate-build-spawn-roads.sh}"
 SPAWN_BUILDER="${SPAWN_BUILDER:-$SERVER_ROOT/scripts/obsidiangate-build-new-spawn.sh}"
+BUILD_SPAWN="${BUILD_SPAWN:-0}"
 
 SPAWN_X="${SPAWN_X:-484}"
 SPAWN_SURFACE_Y="${SPAWN_SURFACE_Y:-70}"
@@ -26,13 +27,14 @@ usage() {
     cat >&2 <<EOF
 Usage:
   $0 prepare --confirm-wipe [new-world-name]
-  $0 decorate [spawn-x surface-y spawn-z road-length]
+  $0 decorate [spawn-x surface-y spawn-z protection-radius]
 
 prepare must run while Minecraft is stopped. It archives the active world and
 switches server.properties level-name to a new world.
 
-decorate must run after the new world starts. It sets /setworldspawn, builds
-the new spawn hub, protects the hub/roads and reloads spawn protection.
+decorate must run after the new world starts. It sets /setworldspawn, disables
+mob block griefing, protects a radius around spawn and reloads spawn protection.
+Set BUILD_SPAWN=1 only when you explicitly want the legacy RCON-built hub.
 EOF
 }
 
@@ -152,7 +154,7 @@ previous_world=$current_world
 new_world=$new_world
 prepared_at=$(date '+%Y-%m-%d %H:%M:%S')
 spawn=$SPAWN_X,$SPAWN_SURFACE_Y,$SPAWN_Z
-road_length=$ROAD_LENGTH
+protection_radius=$ROAD_LENGTH
 EOF
 
     log "Prepared new world: $new_world"
@@ -174,16 +176,26 @@ decorate_world() {
         is_int "$value" || fail "Expected integer coordinate/length, got: $value"
     done
 
-    [ -x "$SPAWN_BUILDER" ] || fail "Spawn builder not executable: $SPAWN_BUILDER"
     player_y=$((surface_y + 1))
 
     log "Setting world spawn to $x $player_y $z"
     run_rcon "setworldspawn $x $player_y $z" >/dev/null
 
-    log "Building protected ObsidianGate spawn hub"
-    "$SPAWN_BUILDER" "$x" "$surface_y" "$z" "$length"
+    log "Disabling mob block griefing"
+    run_rcon "gamerule mobGriefing false" >/dev/null || log "WARN: could not set mobGriefing"
 
-    protection_radius=$((length + 20))
+    case "$BUILD_SPAWN" in
+        1|true|True|TRUE|yes|Yes|YES)
+            [ -x "$SPAWN_BUILDER" ] || fail "Spawn builder not executable: $SPAWN_BUILDER"
+            log "Building legacy ObsidianGate spawn hub"
+            "$SPAWN_BUILDER" "$x" "$surface_y" "$z" "$length"
+            ;;
+        *)
+            log "Skipping automatic spawn build. Paste the WorldEdit schematic where you want it."
+            ;;
+    esac
+
+    protection_radius="$length"
     if [ "$protection_radius" -lt 64 ]; then
         protection_radius=64
     fi

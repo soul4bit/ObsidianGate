@@ -36,6 +36,7 @@ public final class ForgeAuthServerMod {
     private static final PlayerAchievementService ACHIEVEMENTS = new PlayerAchievementService(LOGGER);
     private static final ForgeAuthServerLifecycle LIFECYCLE = new ForgeAuthServerLifecycle(LOGGER, ACHIEVEMENTS);
     private static final SpawnProtectionService SPAWN_PROTECTION = new SpawnProtectionService(LOGGER);
+    private static final GlobalExplosionProtectionService EXPLOSION_PROTECTION = new GlobalExplosionProtectionService(LOGGER);
     private static final ItemCleanupService ITEM_CLEANUP = new ItemCleanupService(LOGGER);
     private static final RandomLightningService RANDOM_LIGHTNING = new RandomLightningService(LOGGER);
     private static final JudgementNightService JUDGEMENT_NIGHT = new JudgementNightService(LOGGER);
@@ -77,6 +78,7 @@ public final class ForgeAuthServerMod {
             net.minecraftforge.fml.relauncher.Side.CLIENT
         );
         SPAWN_PROTECTION.load();
+        EXPLOSION_PROTECTION.load();
         ITEM_CLEANUP.load();
         RANDOM_LIGHTNING.load();
         JUDGEMENT_NIGHT.load();
@@ -91,6 +93,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(FIRST_JOIN_WELCOME);
         MinecraftForge.EVENT_BUS.register(ACHIEVEMENTS);
         MinecraftForge.EVENT_BUS.register(SPAWN_PROTECTION);
+        MinecraftForge.EVENT_BUS.register(EXPLOSION_PROTECTION);
         MinecraftForge.EVENT_BUS.register(TREE_FELLING);
         MinecraftForge.EVENT_BUS.register(ITEM_CLEANUP);
         MinecraftForge.EVENT_BUS.register(RANDOM_LIGHTNING);
