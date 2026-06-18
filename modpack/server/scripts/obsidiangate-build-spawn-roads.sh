@@ -12,6 +12,7 @@ DECORATE_SPAWN="${DECORATE_SPAWN:-1}"
 MAX_LENGTH="${MAX_LENGTH:-20000}"
 FOUNDATION_DEPTH="${FOUNDATION_DEPTH:-4}"
 CLEAR_ABOVE_HEIGHT="${CLEAR_ABOVE_HEIGHT:-10}"
+RCON_DELAY="${RCON_DELAY:-0}"
 
 usage() {
     echo "Usage: $0 <center-x> <surface-y> <center-z> [length]" >&2
@@ -34,6 +35,9 @@ run_rcon() {
     while :; do
         attempts=$((attempts + 1))
         if "$RCON_COMMAND" "$@" >/dev/null 2>"$err_file"; then
+            if [ "$RCON_DELAY" != "0" ]; then
+                sleep "$RCON_DELAY"
+            fi
             rm -f "$err_file"
             return 0
         fi
