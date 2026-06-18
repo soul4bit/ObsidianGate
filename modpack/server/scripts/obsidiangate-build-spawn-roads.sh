@@ -7,6 +7,8 @@ ROAD_LENGTH="${4:-200}"
 ROAD_WIDTH="${ROAD_WIDTH:-4}"
 CHUNK_LENGTH="${CHUNK_LENGTH:-16}"
 LIGHT_EVERY="${LIGHT_EVERY:-16}"
+LAMP_EVERY="${LAMP_EVERY:-32}"
+DECORATE_SPAWN="${DECORATE_SPAWN:-1}"
 MAX_LENGTH="${MAX_LENGTH:-20000}"
 FOUNDATION_DEPTH="${FOUNDATION_DEPTH:-4}"
 CLEAR_ABOVE_HEIGHT="${CLEAR_ABOVE_HEIGHT:-10}"
@@ -141,6 +143,141 @@ place_lights_x() {
     fi
 }
 
+abs() {
+    value="$1"
+    if [ "$value" -lt 0 ]; then
+        echo $((-value))
+    else
+        echo "$value"
+    fi
+}
+
+lamp_post() {
+    x="$1"
+    z="$2"
+    run_rcon "fill $x $((Y + 1)) $z $x $((Y + 4)) $z minecraft:fence 0 replace"
+    run_rcon "setblock $x $((Y + 5)) $z minecraft:glowstone 0 replace"
+}
+
+place_lamp_posts_z() {
+    start="$1"
+    end="$2"
+    left_x=$((X1 - 3))
+    right_x=$((X2 + 3))
+    if [ "$start" -le "$end" ]; then
+        cur="$start"
+        step="$LAMP_EVERY"
+        while [ "$cur" -le "$end" ]; do
+            if [ "$(abs $((cur - CZ)))" -gt 8 ]; then
+                lamp_post "$left_x" "$cur"
+                lamp_post "$right_x" "$cur"
+            fi
+            cur=$((cur + step))
+        done
+    else
+        cur="$start"
+        step="$LAMP_EVERY"
+        while [ "$cur" -ge "$end" ]; do
+            if [ "$(abs $((cur - CZ)))" -gt 8 ]; then
+                lamp_post "$left_x" "$cur"
+                lamp_post "$right_x" "$cur"
+            fi
+            cur=$((cur - step))
+        done
+    fi
+}
+
+place_lamp_posts_x() {
+    start="$1"
+    end="$2"
+    left_z=$((Z1 - 3))
+    right_z=$((Z2 + 3))
+    if [ "$start" -le "$end" ]; then
+        cur="$start"
+        step="$LAMP_EVERY"
+        while [ "$cur" -le "$end" ]; do
+            if [ "$(abs $((cur - CX)))" -gt 8 ]; then
+                lamp_post "$cur" "$left_z"
+                lamp_post "$cur" "$right_z"
+            fi
+            cur=$((cur + step))
+        done
+    else
+        cur="$start"
+        step="$LAMP_EVERY"
+        while [ "$cur" -ge "$end" ]; do
+            if [ "$(abs $((cur - CX)))" -gt 8 ]; then
+                lamp_post "$cur" "$left_z"
+                lamp_post "$cur" "$right_z"
+            fi
+            cur=$((cur - step))
+        done
+    fi
+}
+
+decorate_z_road() {
+    start="$1"
+    end="$2"
+    fill_chunked "$((X1 - 1))" "$Y" "$start" "$((X1 - 1))" "$Y" "$end" minecraft:stonebrick 0
+    fill_chunked "$((X2 + 1))" "$Y" "$start" "$((X2 + 1))" "$Y" "$end" minecraft:stonebrick 0
+    place_lamp_posts_z "$start" "$end"
+}
+
+decorate_x_road() {
+    start="$1"
+    end="$2"
+    fill_chunked "$start" "$Y" "$((Z1 - 1))" "$end" "$Y" "$((Z1 - 1))" minecraft:stonebrick 0
+    fill_chunked "$start" "$Y" "$((Z2 + 1))" "$end" "$Y" "$((Z2 + 1))" minecraft:stonebrick 0
+    place_lamp_posts_x "$start" "$end"
+}
+
+gateway_z() {
+    z="$1"
+    left_x=$((X1 - 3))
+    right_x=$((X2 + 3))
+    fill_chunked "$left_x" "$((Y + 1))" "$z" "$left_x" "$((Y + 6))" "$z" minecraft:stonebrick 0
+    fill_chunked "$right_x" "$((Y + 1))" "$z" "$right_x" "$((Y + 6))" "$z" minecraft:stonebrick 0
+    fill_chunked "$left_x" "$((Y + 6))" "$z" "$right_x" "$((Y + 6))" "$z" minecraft:stonebrick 0
+    run_rcon "setblock $left_x $((Y + 7)) $z minecraft:glowstone 0 replace"
+    run_rcon "setblock $right_x $((Y + 7)) $z minecraft:glowstone 0 replace"
+}
+
+gateway_x() {
+    x="$1"
+    left_z=$((Z1 - 3))
+    right_z=$((Z2 + 3))
+    fill_chunked "$x" "$((Y + 1))" "$left_z" "$x" "$((Y + 6))" "$left_z" minecraft:stonebrick 0
+    fill_chunked "$x" "$((Y + 1))" "$right_z" "$x" "$((Y + 6))" "$right_z" minecraft:stonebrick 0
+    fill_chunked "$x" "$((Y + 6))" "$left_z" "$x" "$((Y + 6))" "$right_z" minecraft:stonebrick 0
+    run_rcon "setblock $x $((Y + 7)) $left_z minecraft:glowstone 0 replace"
+    run_rcon "setblock $x $((Y + 7)) $right_z minecraft:glowstone 0 replace"
+}
+
+decorate_center_plaza() {
+    radius=8
+    fill_chunked "$((CX - radius))" "$FOUNDATION_Y1" "$((CZ - radius))" "$((CX + radius))" "$SUPPORT_Y" "$((CZ + radius))" minecraft:dirt 0
+    run_rcon "fill $((CX - radius)) $HEAD_Y1 $((CZ - radius)) $((CX + radius)) $HEAD_Y2 $((CZ + radius)) minecraft:air 0 replace"
+    run_rcon "fill $((CX - radius)) $Y $((CZ - radius)) $((CX + radius)) $Y $((CZ + radius)) minecraft:stonebrick 0 replace"
+    run_rcon "fill $((CX - 2)) $Y $((CZ - radius)) $((CX + 1)) $Y $((CZ + radius)) minecraft:wool 14 replace"
+    run_rcon "fill $((CX - radius)) $Y $((CZ - 2)) $((CX + radius)) $Y $((CZ + 1)) minecraft:wool 14 replace"
+    run_rcon "fill $((CX - 2)) $Y $((CZ - 2)) $((CX + 1)) $Y $((CZ + 1)) minecraft:glowstone 0 replace"
+
+    for offset_x in -7 7; do
+        for offset_z in -7 7; do
+            px=$((CX + offset_x))
+            pz=$((CZ + offset_z))
+            run_rcon "fill $((px - 1)) $Y $((pz - 1)) $((px + 1)) $Y $((pz + 1)) minecraft:stonebrick 0 replace"
+            run_rcon "fill $px $((Y + 1)) $pz $px $((Y + 4)) $pz minecraft:nether_brick_fence 0 replace"
+            run_rcon "setblock $px $((Y + 5)) $pz minecraft:glowstone 0 replace"
+        done
+    done
+
+    gateway_z "$((CZ + 18))"
+    gateway_z "$((CZ - 18))"
+    gateway_x "$((CX + 18))"
+    gateway_x "$((CX - 18))"
+}
+
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
     usage
     exit 2
@@ -185,6 +322,15 @@ if [ "$CLEAR_ABOVE_HEIGHT" -lt 1 ] || [ "$CLEAR_ABOVE_HEIGHT" -gt 32 ]; then
     exit 2
 fi
 
+case "$DECORATE_SPAWN" in
+    0|false|False|FALSE)
+        DECORATE_SPAWN=0
+        ;;
+    *)
+        DECORATE_SPAWN=1
+        ;;
+esac
+
 X1=$((CX - 2))
 X2=$((CX + 1))
 Z1=$((CZ - 2))
@@ -199,29 +345,37 @@ HEAD_Y2=$((Y + CLEAR_ABOVE_HEIGHT))
 
 echo "Building four 4-wide roads from $CX $Y $CZ, length $ROAD_LENGTH..."
 echo "Top: red wool/glowstone at y=$Y; foundation: dirt y=$FOUNDATION_Y1..$SUPPORT_Y; cleared above: $CLEAR_ABOVE_HEIGHT blocks."
+if [ "$DECORATE_SPAWN" = "1" ]; then
+    echo "Decoration: stonebrick curbs, lamp posts every $LAMP_EVERY blocks, center plaza and four gateways."
+fi
 
 fill_chunked "$X1" "$FOUNDATION_Y1" "$CZ" "$X2" "$SUPPORT_Y" "$((CZ + ROAD_LENGTH))" minecraft:dirt 0
 fill_chunked "$X1" "$Y" "$CZ" "$X2" "$Y" "$((CZ + ROAD_LENGTH))" minecraft:wool 14
 fill_chunked "$X1" "$HEAD_Y1" "$CZ" "$X2" "$HEAD_Y2" "$((CZ + ROAD_LENGTH))" minecraft:air 0
 place_lights_z "$X1" "$X2" "$Y" "$CZ" "$((CZ + ROAD_LENGTH))"
+[ "$DECORATE_SPAWN" = "1" ] && decorate_z_road "$CZ" "$((CZ + ROAD_LENGTH))"
 
 fill_chunked "$X1" "$FOUNDATION_Y1" "$CZ" "$X2" "$SUPPORT_Y" "$((CZ - ROAD_LENGTH))" minecraft:dirt 0
 fill_chunked "$X1" "$Y" "$CZ" "$X2" "$Y" "$((CZ - ROAD_LENGTH))" minecraft:wool 14
 fill_chunked "$X1" "$HEAD_Y1" "$CZ" "$X2" "$HEAD_Y2" "$((CZ - ROAD_LENGTH))" minecraft:air 0
 place_lights_z "$X1" "$X2" "$Y" "$CZ" "$((CZ - ROAD_LENGTH))"
+[ "$DECORATE_SPAWN" = "1" ] && decorate_z_road "$CZ" "$((CZ - ROAD_LENGTH))"
 
 fill_chunked "$CX" "$FOUNDATION_Y1" "$Z1" "$((CX + ROAD_LENGTH))" "$SUPPORT_Y" "$Z2" minecraft:dirt 0
 fill_chunked "$CX" "$Y" "$Z1" "$((CX + ROAD_LENGTH))" "$Y" "$Z2" minecraft:wool 14
 fill_chunked "$CX" "$HEAD_Y1" "$Z1" "$((CX + ROAD_LENGTH))" "$HEAD_Y2" "$Z2" minecraft:air 0
 place_lights_x "$Z1" "$Z2" "$Y" "$CX" "$((CX + ROAD_LENGTH))"
+[ "$DECORATE_SPAWN" = "1" ] && decorate_x_road "$CX" "$((CX + ROAD_LENGTH))"
 
 fill_chunked "$CX" "$FOUNDATION_Y1" "$Z1" "$((CX - ROAD_LENGTH))" "$SUPPORT_Y" "$Z2" minecraft:dirt 0
 fill_chunked "$CX" "$Y" "$Z1" "$((CX - ROAD_LENGTH))" "$Y" "$Z2" minecraft:wool 14
 fill_chunked "$CX" "$HEAD_Y1" "$Z1" "$((CX - ROAD_LENGTH))" "$HEAD_Y2" "$Z2" minecraft:air 0
 place_lights_x "$Z1" "$Z2" "$Y" "$CX" "$((CX - ROAD_LENGTH))"
+[ "$DECORATE_SPAWN" = "1" ] && decorate_x_road "$CX" "$((CX - ROAD_LENGTH))"
 
 run_rcon "fill $((CX - 3)) $HEAD_Y1 $((CZ - 3)) $((CX + 3)) $HEAD_Y2 $((CZ + 3)) minecraft:air 0 replace"
 run_rcon "fill $((CX - 3)) $FOUNDATION_Y1 $((CZ - 3)) $((CX + 3)) $SUPPORT_Y $((CZ + 3)) minecraft:dirt 0 replace"
 run_rcon "fill $((CX - 3)) $Y $((CZ - 3)) $((CX + 3)) $Y $((CZ + 3)) minecraft:wool 14 replace"
 run_rcon "fill $((CX - 1)) $Y $((CZ - 1)) $CX $Y $CZ minecraft:glowstone 0 replace"
+[ "$DECORATE_SPAWN" = "1" ] && decorate_center_plaza
 echo "Done."
