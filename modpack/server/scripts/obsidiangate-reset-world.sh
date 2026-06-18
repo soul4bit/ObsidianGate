@@ -6,11 +6,12 @@ PROPERTIES_FILE="${PROPERTIES_FILE:-$SERVER_ROOT/server.properties}"
 BACKUP_ROOT="${BACKUP_ROOT:-$SERVER_ROOT/backups/world-resets}"
 RCON_COMMAND="${RCON_COMMAND:-$SERVER_ROOT/scripts/obsidiangate-rcon-command.sh}"
 ROAD_BUILDER="${ROAD_BUILDER:-$SERVER_ROOT/scripts/obsidiangate-build-spawn-roads.sh}"
+SPAWN_BUILDER="${SPAWN_BUILDER:-$SERVER_ROOT/scripts/obsidiangate-build-new-spawn.sh}"
 
 SPAWN_X="${SPAWN_X:-484}"
 SPAWN_SURFACE_Y="${SPAWN_SURFACE_Y:-70}"
 SPAWN_Z="${SPAWN_Z:--823}"
-ROAD_LENGTH="${ROAD_LENGTH:-200}"
+ROAD_LENGTH="${ROAD_LENGTH:-240}"
 
 log() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -30,8 +31,8 @@ Usage:
 prepare must run while Minecraft is stopped. It archives the active world and
 switches server.properties level-name to a new world.
 
-decorate must run after the new world starts. It sets /setworldspawn, reloads
-spawn protection and builds the decorated red roads.
+decorate must run after the new world starts. It sets /setworldspawn, builds
+the new spawn hub, protects the hub/roads and reloads spawn protection.
 EOF
 }
 
@@ -173,17 +174,29 @@ decorate_world() {
         is_int "$value" || fail "Expected integer coordinate/length, got: $value"
     done
 
-    [ -x "$ROAD_BUILDER" ] || fail "Road builder not executable: $ROAD_BUILDER"
+    [ -x "$SPAWN_BUILDER" ] || fail "Spawn builder not executable: $SPAWN_BUILDER"
     player_y=$((surface_y + 1))
 
     log "Setting world spawn to $x $player_y $z"
     run_rcon "setworldspawn $x $player_y $z" >/dev/null
 
+    log "Building protected ObsidianGate spawn hub"
+    "$SPAWN_BUILDER" "$x" "$surface_y" "$z" "$length"
+
+    protection_radius=$((length + 20))
+    if [ "$protection_radius" -lt 64 ]; then
+        protection_radius=64
+    fi
+    min_x=$((x - protection_radius))
+    max_x=$((x + protection_radius))
+    min_z=$((z - protection_radius))
+    max_z=$((z + protection_radius))
+
+    log "Protecting spawn region dim 0 [$min_x,0,$min_z]..[$max_x,255,$max_z]"
+    run_rcon "spawnprotect region $min_x 0 $min_z $max_x 255 $max_z 0" >/dev/null
+
     log "Reloading spawn protection"
     run_rcon "spawnprotect reload" >/dev/null
-
-    log "Building decorated red roads"
-    "$ROAD_BUILDER" "$x" "$surface_y" "$z" "$length"
 
     log "Saving world after decoration"
     run_rcon "save-all" >/dev/null || log "WARN: save-all failed after decoration"
