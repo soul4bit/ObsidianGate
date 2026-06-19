@@ -308,6 +308,168 @@ def build_four_roads() -> None:
         fill(x, SURFACE_Y + 1, CENTER_Z + 8, x, SURFACE_Y + 2, CENTER_Z + 8, FENCE)
 
 
+def crystal_spire(cx: int, zc: int, base_y: int, glass_meta: int) -> None:
+    fill(cx - 2, base_y, zc - 2, cx + 2, base_y + 1, zc + 2, OBSIDIAN)
+    fill(cx - 1, base_y + 2, zc - 1, cx + 1, base_y + 4, zc + 1, STAINED_GLASS, glass_meta)
+    fill(cx, base_y + 5, zc, cx, base_y + 9, zc, STAINED_GLASS, glass_meta)
+    setb(cx, base_y + 10, zc, SEA_LANTERN)
+    for dx, dz in ((3, 0), (-3, 0), (0, 3), (0, -3)):
+        fill(cx + dx, base_y, zc + dz, cx + dx, base_y + 2, zc + dz, IRON_BARS)
+        setb(cx + dx, base_y + 3, zc + dz, GLOWSTONE)
+
+
+def tower_spires() -> None:
+    crystal_spire(13, 13, SURFACE_Y + 28, 10)
+    crystal_spire(83, 13, SURFACE_Y + 28, 3)
+    crystal_spire(13, 83, SURFACE_Y + 28, 5)
+    crystal_spire(83, 83, SURFACE_Y + 28, 2)
+    for x, z, meta in (
+        (CENTER_X, 11, 10),
+        (CENTER_X, 86, 14),
+        (11, CENTER_Z, 5),
+        (86, CENTER_Z, 3),
+    ):
+        fill(x - 1, SURFACE_Y + 22, z - 1, x + 1, SURFACE_Y + 23, z + 1, STAINED_GLASS, meta)
+        setb(x, SURFACE_Y + 24, z, SEA_LANTERN)
+
+
+def castle_banners() -> None:
+    for x, z, meta in (
+        (CENTER_X - 12, 75, 14), (CENTER_X + 12, 75, 14),
+        (CENTER_X - 12, 21, 10), (CENTER_X + 12, 21, 10),
+    ):
+        fill(x, SURFACE_Y + 8, z, x, SURFACE_Y + 14, z, WOOL, meta)
+        setb(x, SURFACE_Y + 15, z, GLOWSTONE)
+    for x, z, meta in (
+        (21, CENTER_Z - 12, 5), (21, CENTER_Z + 12, 5),
+        (75, CENTER_Z - 12, 3), (75, CENTER_Z + 12, 3),
+    ):
+        fill(x, SURFACE_Y + 8, z, x, SURFACE_Y + 14, z, WOOL, meta)
+        setb(x, SURFACE_Y + 15, z, GLOWSTONE)
+
+
+def inner_gardens() -> None:
+    gardens = (
+        (25, 58, 39, 72, 5),
+        (58, 58, 72, 72, 2),
+        (25, 24, 39, 38, 2),
+        (58, 24, 72, 38, 3),
+    )
+    for x1, z1, x2, z2, flower_meta in gardens:
+        fill(x1, SURFACE_Y, z1, x2, SURFACE_Y, z2, GRASS)
+        fill(x1, SURFACE_Y, z1, x2, SURFACE_Y, z1, MOSSY_COBBLE)
+        fill(x1, SURFACE_Y, z2, x2, SURFACE_Y, z2, MOSSY_COBBLE)
+        fill(x1, SURFACE_Y, z1, x1, SURFACE_Y, z2, MOSSY_COBBLE)
+        fill(x2, SURFACE_Y, z1, x2, SURFACE_Y, z2, MOSSY_COBBLE)
+        mx = (x1 + x2) // 2
+        mz = (z1 + z2) // 2
+        fill(mx - 1, SURFACE_Y, z1 + 2, mx + 1, SURFACE_Y, z2 - 2, WATER)
+        fill(x1 + 2, SURFACE_Y, mz - 1, x2 - 2, SURFACE_Y, mz + 1, WATER)
+        setb(mx, SURFACE_Y, mz, SEA_LANTERN)
+        for x in range(x1 + 2, x2 - 1, 3):
+            for z in range(z1 + 2, z2 - 1, 3):
+                if getb(x, SURFACE_Y + 1, z) == AIR and (x != mx or z != mz):
+                    setb(x, SURFACE_Y + 1, z, RED_FLOWER if (x + z) % 2 else YELLOW_FLOWER, flower_meta)
+
+
+def road_lamps() -> None:
+    for z in (6, 18, 30, 66, 78, 90):
+        lamp(CENTER_X - 6, z)
+        lamp(CENTER_X + 6, z)
+    for x in (6, 18, 30, 66, 78, 90):
+        lamp(x, CENTER_Z - 6)
+        lamp(x, CENTER_Z + 6)
+
+
+def road_inlays() -> None:
+    for z in range(1, L - 1):
+        if abs(z - CENTER_Z) <= 10:
+            continue
+        meta = 10 if z < CENTER_Z else 14
+        for dx in (-2, 2):
+            x = CENTER_X + dx
+            if getb(x, SURFACE_Y, z) in (QUARTZ, STONE_BRICK, PLANKS):
+                setb(x, SURFACE_Y + 1, z, CARPET, meta)
+    for x in range(1, W - 1):
+        if abs(x - CENTER_X) <= 10:
+            continue
+        meta = 5 if x < CENTER_X else 3
+        for dz in (-2, 2):
+            z = CENTER_Z + dz
+            if getb(x, SURFACE_Y, z) in (QUARTZ, STONE_BRICK, PLANKS):
+                setb(x, SURFACE_Y + 1, z, CARPET, meta)
+
+
+def gate_roofs() -> None:
+    for z1, z2, y0, meta in (
+        (2, 21, SURFACE_Y + 23, 10),
+        (75, 94, SURFACE_Y + 25, 14),
+    ):
+        for layer in range(4):
+            fill(
+                CENTER_X - 13 + layer,
+                y0 + layer,
+                z1 + layer,
+                CENTER_X + 13 - layer,
+                y0 + layer,
+                z2 - layer,
+                NETHER_BRICK,
+            )
+        fill(CENTER_X - 2, y0 + 4, z1 + 4, CENTER_X + 2, y0 + 4, z2 - 4, STAINED_GLASS, meta)
+        for z in range(z1 + 5, z2 - 4, 6):
+            setb(CENTER_X, y0 + 5, z, SEA_LANTERN)
+
+    for x1, x2, y0, meta in (
+        (2, 21, SURFACE_Y + 23, 5),
+        (75, 94, SURFACE_Y + 23, 3),
+    ):
+        for layer in range(4):
+            fill(
+                x1 + layer,
+                y0 + layer,
+                CENTER_Z - 13 + layer,
+                x2 - layer,
+                y0 + layer,
+                CENTER_Z + 13 - layer,
+                NETHER_BRICK,
+            )
+        fill(x1 + 4, y0 + 4, CENTER_Z - 2, x2 - 4, y0 + 4, CENTER_Z + 2, STAINED_GLASS, meta)
+        for x in range(x1 + 5, x2 - 4, 6):
+            setb(x, y0 + 5, CENTER_Z, SEA_LANTERN)
+
+
+def guardian_obelisks() -> None:
+    for x, z, meta in (
+        (CENTER_X - 12, 25, 10),
+        (CENTER_X + 12, 25, 10),
+        (CENTER_X - 12, 72, 14),
+        (CENTER_X + 12, 72, 14),
+        (25, CENTER_Z - 12, 5),
+        (25, CENTER_Z + 12, 5),
+        (72, CENTER_Z - 12, 3),
+        (72, CENTER_Z + 12, 3),
+    ):
+        fill(x - 2, SURFACE_Y, z - 2, x + 2, SURFACE_Y, z + 2, QUARTZ)
+        fill(x - 1, SURFACE_Y + 1, z - 1, x + 1, SURFACE_Y + 1, z + 1, OBSIDIAN)
+        fill(x, SURFACE_Y + 2, z, x, SURFACE_Y + 7, z, STAINED_GLASS, meta)
+        setb(x, SURFACE_Y + 8, z, SEA_LANTERN)
+
+
+def sky_crown() -> None:
+    y = SURFACE_Y + 26
+    points = []
+    for angle in range(0, 360, 10):
+        radians = math.radians(angle)
+        x = CENTER_X + int(round(math.cos(radians) * 18))
+        z = CENTER_Z + int(round(math.sin(radians) * 18))
+        if (x, z) not in points:
+            points.append((x, z))
+    for index, (x, z) in enumerate(points):
+        setb(x, y, z, SEA_LANTERN if index % 3 == 0 else STAINED_GLASS, 10 if index % 3 else 0)
+        if index % 4 == 0:
+            setb(x, y - 1, z, STAINED_GLASS, 2)
+
+
 def castle_keep() -> None:
     fill_aged(CENTER_X - 24, SURFACE_Y + 1, CENTER_Z - 19, CENTER_X - 10, SURFACE_Y + 12, CENTER_Z - 5)
     fill(CENTER_X - 21, SURFACE_Y + 2, CENTER_Z - 16, CENTER_X - 13, SURFACE_Y + 10, CENTER_Z - 8, AIR)
@@ -553,6 +715,13 @@ def build_scene() -> None:
     castle_keep()
     castle_tower_themes()
     build_four_roads()
+    inner_gardens()
+    guardian_obelisks()
+    gate_roofs()
+    tower_spires()
+    castle_banners()
+    road_inlays()
+    road_lamps()
 
     disc(CENTER_X, CENTER_Z, 17, SURFACE_Y, QUARTZ)
     ring(CENTER_X, CENTER_Z, 11, 13, SURFACE_Y, OBSIDIAN)
@@ -561,6 +730,7 @@ def build_scene() -> None:
     fill(CENTER_X - 2, SURFACE_Y, CENTER_Z - 2, CENTER_X + 2, SURFACE_Y, CENTER_Z + 2, SEA_LANTERN)
 
     obsidian_gate()
+    sky_crown()
 
     for x, z in ((CENTER_X - 17, CENTER_Z - 17), (CENTER_X + 17, CENTER_Z - 17), (CENTER_X - 17, CENTER_Z + 17), (CENTER_X + 17, CENTER_Z + 17)):
         lamp(x, z)
