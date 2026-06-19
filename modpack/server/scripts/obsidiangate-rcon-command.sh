@@ -17,6 +17,7 @@ if [ ! -f "$SERVER_PROPERTIES" ]; then
 fi
 
 python3 - "$SERVER_PROPERTIES" "$RCON_HOST" "$RCON_PORT" "$*" <<'PY'
+import os
 import socket
 import struct
 import sys
@@ -40,7 +41,7 @@ if not password:
     raise SystemExit("rcon.password is empty in server.properties")
 
 port = int(port_arg or props.get("rcon.port", "25575"))
-timeout = float(props.get("obsidiangate.rcon.timeout", "5"))
+timeout = float(os.environ.get("RCON_TIMEOUT") or props.get("obsidiangate.rcon.timeout", "5"))
 
 def packet(request_id, packet_type, body):
     encoded = body.encode("utf-8")

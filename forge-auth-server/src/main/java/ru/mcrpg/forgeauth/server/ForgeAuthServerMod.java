@@ -51,6 +51,7 @@ public final class ForgeAuthServerMod {
     private static final RegionAuditService REGION_AUDIT = new RegionAuditService(LOGGER);
     private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER, REGIONS, REGION_AUDIT);
     private static final RegionProtectionEvents REGION_EVENTS = new RegionProtectionEvents(REGIONS, REGION_AUDIT);
+    private static final SpawnRoadBuilderService SPAWN_ROADS = new SpawnRoadBuilderService(LOGGER);
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -103,6 +104,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(HOME_RESPAWN);
         MinecraftForge.EVENT_BUS.register(REGION_EVENTS);
         FMLCommonHandler.instance().bus().register(REGION_EVENTS);
+        FMLCommonHandler.instance().bus().register(SPAWN_ROADS);
 
         AuthServerConfig config = AuthServerConfig.fromSystem();
         if (config.isReady()) {
@@ -132,6 +134,7 @@ public final class ForgeAuthServerMod {
         SpawnProtectionCommand.register(event, SPAWN_PROTECTION);
         AchievementCommand.register(event, ACHIEVEMENTS);
         RegionCommand.register(event, REGIONS, REGION_AUDIT, LIFECYCLE);
+        SpawnRoadCommand.register(event, SPAWN_ROADS);
         HelpCommand.register(event);
     }
 
