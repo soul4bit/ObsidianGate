@@ -6,7 +6,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -18,8 +21,14 @@ final class SpawnRoadBuilderService {
     private static final int CLEAR_ABOVE_HEIGHT = 20;
     private static final int FOUNDATION_DEPTH = 6;
     private static final int FOUNDATION_MIN_Y = 1;
+    private static final int ROAD_HALF_WIDTH = 3;
+    private static final int CLEAR_HALF_WIDTH = 8;
+    private static final int TERRAIN_SAMPLE_OFFSET = 10;
+    private static final int MAX_TERRAIN_DELTA = 96;
     private static final int LIGHT_EVERY = 7;
     private static final int LAMP_EVERY = 12;
+    private static final int OUTPOST_INTERVAL = 250;
+    private static final int OUTPOST_COUNT = 4;
     private static final int DEFAULT_BLOCKS_PER_TICK = 2500;
     private static final long PROGRESS_LOG_INTERVAL_MILLIS = 5000L;
 
@@ -156,15 +165,11 @@ final class SpawnRoadBuilderService {
             ArrayList<Stage> stages = new ArrayList<Stage>();
             int startDistance = SPAWN_RADIUS + 1;
             int endDistance = SPAWN_RADIUS + length;
-            int foundationY1 = Math.max(FOUNDATION_MIN_Y, roadY - FOUNDATION_DEPTH);
-            int supportY = roadY - 1;
-            int headY1 = roadY + 1;
-            int headY2 = roadY + CLEAR_ABOVE_HEIGHT;
 
-            addZRoad(stages, centerX, roadY, centerZ, centerZ + startDistance, centerZ + endDistance, 14, 1, foundationY1, supportY, headY1, headY2, blocks);
-            addZRoad(stages, centerX, roadY, centerZ, centerZ - startDistance, centerZ - endDistance, 10, -1, foundationY1, supportY, headY1, headY2, blocks);
-            addXRoad(stages, centerX, roadY, centerZ, centerX + startDistance, centerX + endDistance, 3, 1, foundationY1, supportY, headY1, headY2, blocks);
-            addXRoad(stages, centerX, roadY, centerZ, centerX - startDistance, centerX - endDistance, 5, -1, foundationY1, supportY, headY1, headY2, blocks);
+            addAdaptiveRoad(stages, RoadPath.create("north", "Северный путь", centerX, roadY, centerZ, true, 1, startDistance, endDistance, 14, world, blocks), blocks);
+            addAdaptiveRoad(stages, RoadPath.create("south", "Южный путь", centerX, roadY, centerZ, true, -1, startDistance, endDistance, 10, world, blocks), blocks);
+            addAdaptiveRoad(stages, RoadPath.create("east", "Восточный путь", centerX, roadY, centerZ, false, 1, startDistance, endDistance, 3, world, blocks), blocks);
+            addAdaptiveRoad(stages, RoadPath.create("west", "Западный путь", centerX, roadY, centerZ, false, -1, startDistance, endDistance, 5, world, blocks), blocks);
             return new RoadTask(world, sender, centerX, roadY, centerZ, length, blocksPerTick, blocks, stages);
         }
 
@@ -205,6 +210,9 @@ final class SpawnRoadBuilderService {
             if (cancelled) {
                 return "cancelled.";
             }
+            if (done) {
+                return "done.";
+            }
             if (stages.isEmpty()) {
                 return done ? "done." : "starting.";
             }
@@ -212,6 +220,654 @@ final class SpawnRoadBuilderService {
             String stageName = stageIndex >= stages.size() ? "done" : stages.get(stageIndex).name();
             return percent + "%, stage " + (Math.min(stageIndex + 1, stages.size())) + "/" + stages.size() + " " + stageName +
                 ", blocks " + placedBlocks + "/" + totalBlocks + ".";
+        }
+    }
+
+    private static void addAdaptiveRoad(List<Stage> stages, RoadPath path, BlockAccess blocks) {
+        stages.add(new RoadPathStage("adaptive-road-" + path.id, path, blocks));
+        stages.add(new RoadLampStage("adaptive-lamps-" + path.id, path, blocks));
+        stages.add(new OutpostStage("outposts-" + path.id, path, blocks));
+    }
+
+    private static final class RoadPath {
+        final String id;
+        final String label;
+        final int centerX;
+        final int roadY;
+        final int centerZ;
+        final boolean zAxis;
+        final int direction;
+        final int colorMeta;
+        final List<RoadPoint> points;
+        private final Map<Integer, RoadPoint> byDistance;
+
+        private RoadPath(
+            String id,
+            String label,
+            int centerX,
+            int roadY,
+            int centerZ,
+            boolean zAxis,
+            int direction,
+            int colorMeta,
+            List<RoadPoint> points
+        ) {
+            this.id = id;
+            this.label = label;
+            this.centerX = centerX;
+            this.roadY = roadY;
+            this.centerZ = centerZ;
+            this.zAxis = zAxis;
+            this.direction = direction;
+            this.colorMeta = colorMeta;
+            this.points = points;
+            this.byDistance = new HashMap<Integer, RoadPoint>();
+            for (RoadPoint point : points) {
+                byDistance.put(Integer.valueOf(point.distance), point);
+            }
+        }
+
+        static RoadPath create(
+            String id,
+            String label,
+            int centerX,
+            int roadY,
+            int centerZ,
+            boolean zAxis,
+            int direction,
+            int startDistance,
+            int endDistance,
+            int colorMeta,
+            Object world,
+            BlockAccess blocks
+        ) {
+            ArrayList<RoadPoint> points = new ArrayList<RoadPoint>();
+            for (int distance = startDistance; distance <= endDistance; distance++) {
+                int x = zAxis ? centerX : centerX + direction * distance;
+                int z = zAxis ? centerZ + direction * distance : centerZ;
+                points.add(new RoadPoint(distance, x, z, roadY));
+            }
+            return new RoadPath(id, label, centerX, roadY, centerZ, zAxis, direction, colorMeta, points);
+        }
+
+        RoadPoint pointAtDistance(int distance) {
+            return byDistance.get(Integer.valueOf(distance));
+        }
+
+        RoadPoint nearestPointAtDistance(int distance) {
+            RoadPoint exact = pointAtDistance(distance);
+            if (exact != null) {
+                return exact;
+            }
+            RoadPoint nearest = null;
+            int best = Integer.MAX_VALUE;
+            for (RoadPoint point : points) {
+                int delta = Math.abs(point.distance - distance);
+                if (delta < best) {
+                    nearest = point;
+                    best = delta;
+                }
+            }
+            return nearest;
+        }
+
+        int xWithOffset(RoadPoint point, int offset) {
+            return zAxis ? point.x + offset : point.x;
+        }
+
+        int zWithOffset(RoadPoint point, int offset) {
+            return zAxis ? point.z : point.z + offset;
+        }
+
+        int uphillMeta(int uphillDirection) {
+            if (zAxis) {
+                return uphillDirection > 0 ? 2 : 3;
+            }
+            return uphillDirection > 0 ? 0 : 1;
+        }
+
+        int sideOffset(int milestone) {
+            return ((milestone / OUTPOST_INTERVAL) % 2 == 0 ? -1 : 1) * 12;
+        }
+    }
+
+    private static int sampleTerrainY(
+        Object world,
+        BlockAccess blocks,
+        int centerX,
+        int centerZ,
+        int fallbackY,
+        boolean zAxis,
+        int direction,
+        int distance
+    ) {
+        int x = zAxis ? centerX : centerX + direction * distance;
+        int z = zAxis ? centerZ + direction * distance : centerZ;
+        int left = zAxis
+            ? blocks.terrainHeight(world, x - TERRAIN_SAMPLE_OFFSET, z, fallbackY)
+            : blocks.terrainHeight(world, x, z - TERRAIN_SAMPLE_OFFSET, fallbackY);
+        int right = zAxis
+            ? blocks.terrainHeight(world, x + TERRAIN_SAMPLE_OFFSET, z, fallbackY)
+            : blocks.terrainHeight(world, x, z + TERRAIN_SAMPLE_OFFSET, fallbackY);
+        int sampled = (left + right) / 2 + 1;
+        int min = Math.max(FOUNDATION_MIN_Y + FOUNDATION_DEPTH, fallbackY - MAX_TERRAIN_DELTA);
+        int max = Math.min(240, fallbackY + MAX_TERRAIN_DELTA);
+        return Math.max(min, Math.min(max, sampled));
+    }
+
+    private static int smooth(int previousY, int targetY) {
+        if (targetY > previousY + 1) {
+            return previousY + 1;
+        }
+        if (targetY < previousY - 1) {
+            return previousY - 1;
+        }
+        return targetY;
+    }
+
+    private static final class RoadPoint {
+        final int distance;
+        final int x;
+        final int z;
+        int y;
+        String biomeName;
+        boolean sampled;
+
+        private RoadPoint(int distance, int x, int z, int y) {
+            this.distance = distance;
+            this.x = x;
+            this.z = z;
+            this.y = y;
+            this.biomeName = "";
+        }
+    }
+
+    private static final class RoadPathStage implements Stage {
+        private final String name;
+        private final RoadPath path;
+        private final BlockAccess blocks;
+        private int pointIndex;
+        private int phase;
+        private int offset = -CLEAR_HALF_WIDTH;
+        private int yCursor;
+        private boolean phaseStarted;
+        private boolean done;
+
+        RoadPathStage(String name, RoadPath path, BlockAccess blocks) {
+            this.name = name;
+            this.path = path;
+            this.blocks = blocks;
+        }
+
+        public int run(RoadTask task, int budget) {
+            int used = 0;
+            while (used < budget && !done) {
+                RoadPoint point = sampledPoint(task.world, pointIndex);
+                Palette palette = blocks.palette(point.biomeName, path.colorMeta);
+                if (phase <= 1) {
+                    used += runClearPhase(task.world, point, phase == 0, budget - used);
+                } else if (phase == 2) {
+                    used += runFoundationPhase(task.world, point, palette, budget - used);
+                } else {
+                    used += runSurfacePhase(task.world, point, palette, budget - used);
+                }
+                if (used >= budget) {
+                    break;
+                }
+            }
+            return used;
+        }
+
+        private RoadPoint sampledPoint(Object world, int index) {
+            RoadPoint point = path.points.get(index);
+            if (point.sampled) {
+                return point;
+            }
+            int previousY = index == 0 ? path.roadY : sampledPoint(world, index - 1).y;
+            int sampledY = sampleTerrainY(world, blocks, path.centerX, path.centerZ, path.roadY, path.zAxis, path.direction, point.distance);
+            point.y = smooth(previousY, sampledY);
+            point.biomeName = blocks.biomeName(world, point.x, point.z);
+            point.sampled = true;
+            return point;
+        }
+
+        private int runClearPhase(Object world, RoadPoint point, boolean oldRoadBand, int budget) {
+            int used = 0;
+            int minY = oldRoadBand ? path.roadY - 1 : point.y + 1;
+            int maxY = oldRoadBand ? path.roadY + CLEAR_ABOVE_HEIGHT : point.y + CLEAR_ABOVE_HEIGHT;
+            if (!phaseStarted) {
+                yCursor = Math.max(1, minY);
+                phaseStarted = true;
+            }
+            while (used < budget && offset <= CLEAR_HALF_WIDTH) {
+                int x = path.xWithOffset(point, offset);
+                int z = path.zWithOffset(point, offset);
+                blocks.set(world, x, yCursor, z, blocks.air(), true);
+                used++;
+                yCursor++;
+                if (yCursor > Math.min(255, maxY)) {
+                    yCursor = Math.max(1, minY);
+                    offset++;
+                }
+            }
+            if (offset > CLEAR_HALF_WIDTH) {
+                nextPhase();
+            }
+            return used;
+        }
+
+        private int runFoundationPhase(Object world, RoadPoint point, Palette palette, int budget) {
+            int used = 0;
+            int minY = Math.max(FOUNDATION_MIN_Y, point.y - FOUNDATION_DEPTH);
+            int maxY = point.y - 1;
+            if (!phaseStarted) {
+                offset = -ROAD_HALF_WIDTH - 1;
+                yCursor = minY;
+                phaseStarted = true;
+            }
+            while (used < budget && offset <= ROAD_HALF_WIDTH + 1) {
+                int x = path.xWithOffset(point, offset);
+                int z = path.zWithOffset(point, offset);
+                blocks.set(world, x, yCursor, z, palette.foundation, false);
+                used++;
+                yCursor++;
+                if (yCursor > maxY) {
+                    yCursor = minY;
+                    offset++;
+                }
+            }
+            if (offset > ROAD_HALF_WIDTH + 1) {
+                nextPhase();
+            }
+            return used;
+        }
+
+        private int runSurfacePhase(Object world, RoadPoint point, Palette palette, int budget) {
+            int used = 0;
+            if (!phaseStarted) {
+                offset = -ROAD_HALF_WIDTH;
+                phaseStarted = true;
+            }
+            while (used < budget && offset <= ROAD_HALF_WIDTH) {
+                int x = path.xWithOffset(point, offset);
+                int z = path.zWithOffset(point, offset);
+                blocks.set(world, x, point.y, z, surfaceState(point, offset, palette), false);
+                used++;
+                offset++;
+            }
+            if (offset > ROAD_HALF_WIDTH) {
+                nextPoint();
+            }
+            return used;
+        }
+
+        private Object surfaceState(RoadPoint point, int offset, Palette palette) {
+            int index = point.distance - path.points.get(0).distance;
+            int previousY = index > 0 ? path.points.get(index - 1).y : point.y;
+            int nextY = index + 1 < path.points.size() ? path.points.get(index + 1).y : point.y;
+            int uphillDirection = 0;
+            if (nextY > point.y) {
+                uphillDirection = path.direction;
+            } else if (previousY > point.y) {
+                uphillDirection = -path.direction;
+            }
+            if (uphillDirection != 0) {
+                int meta = path.uphillMeta(uphillDirection);
+                return Math.abs(offset) == ROAD_HALF_WIDTH ? palette.edgeStair(meta) : palette.surfaceStair(meta);
+            }
+            if (point.distance % LIGHT_EVERY == 0 && Math.abs(offset) == 1) {
+                return palette.light;
+            }
+            if (Math.abs(offset) == ROAD_HALF_WIDTH) {
+                return palette.edge;
+            }
+            if (Math.abs(offset) == ROAD_HALF_WIDTH - 1) {
+                return palette.marker;
+            }
+            return palette.surface;
+        }
+
+        private void nextPhase() {
+            phase++;
+            offset = -CLEAR_HALF_WIDTH;
+            yCursor = 0;
+            phaseStarted = false;
+        }
+
+        private void nextPoint() {
+            pointIndex++;
+            phase = 0;
+            offset = -CLEAR_HALF_WIDTH;
+            yCursor = 0;
+            phaseStarted = false;
+            if (pointIndex >= path.points.size()) {
+                done = true;
+            }
+        }
+
+        public boolean done() {
+            return done;
+        }
+
+        public long total() {
+            return path.points.size() * 820L;
+        }
+
+        public String name() {
+            return name;
+        }
+    }
+
+    private static final class RoadLampStage implements Stage {
+        private final String name;
+        private final RoadPath path;
+        private final BlockAccess blocks;
+        private final Object stone;
+        private final Object fence;
+        private final Object seaLantern;
+        private final Object torchEast;
+        private final Object torchWest;
+        private final Object torchSouth;
+        private final Object torchNorth;
+        private int distance;
+        private int lampSide;
+        private int lampPart;
+        private boolean done;
+
+        RoadLampStage(String name, RoadPath path, BlockAccess blocks) {
+            this.name = name;
+            this.path = path;
+            this.blocks = blocks;
+            this.stone = blocks.state("minecraft:stonebrick", 0);
+            this.fence = blocks.state("minecraft:fence", 0);
+            this.seaLantern = blocks.state("minecraft:sea_lantern", 0);
+            this.torchEast = blocks.state("minecraft:torch", 1);
+            this.torchWest = blocks.state("minecraft:torch", 2);
+            this.torchSouth = blocks.state("minecraft:torch", 3);
+            this.torchNorth = blocks.state("minecraft:torch", 4);
+            this.distance = SPAWN_RADIUS + 6;
+        }
+
+        public int run(RoadTask task, int budget) {
+            int used = 0;
+            while (used < budget && !done) {
+                RoadPoint point = path.nearestPointAtDistance(distance);
+                if (point == null) {
+                    done = true;
+                    break;
+                }
+                int sideOffset = lampSide == 0 ? -6 : 6;
+                placePart(task.world, path.xWithOffset(point, sideOffset), point.y, path.zWithOffset(point, sideOffset), lampPart);
+                lampPart++;
+                if (lampPart >= 10) {
+                    lampPart = 0;
+                    lampSide++;
+                    if (lampSide >= 2) {
+                        lampSide = 0;
+                        distance += LAMP_EVERY;
+                        if (distance > path.points.get(path.points.size() - 1).distance) {
+                            done = true;
+                        }
+                    }
+                }
+                used++;
+            }
+            return used;
+        }
+
+        private void placePart(Object world, int x, int y, int z, int part) {
+            if (part == 0) {
+                blocks.set(world, x, y, z, stone, false);
+            } else if (part >= 1 && part <= 4) {
+                blocks.set(world, x, y + part, z, fence, false);
+            } else if (part == 5) {
+                blocks.set(world, x, y + 5, z, seaLantern, false);
+            } else if (part == 6) {
+                blocks.set(world, x + 1, y + 4, z, torchEast, false);
+            } else if (part == 7) {
+                blocks.set(world, x - 1, y + 4, z, torchWest, false);
+            } else if (part == 8) {
+                blocks.set(world, x, y + 4, z + 1, torchSouth, false);
+            } else {
+                blocks.set(world, x, y + 4, z - 1, torchNorth, false);
+            }
+        }
+
+        public boolean done() {
+            return done;
+        }
+
+        public long total() {
+            return Math.max(0L, (((path.points.get(path.points.size() - 1).distance - distance) / LAMP_EVERY) + 1L) * 20L);
+        }
+
+        public String name() {
+            return name;
+        }
+    }
+
+    private static final class OutpostStage implements Stage {
+        private final String name;
+        private final RoadPath path;
+        private final BlockAccess blocks;
+        private List<BlockOp> operations;
+        private int index;
+
+        OutpostStage(String name, RoadPath path, BlockAccess blocks) {
+            this.name = name;
+            this.path = path;
+            this.blocks = blocks;
+        }
+
+        public int run(RoadTask task, int budget) {
+            if (operations == null) {
+                operations = createOperations(path, blocks);
+            }
+            int used = 0;
+            while (used < budget && index < operations.size()) {
+                operations.get(index).apply(task.world);
+                index++;
+                used++;
+            }
+            return used;
+        }
+
+        public boolean done() {
+            return operations != null && index >= operations.size();
+        }
+
+        public long total() {
+            return OUTPOST_COUNT * 900L;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        private static List<BlockOp> createOperations(RoadPath path, BlockAccess blocks) {
+            ArrayList<BlockOp> ops = new ArrayList<BlockOp>();
+            Object air = blocks.air();
+            Object stone = blocks.state("minecraft:stonebrick", 0);
+            Object mossy = blocks.state("minecraft:stonebrick", 1);
+            Object fence = blocks.state("minecraft:fence", 0);
+            Object seaLantern = blocks.state("minecraft:sea_lantern", 0);
+            Object glowstone = blocks.state("minecraft:glowstone", 0);
+            Object accent = blocks.state("minecraft:wool", path.colorMeta);
+            Object slab = blocks.state("minecraft:stone_slab", 5);
+
+            for (int index = 1; index <= OUTPOST_COUNT; index++) {
+                int milestone = OUTPOST_INTERVAL * index;
+                RoadPoint point = path.pointAtDistance(milestone);
+                if (point == null) {
+                    continue;
+                }
+                int sideOffset = path.sideOffset(milestone);
+                int cx = path.xWithOffset(point, sideOffset);
+                int cz = path.zWithOffset(point, sideOffset);
+                int y = point.y;
+                addCuboid(ops, blocks, cx - 4, y + 1, cz - 4, cx + 4, y + 10, cz + 4, air, true);
+                addCuboid(ops, blocks, cx - 3, Math.max(FOUNDATION_MIN_Y, y - 3), cz - 3, cx + 3, y - 1, cz + 3, stone, false);
+                addCuboid(ops, blocks, cx - 3, y, cz - 3, cx + 3, y, cz + 3, stone, false);
+                addCuboid(ops, blocks, cx - 2, y, cz - 2, cx + 2, y, cz + 2, mossy, false);
+                addConnector(ops, path, blocks, point, sideOffset, stone, accent);
+                addWalls(ops, blocks, path, sideOffset, cx, y, cz, stone, mossy, glowstone);
+                addCuboid(ops, blocks, cx - 2, y + 5, cz - 2, cx + 2, y + 5, cz + 2, slab, false);
+                addCrenels(ops, blocks, cx, y + 6, cz, stone);
+                addCuboid(ops, blocks, cx, y + 6, cz, cx, y + 9, cz, fence, false);
+                addCuboid(ops, blocks, cx + (path.zAxis ? Integer.signum(sideOffset) : 0), y + 8, cz + (path.zAxis ? 0 : Integer.signum(sideOffset)), cx + (path.zAxis ? Integer.signum(sideOffset) * 2 : 0), y + 9, cz + (path.zAxis ? 0 : Integer.signum(sideOffset) * 2), accent, false);
+                addCuboid(ops, blocks, cx, y + 4, cz, cx, y + 4, cz, seaLantern, false);
+            }
+            return ops;
+        }
+
+        private static void addConnector(
+            List<BlockOp> ops,
+            RoadPath path,
+            BlockAccess blocks,
+            RoadPoint point,
+            int sideOffset,
+            Object stone,
+            Object accent
+        ) {
+            int step = sideOffset > 0 ? 1 : -1;
+            for (int offset = step * (ROAD_HALF_WIDTH + 1); Math.abs(offset) < Math.abs(sideOffset) - 3; offset += step) {
+                int x = path.xWithOffset(point, offset);
+                int z = path.zWithOffset(point, offset);
+                ops.add(new BlockOp(blocks, x, point.y, z, Math.abs(offset) % 3 == 0 ? accent : stone, false));
+            }
+        }
+
+        private static void addWalls(
+            List<BlockOp> ops,
+            BlockAccess blocks,
+            RoadPath path,
+            int sideOffset,
+            int cx,
+            int y,
+            int cz,
+            Object stone,
+            Object mossy,
+            Object glowstone
+        ) {
+            for (int yy = y + 1; yy <= y + 4; yy++) {
+                for (int dx = -3; dx <= 3; dx++) {
+                    for (int dz = -3; dz <= 3; dz++) {
+                        boolean border = Math.abs(dx) == 3 || Math.abs(dz) == 3;
+                        if (!border) {
+                            continue;
+                        }
+                        if (isDoor(path, sideOffset, dx, dz) && yy <= y + 2) {
+                            continue;
+                        }
+                        Object state = (yy == y + 3 && (Math.abs(dx) + Math.abs(dz)) % 4 == 0) ? glowstone : ((dx + dz + yy) % 5 == 0 ? mossy : stone);
+                        ops.add(new BlockOp(blocks, cx + dx, yy, cz + dz, state, false));
+                    }
+                }
+            }
+        }
+
+        private static boolean isDoor(RoadPath path, int sideOffset, int dx, int dz) {
+            if (path.zAxis) {
+                return dz == 0 && dx == (sideOffset > 0 ? -3 : 3);
+            }
+            return dx == 0 && dz == (sideOffset > 0 ? -3 : 3);
+        }
+
+        private static void addCrenels(List<BlockOp> ops, BlockAccess blocks, int cx, int y, int cz, Object stone) {
+            for (int dx = -3; dx <= 3; dx++) {
+                for (int dz = -3; dz <= 3; dz++) {
+                    boolean corner = Math.abs(dx) == 3 && Math.abs(dz) == 3;
+                    boolean edge = (Math.abs(dx) == 3 || Math.abs(dz) == 3) && ((dx + dz) & 1) == 0;
+                    if (corner || edge) {
+                        ops.add(new BlockOp(blocks, cx + dx, y, cz + dz, stone, false));
+                    }
+                }
+            }
+        }
+
+        private static void addCuboid(
+            List<BlockOp> ops,
+            BlockAccess blocks,
+            int x1,
+            int y1,
+            int z1,
+            int x2,
+            int y2,
+            int z2,
+            Object state,
+            boolean skipIfAir
+        ) {
+            int minX = Math.min(x1, x2);
+            int maxX = Math.max(x1, x2);
+            int minY = Math.max(1, Math.min(y1, y2));
+            int maxY = Math.min(255, Math.max(y1, y2));
+            int minZ = Math.min(z1, z2);
+            int maxZ = Math.max(z1, z2);
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int x = minX; x <= maxX; x++) {
+                        ops.add(new BlockOp(blocks, x, y, z, state, skipIfAir));
+                    }
+                }
+            }
+        }
+    }
+
+    private static final class BlockOp {
+        private final BlockAccess blocks;
+        private final int x;
+        private final int y;
+        private final int z;
+        private final Object state;
+        private final boolean skipIfAir;
+
+        private BlockOp(BlockAccess blocks, int x, int y, int z, Object state, boolean skipIfAir) {
+            this.blocks = blocks;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.state = state;
+            this.skipIfAir = skipIfAir;
+        }
+
+        private void apply(Object world) {
+            blocks.set(world, x, y, z, state, skipIfAir);
+        }
+    }
+
+    private static final class Palette {
+        final Object foundation;
+        final Object edge;
+        final Object surface;
+        final Object marker;
+        final Object light;
+        private final Object[] edgeStairs;
+        private final Object[] surfaceStairs;
+
+        private Palette(
+            Object foundation,
+            Object edge,
+            Object surface,
+            Object marker,
+            Object light,
+            Object[] edgeStairs,
+            Object[] surfaceStairs
+        ) {
+            this.foundation = foundation;
+            this.edge = edge;
+            this.surface = surface;
+            this.marker = marker;
+            this.light = light;
+            this.edgeStairs = edgeStairs;
+            this.surfaceStairs = surfaceStairs;
+        }
+
+        Object edgeStair(int meta) {
+            return edgeStairs[Math.max(0, Math.min(edgeStairs.length - 1, meta))];
+        }
+
+        Object surfaceStair(int meta) {
+            return surfaceStairs[Math.max(0, Math.min(surfaceStairs.length - 1, meta))];
         }
     }
 
@@ -539,7 +1195,13 @@ final class SpawnRoadBuilderService {
         private final Method getBlockFromName;
         private final Method getStateFromMeta;
         private final Method isAirBlock;
+        private final Method getBlockState;
+        private final Method stateGetBlock;
+        private final Method blockGetRegistryName;
+        private final Method worldGetBiome;
+        private final Method biomeGetRegistryName;
         private final List<BlockState> states = new ArrayList<BlockState>();
+        private final Map<String, Palette> palettes = new HashMap<String, Palette>();
         private Method setBlockState;
         private int lastChunkX = Integer.MIN_VALUE;
         private int lastChunkZ = Integer.MIN_VALUE;
@@ -553,9 +1215,20 @@ final class SpawnRoadBuilderService {
                 getStateFromMeta = findAnyMethod(blockType, new String[] { "getStateFromMeta", "func_176203_a" }, Integer.TYPE);
                 Class<?> worldType = Class.forName("net.minecraft.world.World");
                 isAirBlock = findAnyMethod(worldType, new String[] { "isAirBlock", "func_175623_d" }, blockPosType);
+                getBlockState = findAnyMethod(worldType, new String[] { "getBlockState", "func_180495_p" }, blockPosType);
+                Class<?> blockStateType = Class.forName("net.minecraft.block.state.IBlockState");
+                stateGetBlock = findAnyMethod(blockStateType, new String[] { "getBlock", "func_177230_c" });
+                blockGetRegistryName = findAnyMethod(blockType, new String[] { "getRegistryName" });
+                worldGetBiome = findAnyMethodOrNull(worldType, new String[] { "getBiome", "func_180494_b" }, blockPosType);
+                Class<?> biomeType = Class.forName("net.minecraft.world.biome.Biome");
+                biomeGetRegistryName = findAnyMethodOrNull(biomeType, new String[] { "getRegistryName" });
             } catch (ReflectiveOperationException exception) {
                 throw new IllegalStateException("Cannot initialize block reflection.", exception);
             }
+        }
+
+        Object air() {
+            return state("minecraft:air", 0);
         }
 
         Object state(String name, int meta) {
@@ -577,9 +1250,158 @@ final class SpawnRoadBuilderService {
             }
         }
 
+        Palette palette(String biomeName, int colorMeta) {
+            String normalized = biomeName == null ? "" : biomeName.toLowerCase(Locale.ROOT);
+            String type = "default";
+            if (normalized.contains("desert") || normalized.contains("savanna") || normalized.contains("mesa")) {
+                type = "sand";
+            } else if (normalized.contains("ice") || normalized.contains("snow") || normalized.contains("frozen") || normalized.contains("cold")) {
+                type = "snow";
+            } else if (normalized.contains("forest") || normalized.contains("jungle") || normalized.contains("swamp")) {
+                type = "green";
+            }
+            String key = type + ":" + colorMeta;
+            Palette cached = palettes.get(key);
+            if (cached != null) {
+                return cached;
+            }
+
+            Palette created;
+            if ("sand".equals(type)) {
+                created = new Palette(
+                    state("minecraft:sandstone", 0),
+                    state("minecraft:sandstone", 0),
+                    state("minecraft:sandstone", 2),
+                    state("minecraft:stained_hardened_clay", colorMeta),
+                    state("minecraft:sea_lantern", 0),
+                    stairStates("minecraft:sandstone_stairs"),
+                    stairStates("minecraft:sandstone_stairs")
+                );
+            } else if ("snow".equals(type)) {
+                created = new Palette(
+                    state("minecraft:dirt", 0),
+                    state("minecraft:stonebrick", 0),
+                    state("minecraft:quartz_block", 0),
+                    state("minecraft:packed_ice", 0),
+                    state("minecraft:sea_lantern", 0),
+                    stairStates("minecraft:stone_brick_stairs"),
+                    stairStates("minecraft:quartz_stairs")
+                );
+            } else if ("green".equals(type)) {
+                created = new Palette(
+                    state("minecraft:dirt", 0),
+                    state("minecraft:stonebrick", 1),
+                    state("minecraft:quartz_block", 0),
+                    state("minecraft:stained_hardened_clay", Math.max(0, Math.min(15, colorMeta))),
+                    state("minecraft:sea_lantern", 0),
+                    stairStates("minecraft:stone_brick_stairs"),
+                    stairStates("minecraft:quartz_stairs")
+                );
+            } else {
+                created = new Palette(
+                    state("minecraft:dirt", 0),
+                    state("minecraft:stonebrick", 0),
+                    state("minecraft:quartz_block", 0),
+                    state("minecraft:stained_hardened_clay", colorMeta),
+                    state("minecraft:sea_lantern", 0),
+                    stairStates("minecraft:stone_brick_stairs"),
+                    stairStates("minecraft:quartz_stairs")
+                );
+            }
+            palettes.put(key, created);
+            return created;
+        }
+
+        private Object[] stairStates(String blockName) {
+            return new Object[] {
+                state(blockName, 0),
+                state(blockName, 1),
+                state(blockName, 2),
+                state(blockName, 3)
+            };
+        }
+
+        int terrainHeight(Object world, int x, int z, int fallbackY) {
+            if (world == null) {
+                return fallbackY - 1;
+            }
+            int chunkX = x >> 4;
+            int chunkZ = z >> 4;
+            if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
+                if (!TeleportSupport.prepareDestinationChunk(world, x + 0.5D, z + 0.5D)) {
+                    return fallbackY - 1;
+                }
+                lastChunkX = chunkX;
+                lastChunkZ = chunkZ;
+            }
+            int startY = Math.min(255, fallbackY + MAX_TERRAIN_DELTA + CLEAR_ABOVE_HEIGHT);
+            int minY = Math.max(FOUNDATION_MIN_Y, fallbackY - MAX_TERRAIN_DELTA - FOUNDATION_DEPTH);
+            for (int y = startY; y >= minY; y--) {
+                Object position = blockPos(x, y, z);
+                if (Boolean.TRUE.equals(invoke(isAirBlock, world, position))) {
+                    continue;
+                }
+                String blockName = blockName(world, position);
+                if (!isIgnoredTerrainBlock(blockName)) {
+                    return y;
+                }
+            }
+            return fallbackY - 1;
+        }
+
+        String biomeName(Object world, int x, int z) {
+            if (world == null || worldGetBiome == null) {
+                return "";
+            }
+            try {
+                if (!TeleportSupport.prepareDestinationChunk(world, x + 0.5D, z + 0.5D)) {
+                    return "";
+                }
+                Object biome = worldGetBiome.invoke(world, blockPos(x, 64, z));
+                if (biome == null) {
+                    return "";
+                }
+                if (biomeGetRegistryName != null) {
+                    Object name = biomeGetRegistryName.invoke(biome);
+                    if (name != null) {
+                        return name.toString();
+                    }
+                }
+                return biome.toString();
+            } catch (ReflectiveOperationException exception) {
+                return "";
+            }
+        }
+
+        private String blockName(Object world, Object position) {
+            Object state = invoke(getBlockState, world, position);
+            Object block = invoke(stateGetBlock, state);
+            Object name = invoke(blockGetRegistryName, block);
+            return name == null ? String.valueOf(block).toLowerCase(Locale.ROOT) : name.toString().toLowerCase(Locale.ROOT);
+        }
+
+        private static boolean isIgnoredTerrainBlock(String blockName) {
+            return blockName.contains("air")
+                || blockName.contains("leaves")
+                || blockName.contains("log")
+                || blockName.contains("sapling")
+                || blockName.contains("vine")
+                || blockName.contains("tallgrass")
+                || blockName.contains("double_plant")
+                || blockName.contains("yellow_flower")
+                || blockName.contains("red_flower")
+                || blockName.contains("snow_layer")
+                || blockName.contains("deadbush")
+                || blockName.contains("reeds")
+                || blockName.contains("cactus");
+        }
+
         void set(Object world, int x, int y, int z, Object state, boolean skipIfAir) {
             if (world == null) {
                 throw new IllegalStateException("World is not loaded.");
+            }
+            if (y < 0 || y > 255) {
+                return;
             }
             int chunkX = x >> 4;
             int chunkZ = z >> 4;
@@ -680,6 +1502,14 @@ final class SpawnRoadBuilderService {
             current = current.getSuperclass();
         }
         throw new NoSuchMethodException(type.getName() + "." + String.join("/", names));
+    }
+
+    private static Method findAnyMethodOrNull(Class<?> type, String[] names, Class<?>... parameters) {
+        try {
+            return findAnyMethod(type, names, parameters);
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
     }
 
     private static boolean matches(Method method, String[] names, Class<?>... parameters) {

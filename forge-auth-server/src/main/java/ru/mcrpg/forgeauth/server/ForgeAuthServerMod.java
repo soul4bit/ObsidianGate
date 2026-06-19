@@ -52,6 +52,7 @@ public final class ForgeAuthServerMod {
     private static final TreeFellingService TREE_FELLING = new TreeFellingService(LOGGER, REGIONS, REGION_AUDIT);
     private static final RegionProtectionEvents REGION_EVENTS = new RegionProtectionEvents(REGIONS, REGION_AUDIT);
     private static final SpawnRoadBuilderService SPAWN_ROADS = new SpawnRoadBuilderService(LOGGER);
+    private static final SpawnRoadMilestoneService SPAWN_ROAD_MILESTONES = new SpawnRoadMilestoneService();
 
     static ForgeAuthServerLifecycle getLifecycle() {
         return LIFECYCLE;
@@ -105,6 +106,7 @@ public final class ForgeAuthServerMod {
         MinecraftForge.EVENT_BUS.register(REGION_EVENTS);
         FMLCommonHandler.instance().bus().register(REGION_EVENTS);
         FMLCommonHandler.instance().bus().register(SPAWN_ROADS);
+        FMLCommonHandler.instance().bus().register(SPAWN_ROAD_MILESTONES);
 
         AuthServerConfig config = AuthServerConfig.fromSystem();
         if (config.isReady()) {

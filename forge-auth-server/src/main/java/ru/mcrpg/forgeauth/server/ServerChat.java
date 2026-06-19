@@ -60,6 +60,19 @@ final class ServerChat {
         send(sender, tone.color + statusText(subject, detail));
     }
 
+    static void actionBar(Object sender, String message) {
+        if (sender == null) {
+            return;
+        }
+        try {
+            Object textComponent = component(message);
+            if (!callIfPresent(sender, new Object[] { textComponent, Boolean.TRUE }, "sendStatusMessage", "func_146105_b")) {
+                sendComponent(sender, textComponent);
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+    }
+
     static void countdown(Object sender, String subject, int seconds) {
         warning(sender, countdownText(subject, seconds));
     }
@@ -276,6 +289,29 @@ final class ServerChat {
             type = type.getSuperclass();
         }
         return null;
+    }
+
+    private static boolean callIfPresent(Object target, Object[] args, String... methodNames) {
+        if (target == null) {
+            return false;
+        }
+        Object[] safeArgs = args == null ? new Object[0] : args;
+        Class<?> type = target.getClass();
+        while (type != null) {
+            for (Method method : type.getDeclaredMethods()) {
+                if (methodMatches(method, safeArgs, methodNames)) {
+                    try {
+                        method.setAccessible(true);
+                        method.invoke(target, safeArgs);
+                        return true;
+                    } catch (ReflectiveOperationException exception) {
+                        throw new IllegalStateException("РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹Р·РІР°С‚СЊ " + method.getName() + ".", exception);
+                    }
+                }
+            }
+            type = type.getSuperclass();
+        }
+        return false;
     }
 
     private static boolean methodMatches(Method method, Object[] args, String... methodNames) {
