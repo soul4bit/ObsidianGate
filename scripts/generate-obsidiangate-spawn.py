@@ -121,6 +121,159 @@ def fill(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int, block_id: int, me
                 setb(x, y, z, block_id, meta)
 
 
+def aged_wall_block(x: int, y: int, z: int) -> None:
+    palette = (
+        (STONE_BRICK, 0, 68),
+        (MOSSY_COBBLE, 0, 10),
+        (COBBLE, 0, 8),
+        (NETHER_BRICK, 0, 8),
+        (QUARTZ, 0, 6),
+    )
+    pick = rng.randrange(sum(weight for _, _, weight in palette))
+    total = 0
+    for block_id, meta, weight in palette:
+        total += weight
+        if pick < total:
+            setb(x, y, z, block_id, meta)
+            return
+
+
+def fill_aged(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> None:
+    xa, xb = sorted((x1, x2))
+    ya, yb = sorted((y1, y2))
+    za, zb = sorted((z1, z2))
+    for y in range(max(0, ya), min(H - 1, yb) + 1):
+        for z in range(max(0, za), min(L - 1, zb) + 1):
+            for x in range(max(0, xa), min(W - 1, xb) + 1):
+                aged_wall_block(x, y, z)
+
+
+def battlement_rect(x1: int, z1: int, x2: int, z2: int, y: int) -> None:
+    for x in range(x1, x2 + 1):
+        if (x - x1) % 4 != 1:
+            fill_aged(x, y, z1, x, y + 2, z1)
+            fill_aged(x, y, z2, x, y + 2, z2)
+    for z in range(z1, z2 + 1):
+        if (z - z1) % 4 != 1:
+            fill_aged(x1, y, z, x1, y + 2, z)
+            fill_aged(x2, y, z, x2, y + 2, z)
+
+
+def castle_tower(x1: int, z1: int, x2: int, z2: int, height: int, accent: int, accent_meta: int = 0) -> None:
+    fill_aged(x1, SURFACE_Y + 1, z1, x2, SURFACE_Y + height, z2)
+    fill(x1 + 3, SURFACE_Y + 2, z1 + 3, x2 - 3, SURFACE_Y + height - 2, z2 - 3, AIR)
+    fill(x1 + 3, SURFACE_Y, z1 + 3, x2 - 3, SURFACE_Y, z2 - 3, QUARTZ)
+    fill(x1 + 3, SURFACE_Y + 8, z1 + 3, x2 - 3, SURFACE_Y + 8, z2 - 3, PLANKS)
+    fill(x1 + 3, SURFACE_Y + 16, z1 + 3, x2 - 3, SURFACE_Y + 16, z2 - 3, PLANKS)
+    fill(x1 + 1, SURFACE_Y + 1, z1 + 1, x1 + 2, SURFACE_Y + height, z1 + 2, accent, accent_meta)
+    fill(x2 - 2, SURFACE_Y + 1, z1 + 1, x2 - 1, SURFACE_Y + height, z1 + 2, accent, accent_meta)
+    fill(x1 + 1, SURFACE_Y + 1, z2 - 2, x1 + 2, SURFACE_Y + height, z2 - 1, accent, accent_meta)
+    fill(x2 - 2, SURFACE_Y + 1, z2 - 2, x2 - 1, SURFACE_Y + height, z2 - 1, accent, accent_meta)
+
+    mx = (x1 + x2) // 2
+    mz = (z1 + z2) // 2
+    for yy in (SURFACE_Y + 6, SURFACE_Y + 7, SURFACE_Y + 14, SURFACE_Y + 15):
+        for dx in (-1, 0, 1):
+            setb(mx + dx, yy, z1, AIR)
+            setb(mx + dx, yy, z2, AIR)
+            setb(mx + dx, yy, z1, GLASS_PANE)
+            setb(mx + dx, yy, z2, GLASS_PANE)
+        for dz in (-1, 0, 1):
+            setb(x1, yy, mz + dz, AIR)
+            setb(x2, yy, mz + dz, AIR)
+            setb(x1, yy, mz + dz, GLASS_PANE)
+            setb(x2, yy, mz + dz, GLASS_PANE)
+
+    fill_aged(x1 - 1, SURFACE_Y + height + 1, z1 - 1, x2 + 1, SURFACE_Y + height + 1, z2 + 1)
+    battlement_rect(x1 - 1, z1 - 1, x2 + 1, z2 + 1, SURFACE_Y + height + 2)
+    setb(mx, SURFACE_Y + height + 5, mz, SEA_LANTERN)
+
+
+def castle_wall_horizontal(z1: int, z2: int) -> None:
+    fill_aged(18, SURFACE_Y + 1, z1, 78, SURFACE_Y + 12, z2)
+    fill_aged(18, SURFACE_Y + 13, z1, 78, SURFACE_Y + 13, z2)
+    for x in range(18, 79):
+        if x % 4 in (0, 1):
+            fill_aged(x, SURFACE_Y + 14, z1, x, SURFACE_Y + 16, z1)
+            fill_aged(x, SURFACE_Y + 14, z2, x, SURFACE_Y + 16, z2)
+
+
+def castle_wall_vertical(x1: int, x2: int) -> None:
+    fill_aged(x1, SURFACE_Y + 1, 18, x2, SURFACE_Y + 12, 78)
+    fill_aged(x1, SURFACE_Y + 13, 18, x2, SURFACE_Y + 13, 78)
+    for z in range(18, 79):
+        if z % 4 in (0, 1):
+            fill_aged(x1, SURFACE_Y + 14, z, x1, SURFACE_Y + 16, z)
+            fill_aged(x2, SURFACE_Y + 14, z, x2, SURFACE_Y + 16, z)
+
+
+def clear_gate_arch(z1: int, z2: int) -> None:
+    for z in range(z1, z2 + 1):
+        for y in range(SURFACE_Y + 1, SURFACE_Y + 11):
+            half = 5 if y < SURFACE_Y + 8 else max(1, 5 - (y - (SURFACE_Y + 7)))
+            for x in range(CENTER_X - half, CENTER_X + half + 1):
+                setb(x, y, z, AIR)
+
+
+def castle_gatehouse() -> None:
+    fill_aged(CENTER_X - 15, SURFACE_Y + 1, 76, CENTER_X + 15, SURFACE_Y + 20, 93)
+    fill(CENTER_X - 10, SURFACE_Y + 2, 80, CENTER_X + 10, SURFACE_Y + 18, 89, AIR)
+    fill_aged(CENTER_X - 15, SURFACE_Y + 1, 76, CENTER_X - 7, SURFACE_Y + 22, 93)
+    fill_aged(CENTER_X + 7, SURFACE_Y + 1, 76, CENTER_X + 15, SURFACE_Y + 22, 93)
+    clear_gate_arch(76, 96)
+    for x in range(CENTER_X - 5, CENTER_X + 6):
+        if x % 2 == 0:
+            fill(x, SURFACE_Y + 8, 83, x, SURFACE_Y + 14, 83, IRON_BARS)
+    fill_aged(CENTER_X - 16, SURFACE_Y + 21, 75, CENTER_X + 16, SURFACE_Y + 21, 94)
+    battlement_rect(CENTER_X - 16, 75, CENTER_X + 16, 94, SURFACE_Y + 22)
+    fill(CENTER_X - 8, SURFACE_Y, 84, CENTER_X + 8, SURFACE_Y, 96, PLANKS)
+    for x in (CENTER_X - 9, CENTER_X + 9):
+        for z in range(84, 97, 4):
+            fill(x, SURFACE_Y + 1, z, x, SURFACE_Y + 3, z, FENCE)
+            setb(x, SURFACE_Y + 4, z, GLOWSTONE)
+
+
+def castle_keep() -> None:
+    fill_aged(CENTER_X - 24, SURFACE_Y + 1, CENTER_Z - 19, CENTER_X - 10, SURFACE_Y + 12, CENTER_Z - 5)
+    fill(CENTER_X - 21, SURFACE_Y + 2, CENTER_Z - 16, CENTER_X - 13, SURFACE_Y + 10, CENTER_Z - 8, AIR)
+    fill_aged(CENTER_X + 10, SURFACE_Y + 1, CENTER_Z - 19, CENTER_X + 24, SURFACE_Y + 12, CENTER_Z - 5)
+    fill(CENTER_X + 13, SURFACE_Y + 2, CENTER_Z - 16, CENTER_X + 21, SURFACE_Y + 10, CENTER_Z - 8, AIR)
+    fill_aged(CENTER_X - 25, SURFACE_Y + 13, CENTER_Z - 20, CENTER_X - 9, SURFACE_Y + 13, CENTER_Z - 4)
+    fill_aged(CENTER_X + 9, SURFACE_Y + 13, CENTER_Z - 20, CENTER_X + 25, SURFACE_Y + 13, CENTER_Z - 4)
+    battlement_rect(CENTER_X - 25, CENTER_Z - 20, CENTER_X - 9, CENTER_Z - 4, SURFACE_Y + 14)
+    battlement_rect(CENTER_X + 9, CENTER_Z - 20, CENTER_X + 25, CENTER_Z - 4, SURFACE_Y + 14)
+    fill(CENTER_X - 20, SURFACE_Y + 1, CENTER_Z - 18, CENTER_X - 14, SURFACE_Y + 3, CENTER_Z - 18, BOOKSHELF)
+    setb(CENTER_X - 17, SURFACE_Y + 2, CENTER_Z - 13, ENCHANTING_TABLE)
+    fill(CENTER_X + 14, SURFACE_Y + 1, CENTER_Z - 18, CENTER_X + 20, SURFACE_Y + 3, CENTER_Z - 18, IRON_BLOCK)
+    setb(CENTER_X + 17, SURFACE_Y + 2, CENTER_Z - 13, REDSTONE_BLOCK)
+
+
+def castle_tower_themes() -> None:
+    # Northwest: Thaumcraft-inspired archive.
+    fill(11, SURFACE_Y, 11, 17, SURFACE_Y, 17, LAPIS)
+    fill(12, SURFACE_Y + 1, 12, 16, SURFACE_Y + 3, 12, BOOKSHELF)
+    crystal_cluster(14, 16, 10)
+    add_sign(16, SURFACE_Y + 1, 21, ("THAUMCRAFT", "Archive", "Arcane", "Tower"), 8)
+
+    # Northeast: tech forge tower.
+    fill(80, SURFACE_Y, 11, 86, SURFACE_Y, 17, IRON_BLOCK)
+    fill(81, SURFACE_Y + 1, 12, 85, SURFACE_Y + 2, 16, DISPENSER, 2)
+    setb(83, SURFACE_Y + 3, 14, REDSTONE_BLOCK)
+    add_sign(76, SURFACE_Y + 1, 21, ("TECH", "Forge", "Power", "Tower"), 8)
+
+    # Southwest: Botania-style green tower.
+    fill(11, SURFACE_Y, 80, 17, SURFACE_Y, 86, MOSSY_COBBLE)
+    fill(13, SURFACE_Y, 82, 15, SURFACE_Y, 84, WATER)
+    tree(14, 84)
+    add_sign(16, SURFACE_Y + 1, 76, ("BOTANIA", "Grove", "Mana", "Tower"), 0)
+
+    # Southeast: DivineRPG rift tower.
+    fill(80, SURFACE_Y, 80, 86, SURFACE_Y, 86, NETHER_BRICK)
+    crystal_cluster(83, 83, 2)
+    fill(81, SURFACE_Y + 1, 81, 85, SURFACE_Y + 1, 85, GOLD_BLOCK)
+    add_sign(75, SURFACE_Y + 1, 76, ("DIVINERPG", "Rift", "Beyond", "Tower"), 0)
+
+
 def disc(cx: int, zc: int, radius: int, y: int, block_id: int, meta: int = 0) -> None:
     r2 = radius * radius
     for z in range(zc - radius, zc + radius + 1):
@@ -301,28 +454,42 @@ def build_border() -> None:
 def build_scene() -> None:
     fill(0, 0, 0, W - 1, 0, L - 1, DIRT)
     fill(0, SURFACE_Y, 0, W - 1, SURFACE_Y, L - 1, GRASS)
-    fill(CENTER_X - 45, SURFACE_Y, CENTER_Z - 45, CENTER_X + 45, SURFACE_Y, CENTER_Z + 45, STONE_BRICK)
-    fill(CENTER_X - 42, SURFACE_Y, CENTER_Z - 42, CENTER_X + 42, SURFACE_Y, CENTER_Z + 42, GRASS)
+    fill(3, SURFACE_Y, 3, W - 4, SURFACE_Y, L - 4, WATER)
+    fill(8, SURFACE_Y, 8, W - 9, SURFACE_Y, L - 9, STONE_BRICK)
+    fill(15, SURFACE_Y, 15, W - 16, SURFACE_Y, L - 16, GRASS)
 
-    line_road_x(4, L - 5, SURFACE_Y, CENTER_X)
-    line_road_z(4, W - 5, SURFACE_Y, CENTER_Z)
-    disc(CENTER_X, CENTER_Z, 18, SURFACE_Y, QUARTZ)
-    ring(CENTER_X, CENTER_Z, 12, 14, SURFACE_Y, OBSIDIAN)
-    ring(CENTER_X, CENTER_Z, 16, 17, SURFACE_Y, SEA_LANTERN)
+    line_road_x(18, L - 6, SURFACE_Y, CENTER_X)
+    line_road_z(18, W - 19, SURFACE_Y, CENTER_Z)
+    fill(CENTER_X - 7, SURFACE_Y, 4, CENTER_X + 7, SURFACE_Y, 18, PLANKS)
+    fill(CENTER_X - 8, SURFACE_Y + 1, 4, CENTER_X - 8, SURFACE_Y + 2, 18, FENCE)
+    fill(CENTER_X + 8, SURFACE_Y + 1, 4, CENTER_X + 8, SURFACE_Y + 2, 18, FENCE)
+    fill(CENTER_X - 7, SURFACE_Y, L - 18, CENTER_X + 7, SURFACE_Y, L - 4, PLANKS)
+    fill(4, SURFACE_Y, CENTER_Z - 7, 18, SURFACE_Y, CENTER_Z + 7, PLANKS)
+    fill(W - 19, SURFACE_Y, CENTER_Z - 7, W - 5, SURFACE_Y, CENTER_Z + 7, PLANKS)
+
+    disc(CENTER_X, CENTER_Z, 17, SURFACE_Y, QUARTZ)
+    ring(CENTER_X, CENTER_Z, 11, 13, SURFACE_Y, OBSIDIAN)
+    ring(CENTER_X, CENTER_Z, 15, 16, SURFACE_Y, SEA_LANTERN)
     disc(CENTER_X, CENTER_Z, 6, SURFACE_Y, STAINED_CLAY, 10)
     fill(CENTER_X - 2, SURFACE_Y, CENTER_Z - 2, CENTER_X + 2, SURFACE_Y, CENTER_Z + 2, SEA_LANTERN)
 
-    build_border()
-    build_thaumcraft_court()
-    build_tech_lab()
-    build_divinerpg_altar()
-    build_botania_grove()
+    castle_wall_horizontal(11, 14)
+    castle_wall_horizontal(83, 86)
+    castle_wall_vertical(11, 14)
+    castle_wall_vertical(83, 86)
+    castle_tower(6, 6, 21, 21, 24, LAPIS)
+    castle_tower(76, 6, 91, 21, 24, IRON_BLOCK)
+    castle_tower(6, 76, 21, 91, 24, MOSSY_COBBLE)
+    castle_tower(76, 76, 91, 91, 24, NETHER_BRICK)
+    castle_gatehouse()
+    castle_keep()
+    castle_tower_themes()
     obsidian_gate()
 
     for x, z in ((CENTER_X - 17, CENTER_Z - 17), (CENTER_X + 17, CENTER_Z - 17), (CENTER_X - 17, CENTER_Z + 17), (CENTER_X + 17, CENTER_Z + 17)):
         lamp(x, z)
 
-    add_sign(CENTER_X - 5, SURFACE_Y + 1, CENTER_Z - 8, ("OBSIDIAN", "GATE", "Season Spawn", "Paste Center"), 8)
+    add_sign(CENTER_X - 5, SURFACE_Y + 1, CENTER_Z - 8, ("OBSIDIAN", "GATE", "Castle Spawn", "Paste Center"), 8)
     add_sign(CENTER_X - 6, SURFACE_Y + 1, CENTER_Z + 9, ("No blast", "block damage", "WorldEdit", "schematic"), 0)
 
 
