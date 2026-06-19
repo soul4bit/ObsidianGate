@@ -170,6 +170,61 @@ class RegionProtectionServiceTest {
     }
 
     @Test
+    void managedRoadRegionsAllowOnlyMembersToBuildWhilePublicFlagsStillWork() throws Exception {
+        Path path = tempDirectory.resolve("regions.properties");
+        Files.write(
+            path,
+            (
+                "region.road_north.ownerId=server\n"
+                    + "region.road_north.ownerName=server\n"
+                    + "region.road_north.dimension=0\n"
+                    + "region.road_north.minX=0\n"
+                    + "region.road_north.minY=0\n"
+                    + "region.road_north.minZ=0\n"
+                    + "region.road_north.maxX=10\n"
+                    + "region.road_north.maxY=255\n"
+                    + "region.road_north.maxZ=10\n"
+                    + "region.road_north.members=admin\n"
+                    + "region.road_north.flag.pvp=true\n"
+                    + "region.road_north.flag.mob-spawn=true\n"
+            ).getBytes(StandardCharsets.ISO_8859_1)
+        );
+        RegionProtectionService service = service(path);
+
+        assertTrue(service.canBuild("admin-id", "admin", false, 0, 1, 64, 1));
+        assertFalse(service.canBuild("operator-id", "Operator", true, 0, 1, 64, 1));
+        assertTrue(service.allows(
+            RegionProtectionService.RegionFlag.PVP,
+            "stranger",
+            "Stranger",
+            false,
+            0,
+            1,
+            64,
+            1
+        ));
+        assertFalse(service.allows(
+            RegionProtectionService.RegionFlag.LIQUIDS,
+            "operator-id",
+            "Operator",
+            true,
+            0,
+            1,
+            64,
+            1
+        ));
+    }
+
+    @Test
+    void regularRegionsStillAllowOperatorBypass() {
+        RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
+        select(service, "owner", 0, 0, 0, 5, 5);
+        assertTrue(service.claim("home", "owner", "Owner", 3).success);
+
+        assertTrue(service.canBuild("operator-id", "Operator", true, 0, 1, 64, 1));
+    }
+
+    @Test
     void vipLimitAllowsFiveRegions() {
         RegionProtectionService service = service(tempDirectory.resolve("regions.properties"));
         for (int index = 0; index < 5; index++) {

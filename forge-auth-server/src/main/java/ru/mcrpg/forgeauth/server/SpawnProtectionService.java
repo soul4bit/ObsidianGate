@@ -29,6 +29,7 @@ public final class SpawnProtectionService {
     private static final int MAX_RADIUS = 2048;
     private static final double MIN_REGION_Y = 0.0D;
     private static final double MAX_REGION_Y = 255.0D;
+    private static final String ADMIN_PLAYER_NAME = "admin";
     private static final String HOSTILE_MARKER_CLASS = "net.minecraft.entity.monster.IMob";
     private static final String SUBJECT = "Защита спавна";
     static final String CENTER_MODE_WORLDSPAWN = "worldspawn";
@@ -532,8 +533,14 @@ public final class SpawnProtectionService {
         return readFieldIfPresent(actor, "world", "field_70170_p", "l");
     }
 
-    private boolean canBypass(Object entity, Config snapshot) {
-        if (entity == null || !snapshot.allowOperatorBypass) {
+    boolean canBypass(Object entity, Config snapshot) {
+        if (entity == null) {
+            return false;
+        }
+        if (ADMIN_PLAYER_NAME.equalsIgnoreCase(TeleportSupport.playerName(entity))) {
+            return true;
+        }
+        if (!snapshot.allowOperatorBypass) {
             return false;
         }
         Object result = invokeIfPresent(entity, new Object[] { Integer.valueOf(2), "spawnprotect" }, "canUseCommand", "func_70003_b");

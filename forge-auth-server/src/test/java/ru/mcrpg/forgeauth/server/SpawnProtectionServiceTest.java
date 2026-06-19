@@ -79,6 +79,18 @@ class SpawnProtectionServiceTest {
         assertFalse(service.isProtectedPlayerPosition(new FakePlayerWithWorld(world, 0, 141.0D, 70.0D, 100.0D)));
     }
 
+    @Test
+    void adminBypassesSpawnProtectionWithoutOperatorBypass() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-spawn-protection.properties");
+        SpawnProtectionService service = new SpawnProtectionService(Logger.getLogger("test"), configPath);
+        service.load();
+
+        assertFalse(service.config().allowOperatorBypass);
+        assertTrue(service.canBypass(new FakeNamedPlayer("admin", false), service.config()));
+        assertTrue(service.canBypass(new FakeNamedPlayer("Admin", false), service.config()));
+        assertFalse(service.canBypass(new FakeNamedPlayer("Operator", true), service.config()));
+    }
+
     static final class FakeWorld {
         public final FakeProvider provider;
 
@@ -150,6 +162,24 @@ class SpawnProtectionServiceTest {
             this.posX = x;
             this.posY = y;
             this.posZ = z;
+        }
+    }
+
+    static final class FakeNamedPlayer {
+        private final String name;
+        private final boolean operator;
+
+        FakeNamedPlayer(String name, boolean operator) {
+            this.name = name;
+            this.operator = operator;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public boolean canUseCommand(int level, String command) {
+            return operator;
         }
     }
 

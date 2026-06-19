@@ -22,6 +22,9 @@ import java.util.logging.Logger;
 final class RegionProtectionService {
 
     private static final Path DEFAULT_PATH = Paths.get("obsidiangate", "regions.properties");
+    private static final String SERVER_OWNER_ID = "server";
+    private static final String SPAWN_REGION_NAME = "spawn_core";
+    private static final String ROAD_REGION_PREFIX = "road_";
     static final long MAX_HORIZONTAL_AREA = 65536L;
 
     private final Logger logger;
@@ -343,7 +346,13 @@ final class RegionProtectionService {
 
     synchronized boolean canBuild(String playerId, String playerName, boolean operator, int dimension, int x, int y, int z) {
         Region region = regionAt(dimension, x, y, z);
-        return region == null || operator || region.allows(playerId, playerName);
+        if (region == null) {
+            return true;
+        }
+        if (isManagedServerRegion(region)) {
+            return region.allows(playerId, playerName);
+        }
+        return operator || region.allows(playerId, playerName);
     }
 
     synchronized boolean allows(
@@ -357,7 +366,13 @@ final class RegionProtectionService {
         int z
     ) {
         Region region = regionAt(dimension, x, y, z);
-        return region == null || operator || region.allows(playerId, playerName) || region.flag(flag);
+        if (region == null) {
+            return true;
+        }
+        if (isManagedServerRegion(region)) {
+            return region.allows(playerId, playerName) || region.flag(flag);
+        }
+        return operator || region.allows(playerId, playerName) || region.flag(flag);
     }
 
     synchronized boolean crossesProtectedBoundary(int dimension, int sourceX, int sourceY, int sourceZ, int targetX, int targetY, int targetZ) {
@@ -406,6 +421,11 @@ final class RegionProtectionService {
             return candidate.horizontalArea() < current.horizontalArea();
         }
         return candidate.name.compareTo(current.name) < 0;
+    }
+
+    private static boolean isManagedServerRegion(Region region) {
+        return SERVER_OWNER_ID.equals(region.ownerId)
+            && (SPAWN_REGION_NAME.equals(region.name) || region.name.startsWith(ROAD_REGION_PREFIX));
     }
 
     private Region readRegion(String namespace, String name, Properties properties) {
