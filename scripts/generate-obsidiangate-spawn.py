@@ -215,6 +215,30 @@ def clear_gate_arch(z1: int, z2: int) -> None:
                 setb(x, y, z, AIR)
 
 
+def clear_gate_arch_x(x1: int, x2: int) -> None:
+    for x in range(x1, x2 + 1):
+        for y in range(SURFACE_Y + 1, SURFACE_Y + 11):
+            half = 5 if y < SURFACE_Y + 8 else max(1, 5 - (y - (SURFACE_Y + 7)))
+            for z in range(CENTER_Z - half, CENTER_Z + half + 1):
+                setb(x, y, z, AIR)
+
+
+def castle_north_gatehouse() -> None:
+    fill_aged(CENTER_X - 14, SURFACE_Y + 1, 3, CENTER_X + 14, SURFACE_Y + 17, 20)
+    fill(CENTER_X - 9, SURFACE_Y + 2, 6, CENTER_X + 9, SURFACE_Y + 14, 18, AIR)
+    fill_aged(CENTER_X - 14, SURFACE_Y + 1, 3, CENTER_X - 7, SURFACE_Y + 20, 20)
+    fill_aged(CENTER_X + 7, SURFACE_Y + 1, 3, CENTER_X + 14, SURFACE_Y + 20, 20)
+    clear_gate_arch(0, 21)
+    for x in range(CENTER_X - 5, CENTER_X + 6):
+        if x % 2 == 0:
+            fill(x, SURFACE_Y + 8, 13, x, SURFACE_Y + 14, 13, IRON_BARS)
+    fill_aged(CENTER_X - 15, SURFACE_Y + 18, 2, CENTER_X + 15, SURFACE_Y + 18, 21)
+    battlement_rect(CENTER_X - 15, 2, CENTER_X + 15, 21, SURFACE_Y + 19)
+    for x in (CENTER_X - 10, CENTER_X + 10):
+        fill(x, SURFACE_Y + 18, 5, x, SURFACE_Y + 21, 5, WOOL, 10)
+        setb(x, SURFACE_Y + 22, 5, SEA_LANTERN)
+
+
 def castle_gatehouse() -> None:
     fill_aged(CENTER_X - 15, SURFACE_Y + 1, 76, CENTER_X + 15, SURFACE_Y + 20, 93)
     fill(CENTER_X - 10, SURFACE_Y + 2, 80, CENTER_X + 10, SURFACE_Y + 18, 89, AIR)
@@ -231,6 +255,57 @@ def castle_gatehouse() -> None:
         for z in range(84, 97, 4):
             fill(x, SURFACE_Y + 1, z, x, SURFACE_Y + 3, z, FENCE)
             setb(x, SURFACE_Y + 4, z, GLOWSTONE)
+
+
+def castle_west_gatehouse() -> None:
+    fill_aged(3, SURFACE_Y + 1, CENTER_Z - 14, 20, SURFACE_Y + 17, CENTER_Z + 14)
+    fill(6, SURFACE_Y + 2, CENTER_Z - 9, 18, SURFACE_Y + 14, CENTER_Z + 9, AIR)
+    fill_aged(3, SURFACE_Y + 1, CENTER_Z - 14, 20, SURFACE_Y + 20, CENTER_Z - 7)
+    fill_aged(3, SURFACE_Y + 1, CENTER_Z + 7, 20, SURFACE_Y + 20, CENTER_Z + 14)
+    clear_gate_arch_x(0, 21)
+    for z in range(CENTER_Z - 5, CENTER_Z + 6):
+        if z % 2 == 0:
+            fill(13, SURFACE_Y + 8, z, 13, SURFACE_Y + 14, z, IRON_BARS)
+    fill_aged(2, SURFACE_Y + 18, CENTER_Z - 15, 21, SURFACE_Y + 18, CENTER_Z + 15)
+    battlement_rect(2, CENTER_Z - 15, 21, CENTER_Z + 15, SURFACE_Y + 19)
+    for z in (CENTER_Z - 10, CENTER_Z + 10):
+        fill(5, SURFACE_Y + 18, z, 5, SURFACE_Y + 21, z, WOOL, 5)
+        setb(5, SURFACE_Y + 22, z, SEA_LANTERN)
+
+
+def castle_east_gatehouse() -> None:
+    fill_aged(76, SURFACE_Y + 1, CENTER_Z - 14, 93, SURFACE_Y + 17, CENTER_Z + 14)
+    fill(78, SURFACE_Y + 2, CENTER_Z - 9, 90, SURFACE_Y + 14, CENTER_Z + 9, AIR)
+    fill_aged(76, SURFACE_Y + 1, CENTER_Z - 14, 93, SURFACE_Y + 20, CENTER_Z - 7)
+    fill_aged(76, SURFACE_Y + 1, CENTER_Z + 7, 93, SURFACE_Y + 20, CENTER_Z + 14)
+    clear_gate_arch_x(75, 96)
+    for z in range(CENTER_Z - 5, CENTER_Z + 6):
+        if z % 2 == 0:
+            fill(83, SURFACE_Y + 8, z, 83, SURFACE_Y + 14, z, IRON_BARS)
+    fill_aged(75, SURFACE_Y + 18, CENTER_Z - 15, 94, SURFACE_Y + 18, CENTER_Z + 15)
+    battlement_rect(75, CENTER_Z - 15, 94, CENTER_Z + 15, SURFACE_Y + 19)
+    for z in (CENTER_Z - 10, CENTER_Z + 10):
+        fill(91, SURFACE_Y + 18, z, 91, SURFACE_Y + 21, z, WOOL, 14)
+        setb(91, SURFACE_Y + 22, z, SEA_LANTERN)
+
+
+def build_four_roads() -> None:
+    line_road_x(0, L - 1, SURFACE_Y, CENTER_X)
+    line_road_z(0, W - 1, SURFACE_Y, CENTER_Z)
+
+    # Drawbridge rails over the moat on all four exits.
+    for z in range(0, 19):
+        fill(CENTER_X - 8, SURFACE_Y + 1, z, CENTER_X - 8, SURFACE_Y + 2, z, FENCE)
+        fill(CENTER_X + 8, SURFACE_Y + 1, z, CENTER_X + 8, SURFACE_Y + 2, z, FENCE)
+    for z in range(L - 19, L):
+        fill(CENTER_X - 8, SURFACE_Y + 1, z, CENTER_X - 8, SURFACE_Y + 2, z, FENCE)
+        fill(CENTER_X + 8, SURFACE_Y + 1, z, CENTER_X + 8, SURFACE_Y + 2, z, FENCE)
+    for x in range(0, 19):
+        fill(x, SURFACE_Y + 1, CENTER_Z - 8, x, SURFACE_Y + 2, CENTER_Z - 8, FENCE)
+        fill(x, SURFACE_Y + 1, CENTER_Z + 8, x, SURFACE_Y + 2, CENTER_Z + 8, FENCE)
+    for x in range(W - 19, W):
+        fill(x, SURFACE_Y + 1, CENTER_Z - 8, x, SURFACE_Y + 2, CENTER_Z - 8, FENCE)
+        fill(x, SURFACE_Y + 1, CENTER_Z + 8, x, SURFACE_Y + 2, CENTER_Z + 8, FENCE)
 
 
 def castle_keep() -> None:
@@ -458,20 +533,10 @@ def build_scene() -> None:
     fill(8, SURFACE_Y, 8, W - 9, SURFACE_Y, L - 9, STONE_BRICK)
     fill(15, SURFACE_Y, 15, W - 16, SURFACE_Y, L - 16, GRASS)
 
-    line_road_x(18, L - 6, SURFACE_Y, CENTER_X)
-    line_road_z(18, W - 19, SURFACE_Y, CENTER_Z)
     fill(CENTER_X - 7, SURFACE_Y, 4, CENTER_X + 7, SURFACE_Y, 18, PLANKS)
-    fill(CENTER_X - 8, SURFACE_Y + 1, 4, CENTER_X - 8, SURFACE_Y + 2, 18, FENCE)
-    fill(CENTER_X + 8, SURFACE_Y + 1, 4, CENTER_X + 8, SURFACE_Y + 2, 18, FENCE)
     fill(CENTER_X - 7, SURFACE_Y, L - 18, CENTER_X + 7, SURFACE_Y, L - 4, PLANKS)
     fill(4, SURFACE_Y, CENTER_Z - 7, 18, SURFACE_Y, CENTER_Z + 7, PLANKS)
     fill(W - 19, SURFACE_Y, CENTER_Z - 7, W - 5, SURFACE_Y, CENTER_Z + 7, PLANKS)
-
-    disc(CENTER_X, CENTER_Z, 17, SURFACE_Y, QUARTZ)
-    ring(CENTER_X, CENTER_Z, 11, 13, SURFACE_Y, OBSIDIAN)
-    ring(CENTER_X, CENTER_Z, 15, 16, SURFACE_Y, SEA_LANTERN)
-    disc(CENTER_X, CENTER_Z, 6, SURFACE_Y, STAINED_CLAY, 10)
-    fill(CENTER_X - 2, SURFACE_Y, CENTER_Z - 2, CENTER_X + 2, SURFACE_Y, CENTER_Z + 2, SEA_LANTERN)
 
     castle_wall_horizontal(11, 14)
     castle_wall_horizontal(83, 86)
@@ -481,9 +546,20 @@ def build_scene() -> None:
     castle_tower(76, 6, 91, 21, 24, IRON_BLOCK)
     castle_tower(6, 76, 21, 91, 24, MOSSY_COBBLE)
     castle_tower(76, 76, 91, 91, 24, NETHER_BRICK)
+    castle_north_gatehouse()
     castle_gatehouse()
+    castle_west_gatehouse()
+    castle_east_gatehouse()
     castle_keep()
     castle_tower_themes()
+    build_four_roads()
+
+    disc(CENTER_X, CENTER_Z, 17, SURFACE_Y, QUARTZ)
+    ring(CENTER_X, CENTER_Z, 11, 13, SURFACE_Y, OBSIDIAN)
+    ring(CENTER_X, CENTER_Z, 15, 16, SURFACE_Y, SEA_LANTERN)
+    disc(CENTER_X, CENTER_Z, 6, SURFACE_Y, STAINED_CLAY, 10)
+    fill(CENTER_X - 2, SURFACE_Y, CENTER_Z - 2, CENTER_X + 2, SURFACE_Y, CENTER_Z + 2, SEA_LANTERN)
+
     obsidian_gate()
 
     for x, z in ((CENTER_X - 17, CENTER_Z - 17), (CENTER_X + 17, CENTER_Z - 17), (CENTER_X - 17, CENTER_Z + 17), (CENTER_X + 17, CENTER_Z + 17)):
