@@ -26,6 +26,7 @@ class GlobalExplosionProtectionServiceTest {
         assertTrue(Files.exists(configPath));
         assertTrue(service.config().enabled);
         assertTrue(service.config().preventBlockDamage);
+        assertTrue(service.config().preventFireSpread);
     }
 
     @Test
@@ -41,6 +42,15 @@ class GlobalExplosionProtectionServiceTest {
 
         assertEquals(2, removed);
         assertTrue(event.affectedBlocks.isEmpty());
+    }
+
+    @Test
+    void fireNeighborNotifyIsCancelledGlobally() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-explosion-protection.properties");
+        GlobalExplosionProtectionService service = new GlobalExplosionProtectionService(Logger.getLogger("test"), configPath);
+        service.load();
+
+        assertTrue(service.shouldCancelFireSpread(new FakeNeighborNotifyEvent("minecraft:fire")));
     }
 
     static final class FakeExplosionEvent {
@@ -60,6 +70,59 @@ class GlobalExplosionProtectionServiceTest {
             this.x = x;
             this.y = y;
             this.z = z;
+        }
+    }
+
+    static final class FakeNeighborNotifyEvent {
+        private final FakeWorld world;
+        private final FakeBlockPos pos = new FakeBlockPos(1, 64, 1);
+
+        FakeNeighborNotifyEvent(String blockName) {
+            this.world = new FakeWorld(blockName);
+        }
+
+        public FakeWorld getWorld() {
+            return world;
+        }
+
+        public FakeBlockPos getPos() {
+            return pos;
+        }
+    }
+
+    static final class FakeWorld {
+        private final FakeBlockState state;
+
+        FakeWorld(String blockName) {
+            this.state = new FakeBlockState(blockName);
+        }
+
+        public FakeBlockState getBlockState(FakeBlockPos pos) {
+            return state;
+        }
+    }
+
+    static final class FakeBlockState {
+        private final FakeBlock block;
+
+        FakeBlockState(String blockName) {
+            this.block = new FakeBlock(blockName);
+        }
+
+        public FakeBlock getBlock() {
+            return block;
+        }
+    }
+
+    static final class FakeBlock {
+        private final String registryName;
+
+        FakeBlock(String registryName) {
+            this.registryName = registryName;
+        }
+
+        public String getRegistryName() {
+            return registryName;
         }
     }
 }

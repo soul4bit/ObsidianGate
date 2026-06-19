@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -35,9 +36,10 @@ final class GlobalExplosionProtectionService {
     synchronized void load() {
         config = loadConfig();
         logger.info(String.format(
-            "Global explosion protection loaded. enabled=%s preventBlockDamage=%s",
+            "Global explosion protection loaded. enabled=%s preventBlockDamage=%s preventFireSpread=%s",
             config.enabled,
-            config.preventBlockDamage
+            config.preventBlockDamage,
+            config.preventFireSpread
         ));
     }
 
@@ -46,6 +48,13 @@ final class GlobalExplosionProtectionService {
         int removed = clearAffectedBlocks(event);
         if (removed > 0 && config().logBlockedExplosions) {
             logger.info("Global explosion protection removed " + removed + " block(s) from an explosion.");
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onNeighborNotify(BlockEvent.NeighborNotifyEvent event) {
+        if (shouldCancelFireSpread(event)) {
+            event.setCanceled(true);
         }
     }
 
@@ -62,6 +71,17 @@ final class GlobalExplosionProtectionService {
         int removed = affectedBlocks.size();
         affectedBlocks.clear();
         return removed;
+    }
+
+    boolean shouldCancelFireSpread(Object event) {
+        Config snapshot = config();
+        if (!snapshot.enabled || !snapshot.preventFireSpread) {
+            return false;
+        }
+        Object world = ServerReflection.invoke(event, new String[] { "getWorld" });
+        Object pos = ServerReflection.invoke(event, new String[] { "getPos" });
+        String blockName = blockName(world, pos);
+        return blockName.contains("fire");
     }
 
     Config config() {
@@ -81,6 +101,7 @@ final class GlobalExplosionProtectionService {
         Config loaded = new Config(
             readBoolean(properties, "enabled", true),
             readBoolean(properties, "preventBlockDamage", true),
+            readBoolean(properties, "preventFireSpread", true),
             readBoolean(properties, "logBlockedExplosions", false)
         );
         save(loaded);
@@ -91,6 +112,7 @@ final class GlobalExplosionProtectionService {
         Properties properties = new Properties();
         properties.setProperty("enabled", Boolean.toString(snapshot.enabled));
         properties.setProperty("preventBlockDamage", Boolean.toString(snapshot.preventBlockDamage));
+        properties.setProperty("preventFireSpread", Boolean.toString(snapshot.preventFireSpread));
         properties.setProperty("logBlockedExplosions", Boolean.toString(snapshot.logBlockedExplosions));
         try {
             Path parent = configPath.getParent();
@@ -113,19 +135,28 @@ final class GlobalExplosionProtectionService {
         return Boolean.parseBoolean(value.trim());
     }
 
+    private static String blockName(Object world, Object pos) {
+        Object state = ServerReflection.invoke(world, new String[] { "getBlockState", "func_180495_p" }, pos);
+        Object block = ServerReflection.invoke(state, new String[] { "getBlock", "func_177230_c" });
+        Object registryName = ServerReflection.invoke(block, new String[] { "getRegistryName" });
+        return String.valueOf(registryName).toLowerCase();
+    }
+
     static final class Config {
         final boolean enabled;
         final boolean preventBlockDamage;
+        final boolean preventFireSpread;
         final boolean logBlockedExplosions;
 
-        Config(boolean enabled, boolean preventBlockDamage, boolean logBlockedExplosions) {
+        Config(boolean enabled, boolean preventBlockDamage, boolean preventFireSpread, boolean logBlockedExplosions) {
             this.enabled = enabled;
             this.preventBlockDamage = preventBlockDamage;
+            this.preventFireSpread = preventFireSpread;
             this.logBlockedExplosions = logBlockedExplosions;
         }
 
         static Config defaults() {
-            return new Config(true, true, false);
+            return new Config(true, true, true, false);
         }
     }
 }
