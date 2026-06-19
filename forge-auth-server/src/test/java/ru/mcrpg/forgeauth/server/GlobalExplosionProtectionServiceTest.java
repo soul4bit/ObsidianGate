@@ -27,6 +27,7 @@ class GlobalExplosionProtectionServiceTest {
         assertTrue(service.config().enabled);
         assertTrue(service.config().preventBlockDamage);
         assertTrue(service.config().preventFireSpread);
+        assertTrue(service.config().preventFireTick);
     }
 
     @Test
@@ -51,6 +52,17 @@ class GlobalExplosionProtectionServiceTest {
         service.load();
 
         assertTrue(service.shouldCancelFireSpread(new FakeNeighborNotifyEvent("minecraft:fire")));
+    }
+
+    @Test
+    void fireTickIsDisabledOnWorldLoad() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-explosion-protection.properties");
+        GlobalExplosionProtectionService service = new GlobalExplosionProtectionService(Logger.getLogger("test"), configPath);
+        service.load();
+        FakeWorld world = new FakeWorld("minecraft:stone");
+
+        assertTrue(service.disableFireTick(world));
+        assertEquals("false", world.gameRules.values.get("doFireTick"));
     }
 
     static final class FakeExplosionEvent {
@@ -92,6 +104,7 @@ class GlobalExplosionProtectionServiceTest {
 
     static final class FakeWorld {
         private final FakeBlockState state;
+        private final FakeGameRules gameRules = new FakeGameRules();
 
         FakeWorld(String blockName) {
             this.state = new FakeBlockState(blockName);
@@ -99,6 +112,18 @@ class GlobalExplosionProtectionServiceTest {
 
         public FakeBlockState getBlockState(FakeBlockPos pos) {
             return state;
+        }
+
+        public FakeGameRules getGameRules() {
+            return gameRules;
+        }
+    }
+
+    static final class FakeGameRules {
+        private final java.util.Map<String, String> values = new java.util.HashMap<String, String>();
+
+        public void setOrCreateGameRule(String key, String value) {
+            values.put(key, value);
         }
     }
 

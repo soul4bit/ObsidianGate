@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
@@ -36,10 +37,11 @@ final class GlobalExplosionProtectionService {
     synchronized void load() {
         config = loadConfig();
         logger.info(String.format(
-            "Global explosion protection loaded. enabled=%s preventBlockDamage=%s preventFireSpread=%s",
+            "Global explosion protection loaded. enabled=%s preventBlockDamage=%s preventFireSpread=%s preventFireTick=%s",
             config.enabled,
             config.preventBlockDamage,
-            config.preventFireSpread
+            config.preventFireSpread,
+            config.preventFireTick
         ));
     }
 
@@ -55,6 +57,13 @@ final class GlobalExplosionProtectionService {
     public void onNeighborNotify(BlockEvent.NeighborNotifyEvent event) {
         if (shouldCancelFireSpread(event)) {
             event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onWorldLoad(WorldEvent.Load event) {
+        if (disableFireTick(ServerReflection.invoke(event, new String[] { "getWorld" }))) {
+            logger.info("Global explosion protection set doFireTick=false for a loaded world.");
         }
     }
 
@@ -102,6 +111,7 @@ final class GlobalExplosionProtectionService {
             readBoolean(properties, "enabled", true),
             readBoolean(properties, "preventBlockDamage", true),
             readBoolean(properties, "preventFireSpread", true),
+            readBoolean(properties, "preventFireTick", true),
             readBoolean(properties, "logBlockedExplosions", false)
         );
         save(loaded);
@@ -113,6 +123,7 @@ final class GlobalExplosionProtectionService {
         properties.setProperty("enabled", Boolean.toString(snapshot.enabled));
         properties.setProperty("preventBlockDamage", Boolean.toString(snapshot.preventBlockDamage));
         properties.setProperty("preventFireSpread", Boolean.toString(snapshot.preventFireSpread));
+        properties.setProperty("preventFireTick", Boolean.toString(snapshot.preventFireTick));
         properties.setProperty("logBlockedExplosions", Boolean.toString(snapshot.logBlockedExplosions));
         try {
             Path parent = configPath.getParent();
@@ -142,21 +153,42 @@ final class GlobalExplosionProtectionService {
         return String.valueOf(registryName).toLowerCase();
     }
 
+    boolean disableFireTick(Object world) {
+        Config snapshot = config();
+        if (!snapshot.enabled || !snapshot.preventFireTick || world == null) {
+            return false;
+        }
+        Object gameRules = ServerReflection.invoke(world, new String[] { "getGameRules", "func_82736_K" });
+        if (gameRules == null) {
+            return false;
+        }
+        ServerReflection.invoke(gameRules, new String[] { "setOrCreateGameRule", "func_82764_b" }, "doFireTick", "false");
+        return true;
+    }
+
     static final class Config {
         final boolean enabled;
         final boolean preventBlockDamage;
         final boolean preventFireSpread;
+        final boolean preventFireTick;
         final boolean logBlockedExplosions;
 
-        Config(boolean enabled, boolean preventBlockDamage, boolean preventFireSpread, boolean logBlockedExplosions) {
+        Config(
+            boolean enabled,
+            boolean preventBlockDamage,
+            boolean preventFireSpread,
+            boolean preventFireTick,
+            boolean logBlockedExplosions
+        ) {
             this.enabled = enabled;
             this.preventBlockDamage = preventBlockDamage;
             this.preventFireSpread = preventFireSpread;
+            this.preventFireTick = preventFireTick;
             this.logBlockedExplosions = logBlockedExplosions;
         }
 
         static Config defaults() {
-            return new Config(true, true, true, false);
+            return new Config(true, true, true, true, false);
         }
     }
 }

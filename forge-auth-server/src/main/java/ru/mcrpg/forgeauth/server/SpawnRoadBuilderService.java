@@ -24,6 +24,7 @@ final class SpawnRoadBuilderService {
     private static final int ROAD_HALF_WIDTH = 3;
     private static final int CLEAR_HALF_WIDTH = 8;
     private static final int TERRAIN_SAMPLE_OFFSET = 10;
+    private static final int TERRAIN_STEP_DEADBAND = 2;
     private static final int MAX_TERRAIN_DELTA = 96;
     private static final int LIGHT_EVERY = 7;
     private static final int LAMP_EVERY = 12;
@@ -356,13 +357,14 @@ final class SpawnRoadBuilderService {
     }
 
     private static int smooth(int previousY, int targetY) {
-        if (targetY > previousY + 1) {
+        int delta = targetY - previousY;
+        if (Math.abs(delta) <= TERRAIN_STEP_DEADBAND) {
+            return previousY;
+        }
+        if (delta > 0) {
             return previousY + 1;
         }
-        if (targetY < previousY - 1) {
-            return previousY - 1;
-        }
-        return targetY;
+        return previousY - 1;
     }
 
     private static final class RoadPoint {
@@ -404,8 +406,10 @@ final class SpawnRoadBuilderService {
             while (used < budget && !done) {
                 RoadPoint point = sampledPoint(task.world, pointIndex);
                 Palette palette = blocks.palette(point.biomeName, path.colorMeta);
-                if (phase <= 1) {
-                    used += runClearPhase(task.world, point, phase == 0, budget - used);
+                if (phase == 0) {
+                    used += runTerrainRestorePhase(task.world, point, palette, budget - used);
+                } else if (phase == 1) {
+                    used += runClearPhase(task.world, point, budget - used);
                 } else if (phase == 2) {
                     used += runFoundationPhase(task.world, point, palette, budget - used);
                 } else {
@@ -431,10 +435,35 @@ final class SpawnRoadBuilderService {
             return point;
         }
 
-        private int runClearPhase(Object world, RoadPoint point, boolean oldRoadBand, int budget) {
+        private int runTerrainRestorePhase(Object world, RoadPoint point, Palette palette, int budget) {
             int used = 0;
-            int minY = oldRoadBand ? path.roadY - 1 : point.y + 1;
-            int maxY = oldRoadBand ? path.roadY + CLEAR_ABOVE_HEIGHT : point.y + CLEAR_ABOVE_HEIGHT;
+            int minY = Math.max(FOUNDATION_MIN_Y, Math.min(path.roadY - 1, point.y - FOUNDATION_DEPTH));
+            int maxY = point.y - 1;
+            if (!phaseStarted) {
+                yCursor = minY;
+                phaseStarted = true;
+            }
+            while (used < budget && offset <= CLEAR_HALF_WIDTH) {
+                int x = path.xWithOffset(point, offset);
+                int z = path.zWithOffset(point, offset);
+                blocks.set(world, x, yCursor, z, palette.foundation, false);
+                used++;
+                yCursor++;
+                if (yCursor > maxY) {
+                    yCursor = minY;
+                    offset++;
+                }
+            }
+            if (offset > CLEAR_HALF_WIDTH) {
+                nextPhase();
+            }
+            return used;
+        }
+
+        private int runClearPhase(Object world, RoadPoint point, int budget) {
+            int used = 0;
+            int minY = point.y + 1;
+            int maxY = Math.max(point.y + CLEAR_ABOVE_HEIGHT, path.roadY + CLEAR_ABOVE_HEIGHT);
             if (!phaseStarted) {
                 yCursor = Math.max(1, minY);
                 phaseStarted = true;
@@ -485,6 +514,9 @@ final class SpawnRoadBuilderService {
         private int runSurfacePhase(Object world, RoadPoint point, Palette palette, int budget) {
             int used = 0;
             if (!phaseStarted) {
+                if (pointIndex + 1 < path.points.size()) {
+                    sampledPoint(world, pointIndex + 1);
+                }
                 offset = -ROAD_HALF_WIDTH;
                 phaseStarted = true;
             }
