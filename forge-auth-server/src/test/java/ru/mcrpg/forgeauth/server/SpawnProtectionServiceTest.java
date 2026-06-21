@@ -44,6 +44,19 @@ class SpawnProtectionServiceTest {
     }
 
     @Test
+    void hostileJoinIsDeniedInsideProtectedBoxOnly() throws Exception {
+        Path configPath = tempDirectory.resolve("obsidiangate-spawn-protection.properties");
+        SpawnProtectionService service = new SpawnProtectionService(Logger.getLogger("test"), configPath);
+        service.setBoxRegion(0, -10.0D, 40.0D, -20.0D, 10.0D, 80.0D, 20.0D);
+
+        FakeWorld overworld = new FakeWorld(0);
+
+        assertTrue(service.shouldDenyHostileSpawn(overworld, new FakeHostile(0, 0.0D, 64.0D, 0.0D), 0.0D, 64.0D, 0.0D));
+        assertFalse(service.shouldDenyHostileSpawn(overworld, new FakeHostile(0, 20.0D, 64.0D, 0.0D), 20.0D, 64.0D, 0.0D));
+        assertFalse(service.shouldDenyHostileSpawn(overworld, new FakePassive(0, 0.0D, 64.0D, 0.0D), 0.0D, 64.0D, 0.0D));
+    }
+
+    @Test
     void obfuscatedWorldAndBlockPositionNamesAreSupported() throws Exception {
         Path configPath = tempDirectory.resolve("obsidiangate-spawn-protection.properties");
         SpawnProtectionService service = new SpawnProtectionService(Logger.getLogger("test"), configPath);
@@ -132,6 +145,34 @@ class SpawnProtectionServiceTest {
 
         public int getZ() {
             return z;
+        }
+    }
+
+    static final class FakeHostile implements net.minecraft.entity.monster.IMob {
+        public final int dimension;
+        public final double posX;
+        public final double posY;
+        public final double posZ;
+
+        FakeHostile(int dimension, double x, double y, double z) {
+            this.dimension = dimension;
+            this.posX = x;
+            this.posY = y;
+            this.posZ = z;
+        }
+    }
+
+    static final class FakePassive {
+        public final int dimension;
+        public final double posX;
+        public final double posY;
+        public final double posZ;
+
+        FakePassive(int dimension, double x, double y, double z) {
+            this.dimension = dimension;
+            this.posX = x;
+            this.posY = y;
+            this.posZ = z;
         }
     }
 

@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.EnderTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
@@ -125,6 +126,19 @@ final class RegionProtectionEvents {
         RegionProtectionService.Region region = regionAt(entity);
         if (region != null && !region.flag(RegionProtectionService.RegionFlag.MOB_SPAWN)) {
             event.setResult(Result.DENY);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onEntityJoinWorld(EntityJoinWorldEvent event) {
+        Object entity = ServerReflection.invoke(event, new String[] { "getEntity" });
+        if (!isLivingMob(entity)) {
+            return;
+        }
+        RegionProtectionService.Region region = regionAt(entity);
+        if (region != null && !region.flag(RegionProtectionService.RegionFlag.MOB_SPAWN)) {
+            event.setCanceled(true);
+            ServerReflection.invoke(entity, new String[] { "setDead", "func_70106_y" });
         }
     }
 
@@ -565,6 +579,21 @@ final class RegionProtectionEvents {
 
     private static boolean isPlayer(Object entity) {
         return entity != null && entity.getClass().getName().toLowerCase().contains("player");
+    }
+
+    private static boolean isLivingMob(Object entity) {
+        if (entity == null || isPlayer(entity)) {
+            return false;
+        }
+        Class<?> type = entity.getClass();
+        while (type != null) {
+            String name = type.getName().toLowerCase();
+            if (containsAny(name, "entityliving", "entityanimal", "entitymob", ".monster.")) {
+                return true;
+            }
+            type = type.getSuperclass();
+        }
+        return false;
     }
 
     private static double number(Object value) {

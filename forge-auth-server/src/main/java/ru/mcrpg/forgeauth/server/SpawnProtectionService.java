@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -136,16 +137,29 @@ public final class SpawnProtectionService {
 
     @SubscribeEvent
     public void onMobSpawnCheck(LivingSpawnEvent.CheckSpawn event) {
-        Config snapshot = config();
-        if (!snapshot.enabled || !snapshot.denyHostileSpawns || !isHostile(invokeZeroArgIfPresent(event, "getEntityLiving", "getEntity"))) {
-            return;
-        }
+        Object entity = invokeZeroArgIfPresent(event, "getEntityLiving", "getEntity");
         Object world = invokeZeroArgIfPresent(event, "getWorld");
         double x = readDouble(event, "getX");
         double y = readDouble(event, "getY");
         double z = readDouble(event, "getZ");
-        if (isProtected(world, x, y, z, snapshot)) {
+        if (shouldDenyHostileSpawn(world, entity, x, y, z)) {
             event.setResult(Result.DENY);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onEntityJoinWorld(EntityJoinWorldEvent event) {
+        Object entity = invokeZeroArgIfPresent(event, "getEntity");
+        Object world = invokeZeroArgIfPresent(event, "getWorld");
+        if (shouldDenyHostileSpawn(
+            world,
+            entity,
+            TeleportSupport.playerX(entity),
+            TeleportSupport.playerY(entity),
+            TeleportSupport.playerZ(entity)
+        )) {
+            cancel(event);
+            killEntity(entity);
         }
     }
 
@@ -353,6 +367,18 @@ public final class SpawnProtectionService {
 
     boolean isProtectedBlockPosition(Object world, Object blockPos) {
         return isProtected(world, blockPosition(blockPos), config());
+    }
+
+    boolean shouldDenyHostileSpawn(Object world, Object entity, double x, double y, double z) {
+        Config snapshot = config();
+        if (!snapshot.enabled || !snapshot.denyHostileSpawns || !isHostile(entity)) {
+            return false;
+        }
+        Object checkedWorld = world == null ? actorWorld(entity) : world;
+        if (isProtected(checkedWorld, x, y, z, snapshot)) {
+            return true;
+        }
+        return entity != null && isProtected(TeleportSupport.playerDimension(entity), x, y, z, snapshot);
     }
 
     String describePlayerPosition(Object player) {
@@ -574,6 +600,10 @@ public final class SpawnProtectionService {
 
     private static void cancel(Object event) {
         invokeIfPresent(event, new Object[] { Boolean.TRUE }, "setCanceled");
+    }
+
+    private static void killEntity(Object entity) {
+        invokeIfPresent(entity, new Object[0], "setDead", "func_70106_y");
     }
 
     private static void denyInteraction(Object event) {
