@@ -199,7 +199,7 @@ def main():
     print("Touched region files: " + str(len(touched_files)))
     if missing_files:
         print("Skipped missing region files: " + str(missing_files))
-    print("Start Minecraft and rebuild roads after terrain regenerates.")
+    print("Start Minecraft and build roads after terrain regenerates.")
 
 
 if __name__ == "__main__":

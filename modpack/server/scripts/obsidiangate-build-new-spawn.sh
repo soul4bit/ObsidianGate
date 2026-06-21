@@ -4,7 +4,7 @@ set -eu
 SERVER_ROOT="${SERVER_ROOT:-/home/minecraft/mc-rpg}"
 RCON_COMMAND="${RCON_COMMAND:-$SERVER_ROOT/scripts/obsidiangate-rcon-command.sh}"
 ROAD_BUILDER="${ROAD_BUILDER:-$SERVER_ROOT/scripts/obsidiangate-build-spawn-roads.sh}"
-ROAD_COMMAND="${ROAD_COMMAND:-spawnroads rebuild}"
+ROAD_COMMAND="${ROAD_COMMAND:-spawnroads build}"
 ROAD_LENGTH="${4:-240}"
 HUB_RADIUS="${HUB_RADIUS:-44}"
 FOUNDATION_DEPTH="${FOUNDATION_DEPTH:-10}"

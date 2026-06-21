@@ -22,6 +22,8 @@ final class SpawnRoadBuilderService {
     private static final int FOUNDATION_DEPTH = 6;
     private static final int FOUNDATION_MIN_Y = 1;
     private static final int ROAD_HALF_WIDTH = 3;
+    private static final int WATER_LANDFILL_HALF_WIDTH = ROAD_HALF_WIDTH + 1;
+    private static final int WATER_LANDFILL_SCAN_DEPTH = 48;
     private static final int CLEAR_HALF_WIDTH = 8;
     private static final int REBUILD_CLEAR_HALF_WIDTH = 18;
     private static final int REBUILD_CLEAR_BELOW = 10;
@@ -588,7 +590,7 @@ final class SpawnRoadBuilderService {
                 RoadPoint point = sampledPoint(task.world, pointIndex);
                 Palette palette = blocks.palette(point.biomeName, path.colorMeta);
                 if (phase == 0) {
-                    used += runTerrainRestorePhase(task.world, point, palette, budget - used);
+                    used += runWaterLandfillPhase(task.world, point, palette, budget - used);
                 } else if (phase == 1) {
                     used += runClearPhase(task.world, point, budget - used);
                 } else if (phase == 2) {
@@ -616,29 +618,45 @@ final class SpawnRoadBuilderService {
             return point;
         }
 
-        private int runTerrainRestorePhase(Object world, RoadPoint point, Palette palette, int budget) {
+        private int runWaterLandfillPhase(Object world, RoadPoint point, Palette palette, int budget) {
             int used = 0;
-            int minY = Math.max(FOUNDATION_MIN_Y, Math.min(path.roadY - 1, point.y - FOUNDATION_DEPTH));
             int maxY = point.y - 1;
+            if (maxY < FOUNDATION_MIN_Y) {
+                nextPhase();
+                return 0;
+            }
             if (!phaseStarted) {
-                yCursor = minY;
+                offset = -WATER_LANDFILL_HALF_WIDTH;
+                prepareWaterLandfillColumn(world, point);
                 phaseStarted = true;
             }
-            while (used < budget && offset <= CLEAR_HALF_WIDTH) {
+            while (used < budget && offset <= WATER_LANDFILL_HALF_WIDTH) {
+                if (yCursor > maxY) {
+                    offset++;
+                    prepareWaterLandfillColumn(world, point);
+                    continue;
+                }
                 int x = path.xWithOffset(point, offset);
                 int z = path.zWithOffset(point, offset);
                 blocks.set(world, x, yCursor, z, palette.foundation, false);
                 used++;
                 yCursor++;
-                if (yCursor > maxY) {
-                    yCursor = minY;
-                    offset++;
-                }
             }
-            if (offset > CLEAR_HALF_WIDTH) {
+            if (offset > WATER_LANDFILL_HALF_WIDTH) {
                 nextPhase();
             }
             return used;
+        }
+
+        private void prepareWaterLandfillColumn(Object world, RoadPoint point) {
+            if (offset > WATER_LANDFILL_HALF_WIDTH) {
+                return;
+            }
+            int x = path.xWithOffset(point, offset);
+            int z = path.zWithOffset(point, offset);
+            int maxY = point.y - 1;
+            int minY = Math.max(FOUNDATION_MIN_Y, point.y - WATER_LANDFILL_SCAN_DEPTH);
+            yCursor = blocks.waterLandfillBottom(world, x, z, minY, maxY);
         }
 
         private int runClearPhase(Object world, RoadPoint point, int budget) {
@@ -763,7 +781,7 @@ final class SpawnRoadBuilderService {
         }
 
         public long total() {
-            return path.points.size() * 820L;
+            return path.points.size() * 520L;
         }
 
         public String name() {
@@ -1562,6 +1580,38 @@ final class SpawnRoadBuilderService {
             return fallbackY - 1;
         }
 
+        int waterLandfillBottom(Object world, int x, int z, int minY, int maxY) {
+            if (world == null || maxY < minY) {
+                return maxY + 1;
+            }
+            int chunkX = x >> 4;
+            int chunkZ = z >> 4;
+            if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
+                if (!TeleportSupport.prepareDestinationChunk(world, x + 0.5D, z + 0.5D)) {
+                    return maxY + 1;
+                }
+                lastChunkX = chunkX;
+                lastChunkZ = chunkZ;
+            }
+
+            boolean sawLiquid = false;
+            for (int y = maxY; y >= minY; y--) {
+                Object position = blockPos(x, y, z);
+                if (Boolean.TRUE.equals(invoke(isAirBlock, world, position))) {
+                    continue;
+                }
+                String blockName = blockName(world, position);
+                if (isLiquidTerrainBlock(blockName)) {
+                    sawLiquid = true;
+                    continue;
+                }
+                if (sawLiquid && !isIgnoredTerrainBlock(blockName)) {
+                    return y + 1;
+                }
+            }
+            return sawLiquid ? minY : maxY + 1;
+        }
+
         String biomeName(Object world, int x, int z) {
             if (world == null || worldGetBiome == null) {
                 return "";
@@ -1608,6 +1658,10 @@ final class SpawnRoadBuilderService {
                 || blockName.contains("deadbush")
                 || blockName.contains("reeds")
                 || blockName.contains("cactus");
+        }
+
+        private static boolean isLiquidTerrainBlock(String blockName) {
+            return SpawnRoadBuilderService.isRoadLiquidBlockName(blockName);
         }
 
         boolean isManagedRoadBlock(Object world, int x, int y, int z) {
@@ -1803,5 +1857,13 @@ final class SpawnRoadBuilderService {
         ArrayList<String> options = new ArrayList<String>();
         Collections.addAll(options, "build", "rebuild", "status", "cancel");
         return options;
+    }
+
+    static boolean isRoadLiquidBlockName(String blockName) {
+        String normalized = blockName == null ? "" : blockName.toLowerCase(Locale.ROOT);
+        return normalized.contains("water")
+            || normalized.contains("lava")
+            || normalized.contains("fluid")
+            || normalized.contains("liquid");
     }
 }
