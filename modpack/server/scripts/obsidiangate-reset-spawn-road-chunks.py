@@ -22,6 +22,14 @@ def parse_args():
     parser.add_argument("--backup-root", default=os.environ.get("BACKUP_ROOT"))
     parser.add_argument("--region-prefix", default="road_")
     parser.add_argument(
+        "--include-protected-overlaps",
+        action="store_true",
+        help=(
+            "Also reset chunks that overlap non-road ObsidianGate regions. "
+            "By default those chunks are skipped to protect the spawn hub and player claims."
+        ),
+    )
+    parser.add_argument(
         "--confirm-delete-chunks",
         action="store_true",
         help="Actually modify .mca files. Without this flag the command only prints a dry run.",
@@ -68,6 +76,14 @@ def active_world_name(server_root, explicit_world_name, explicit_properties_file
 
 
 def road_regions(properties, prefix):
+    return [region for region in all_regions(properties) if region[0].startswith(prefix)]
+
+
+def protected_overlap_regions(properties, prefix):
+    return [region for region in all_regions(properties) if not region[0].startswith(prefix)]
+
+
+def all_regions(properties):
     names = set()
     marker = ".ownerId"
     for key in properties:
@@ -76,8 +92,6 @@ def road_regions(properties, prefix):
 
     regions = []
     for name in sorted(names):
-        if not name.startswith(prefix):
-            continue
         base = "region." + name + "."
         if properties.get(base + "dimension", "0") != "0":
             continue
@@ -92,8 +106,18 @@ def road_regions(properties, prefix):
     return regions
 
 
-def chunks_for_regions(regions):
+def overlaps_chunk(region, chunk_x, chunk_z):
+    _name, min_x, max_x, min_z, max_z = region
+    chunk_min_x = chunk_x * 16
+    chunk_max_x = chunk_min_x + 15
+    chunk_min_z = chunk_z * 16
+    chunk_max_z = chunk_min_z + 15
+    return not (chunk_max_x < min_x or chunk_min_x > max_x or chunk_max_z < min_z or chunk_min_z > max_z)
+
+
+def chunks_for_regions(regions, protected_regions):
     chunks = set()
+    skipped = set()
     for name, min_x, max_x, min_z, max_z in regions:
         min_cx = min_x // 16
         max_cx = max_x // 16
@@ -101,8 +125,12 @@ def chunks_for_regions(regions):
         max_cz = max_z // 16
         for chunk_x in range(min_cx, max_cx + 1):
             for chunk_z in range(min_cz, max_cz + 1):
+                overlaps = [region_name for region_name, *_rest in protected_regions if overlaps_chunk((region_name, *_rest), chunk_x, chunk_z)]
+                if overlaps:
+                    skipped.add((chunk_x, chunk_z, name, ",".join(sorted(overlaps))))
+                    continue
                 chunks.add((chunk_x, chunk_z, name))
-    return chunks
+    return chunks, skipped
 
 
 def group_by_region_file(chunks, region_dir):
@@ -175,7 +203,8 @@ def main():
     if not regions:
         fail("No regions with prefix '" + args.region_prefix + "' in " + str(regions_file))
 
-    chunks = chunks_for_regions(regions)
+    protected_regions = [] if args.include_protected_overlaps else protected_overlap_regions(properties, args.region_prefix)
+    chunks, skipped_overlap_chunks = chunks_for_regions(regions, protected_regions)
     grouped = group_by_region_file(chunks, region_dir)
     existing_files = [path for path in grouped if path.is_file()]
 
@@ -183,6 +212,7 @@ def main():
     print("Regions file: " + str(regions_file))
     print("Road regions: " + ", ".join(name for name, *_rest in regions))
     print("Selected chunks: " + str(len({(chunk_x, chunk_z) for chunk_x, chunk_z, _name in chunks})))
+    print("Protected overlap chunks skipped: " + str(len({(chunk_x, chunk_z) for chunk_x, chunk_z, _name, _overlaps in skipped_overlap_chunks})))
     print("Region files: " + str(len(existing_files)) + " existing, " + str(len(grouped) - len(existing_files)) + " missing")
 
     if not args.confirm_delete_chunks:
