@@ -189,13 +189,13 @@ final class PlayerDataGuardService {
         Files.createDirectories(incidentFile.getParent());
         Files.write(incidentFile, pending.originalPlayerdata);
 
-        BackupCandidate backup = findLatestValidBackup(
+        BackupCandidate backup = savedItems < 0 ? findLatestValidBackup(
             serverRoot.resolve("backups").resolve("playerdata"),
             pending.worldName,
             pending.normalizedUuid,
             pending.originalPlayerdata,
-            savedItems > 0
-        );
+            false
+        ) : null;
         byte[] restoreData = backup == null ? pending.originalPlayerdata : backup.playerdata;
         pendingRestores.put(
             pending.normalizedUuid,

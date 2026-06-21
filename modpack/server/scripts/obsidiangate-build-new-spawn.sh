@@ -4,11 +4,12 @@ set -eu
 SERVER_ROOT="${SERVER_ROOT:-/home/minecraft/mc-rpg}"
 RCON_COMMAND="${RCON_COMMAND:-$SERVER_ROOT/scripts/obsidiangate-rcon-command.sh}"
 ROAD_BUILDER="${ROAD_BUILDER:-$SERVER_ROOT/scripts/obsidiangate-build-spawn-roads.sh}"
+ROAD_COMMAND="${ROAD_COMMAND:-spawnroads rebuild}"
 ROAD_LENGTH="${4:-240}"
 HUB_RADIUS="${HUB_RADIUS:-44}"
 FOUNDATION_DEPTH="${FOUNDATION_DEPTH:-10}"
 CLEAR_ABOVE_HEIGHT="${CLEAR_ABOVE_HEIGHT:-30}"
-BUILD_ROADS="${BUILD_ROADS:-1}"
+BUILD_ROADS="${BUILD_ROADS:-server}"
 RCON_DELAY="${RCON_DELAY:-0.08}"
 
 usage() {
@@ -313,20 +314,23 @@ case "$BUILD_ROADS" in
     0|false|False|FALSE|no|No|NO)
         BUILD_ROADS=0
         ;;
+    legacy|Legacy|LEGACY)
+        BUILD_ROADS=legacy
+        ;;
     *)
-        BUILD_ROADS=1
+        BUILD_ROADS=server
         ;;
 esac
 
-if [ "$BUILD_ROADS" = "1" ] && [ -x "$ROAD_BUILDER" ]; then
-    echo "Building season roads before the ObsidianGate hub..."
+if [ "$BUILD_ROADS" = "legacy" ] && [ -x "$ROAD_BUILDER" ]; then
+    echo "Building legacy flat season roads before the ObsidianGate hub..."
     DECORATE_SPAWN=0 \
         FOUNDATION_DEPTH="$FOUNDATION_DEPTH" \
         CLEAR_ABOVE_HEIGHT=18 \
         RCON_DELAY="$RCON_DELAY" \
         "$ROAD_BUILDER" "$CX" "$Y" "$CZ" "$ROAD_LENGTH"
-else
-    echo "Continuing with hub only; road builder disabled or unavailable: $ROAD_BUILDER" >&2
+elif [ "$BUILD_ROADS" = "legacy" ]; then
+    echo "Continuing with hub only; legacy road builder disabled or unavailable: $ROAD_BUILDER" >&2
 fi
 
 SUPPORT_Y=$((Y - 1))
@@ -354,5 +358,13 @@ build_arrival_balcony
 
 run_rcon "fill $((CX - 3)) $((Y + 1)) $((CZ - 3)) $((CX + 3)) $((Y + 5)) $((CZ + 3)) minecraft:air 0 replace"
 run_rcon "setworldspawn $CX $((Y + 1)) $CZ"
+
+if [ "$BUILD_ROADS" = "server" ]; then
+    echo "Starting adaptive spawn roads with: /$ROAD_COMMAND $CX $Y $CZ $ROAD_LENGTH"
+    run_rcon "$ROAD_COMMAND $CX $Y $CZ $ROAD_LENGTH"
+    echo "Road build runs on the server tick. Watch /spawnroads status and run /save-all after it completes."
+elif [ "$BUILD_ROADS" = "0" ]; then
+    echo "Spawn roads skipped. To build them later, run: /$ROAD_COMMAND $CX $Y $CZ $ROAD_LENGTH"
+fi
 
 echo "ObsidianGate portal hub complete."

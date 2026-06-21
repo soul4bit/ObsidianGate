@@ -96,7 +96,8 @@ final class SpawnRoadCommand {
                 }
                 return;
             }
-            if (!"build".equalsIgnoreCase(raw[0])) {
+            boolean rebuild = "rebuild".equalsIgnoreCase(raw[0]);
+            if (!rebuild && !"build".equalsIgnoreCase(raw[0])) {
                 ServerChat.usage(sender, usage());
                 return;
             }
@@ -128,7 +129,10 @@ final class SpawnRoadCommand {
                     ServerChat.status(sender, ServerChat.Tone.ERROR, SUBJECT, "overworld is not loaded.");
                     return;
                 }
-                if (!service.start(world, sender, centerX, roadY, centerZ, length, blocksPerTick)) {
+                boolean started = rebuild
+                    ? service.rebuild(world, sender, centerX, roadY, centerZ, length, blocksPerTick)
+                    : service.start(world, sender, centerX, roadY, centerZ, length, blocksPerTick);
+                if (!started) {
                     ServerChat.status(sender, ServerChat.Tone.WARNING, SUBJECT, "build is already running: " + service.statusText());
                     return;
                 }
@@ -136,7 +140,8 @@ final class SpawnRoadCommand {
                     sender,
                     ServerChat.Tone.SUCCESS,
                     SUBJECT,
-                    "started from " + centerX + " " + roadY + " " + centerZ + ", length " + length + ", budget " + blocksPerTick + "/tick."
+                    (rebuild ? "rebuild" : "build") + " started from " + centerX + " " + roadY + " " + centerZ
+                        + ", length " + length + ", budget " + blocksPerTick + "/tick."
                 );
             } catch (NumberFormatException ignored) {
                 ServerChat.status(sender, ServerChat.Tone.ERROR, SUBJECT, "coordinates and length must be numbers.");
@@ -221,7 +226,7 @@ final class SpawnRoadCommand {
     }
 
     private static String usage() {
-        return "/" + COMMAND_NAME + " <status|cancel|build <centerX> <roadY> <centerZ> [length] [blocksPerTick]>";
+        return "/" + COMMAND_NAME + " <status|cancel|build|rebuild <centerX> <roadY> <centerZ> [length] [blocksPerTick]>";
     }
 
     private static int compareTo(Object other) {

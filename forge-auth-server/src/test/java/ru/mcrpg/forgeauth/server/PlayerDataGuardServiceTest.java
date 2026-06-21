@@ -168,6 +168,35 @@ class PlayerDataGuardServiceTest {
     }
 
     @Test
+    void readableCurrentPlayerdataWinsOverOlderBackup() throws Exception {
+        UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
+        byte[] original = playerdataWithInventory(2);
+        byte[] olderBackup = playerdataWithInventory(3);
+        Path serverRoot = createServerRoot(uuid, original);
+        Path playerFile = playerFile(serverRoot, uuid);
+        Path backupDirectory = serverRoot.resolve("backups").resolve("playerdata");
+        Files.createDirectories(backupDirectory);
+        writeTarArchive(
+            backupDirectory.resolve("playerdata-20260618-120000.tar.gz"),
+            "world/playerdata/" + uuid.toString().toLowerCase() + ".dat",
+            olderBackup
+        );
+        PlayerDataGuardService service = newGuard(serverRoot);
+        FakePlayer player = new FakePlayer("Knight", uuid);
+
+        service.protectIfLoadFailed(player);
+        runUntilDisconnected(service, player);
+
+        assertNotNull(player.connection.lastMessage);
+        assertTrue(player.connection.lastMessage.contains("PLAYERDATA_LOAD_FAILED"));
+
+        Files.write(playerFile, playerdataWithInventory(0));
+        runTicks(service, 100);
+
+        assertArrayEquals(original, Files.readAllBytes(playerFile));
+    }
+
+    @Test
     void pendingRestoreRejectsEarlyReconnect() throws Exception {
         UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
         Path serverRoot = createServerRoot(uuid, playerdataWithInventory(2));

@@ -23,7 +23,12 @@ final class SpawnRoadBuilderService {
     private static final int FOUNDATION_MIN_Y = 1;
     private static final int ROAD_HALF_WIDTH = 3;
     private static final int CLEAR_HALF_WIDTH = 8;
+    private static final int REBUILD_CLEAR_HALF_WIDTH = 18;
+    private static final int REBUILD_CLEAR_BELOW = 10;
+    private static final int REBUILD_CLEAR_ABOVE = 34;
     private static final int TERRAIN_SAMPLE_OFFSET = 10;
+    private static final int TERRAIN_LOOKAHEAD_DISTANCE = 16;
+    private static final int TERRAIN_LOOKAHEAD_RISE_MARGIN = 6;
     private static final int TERRAIN_STEP_DEADBAND = 2;
     private static final int MAX_TERRAIN_DELTA = 96;
     private static final int LIGHT_EVERY = 7;
@@ -43,12 +48,20 @@ final class SpawnRoadBuilderService {
     }
 
     synchronized boolean start(Object world, Object sender, int centerX, int roadY, int centerZ, int length, int blocksPerTick) {
+        return start(world, sender, centerX, roadY, centerZ, length, blocksPerTick, false);
+    }
+
+    synchronized boolean rebuild(Object world, Object sender, int centerX, int roadY, int centerZ, int length, int blocksPerTick) {
+        return start(world, sender, centerX, roadY, centerZ, length, blocksPerTick, true);
+    }
+
+    private boolean start(Object world, Object sender, int centerX, int roadY, int centerZ, int length, int blocksPerTick, boolean clearFirst) {
         if (activeTask != null && !activeTask.done) {
             return false;
         }
         int safeBlocksPerTick = blocksPerTick <= 0 ? DEFAULT_BLOCKS_PER_TICK : blocksPerTick;
         blocks.resetChunkCache();
-        activeTask = RoadTask.create(world, sender, centerX, roadY, centerZ, length, safeBlocksPerTick, blocks);
+        activeTask = RoadTask.create(world, sender, centerX, roadY, centerZ, length, safeBlocksPerTick, clearFirst, blocks);
         return true;
     }
 
@@ -161,11 +174,19 @@ final class SpawnRoadBuilderService {
             int centerZ,
             int length,
             int blocksPerTick,
+            boolean clearFirst,
             BlockAccess blocks
         ) {
             ArrayList<Stage> stages = new ArrayList<Stage>();
             int startDistance = SPAWN_RADIUS + 1;
             int endDistance = SPAWN_RADIUS + length;
+
+            if (clearFirst) {
+                addManagedRoadCleanup(stages, "north", centerX, roadY, centerZ, true, 1, startDistance, endDistance, blocks);
+                addManagedRoadCleanup(stages, "south", centerX, roadY, centerZ, true, -1, startDistance, endDistance, blocks);
+                addManagedRoadCleanup(stages, "east", centerX, roadY, centerZ, false, 1, startDistance, endDistance, blocks);
+                addManagedRoadCleanup(stages, "west", centerX, roadY, centerZ, false, -1, startDistance, endDistance, blocks);
+            }
 
             addAdaptiveRoad(stages, RoadPath.create("north", "Северный путь", centerX, roadY, centerZ, true, 1, startDistance, endDistance, 14, world, blocks), blocks);
             addAdaptiveRoad(stages, RoadPath.create("south", "Южный путь", centerX, roadY, centerZ, true, -1, startDistance, endDistance, 10, world, blocks), blocks);
@@ -228,6 +249,31 @@ final class SpawnRoadBuilderService {
         stages.add(new RoadPathStage("adaptive-road-" + path.id, path, blocks));
         stages.add(new RoadLampStage("adaptive-lamps-" + path.id, path, blocks));
         stages.add(new OutpostStage("outposts-" + path.id, path, blocks));
+    }
+
+    private static void addManagedRoadCleanup(
+        List<Stage> stages,
+        String id,
+        int centerX,
+        int roadY,
+        int centerZ,
+        boolean zAxis,
+        int direction,
+        int startDistance,
+        int endDistance,
+        BlockAccess blocks
+    ) {
+        stages.add(new ManagedRoadCleanupStage(
+            "cleanup-" + id,
+            centerX,
+            roadY,
+            centerZ,
+            zAxis,
+            direction,
+            startDistance,
+            endDistance,
+            blocks
+        ));
     }
 
     private static final class RoadPath {
@@ -342,6 +388,35 @@ final class SpawnRoadBuilderService {
         int direction,
         int distance
     ) {
+        int sampled = sampleTerrainEdgeY(world, blocks, centerX, centerZ, fallbackY, zAxis, direction, distance);
+        int ahead = sampleTerrainEdgeY(
+            world,
+            blocks,
+            centerX,
+            centerZ,
+            fallbackY,
+            zAxis,
+            direction,
+            distance + TERRAIN_LOOKAHEAD_DISTANCE
+        );
+        if (ahead > sampled) {
+            sampled = Math.max(sampled, ahead - TERRAIN_LOOKAHEAD_RISE_MARGIN);
+        }
+        int min = Math.max(FOUNDATION_MIN_Y + FOUNDATION_DEPTH, fallbackY - MAX_TERRAIN_DELTA);
+        int max = Math.min(240, fallbackY + MAX_TERRAIN_DELTA);
+        return Math.max(min, Math.min(max, sampled));
+    }
+
+    private static int sampleTerrainEdgeY(
+        Object world,
+        BlockAccess blocks,
+        int centerX,
+        int centerZ,
+        int fallbackY,
+        boolean zAxis,
+        int direction,
+        int distance
+    ) {
         int x = zAxis ? centerX : centerX + direction * distance;
         int z = zAxis ? centerZ + direction * distance : centerZ;
         int left = zAxis
@@ -350,10 +425,7 @@ final class SpawnRoadBuilderService {
         int right = zAxis
             ? blocks.terrainHeight(world, x + TERRAIN_SAMPLE_OFFSET, z, fallbackY)
             : blocks.terrainHeight(world, x, z + TERRAIN_SAMPLE_OFFSET, fallbackY);
-        int sampled = (left + right) / 2 + 1;
-        int min = Math.max(FOUNDATION_MIN_Y + FOUNDATION_DEPTH, fallbackY - MAX_TERRAIN_DELTA);
-        int max = Math.min(240, fallbackY + MAX_TERRAIN_DELTA);
-        return Math.max(min, Math.min(max, sampled));
+        return Math.max(left, right) + 1;
     }
 
     private static int smooth(int previousY, int targetY) {
@@ -381,6 +453,115 @@ final class SpawnRoadBuilderService {
             this.z = z;
             this.y = y;
             this.biomeName = "";
+        }
+    }
+
+    private static final class ManagedRoadCleanupStage implements Stage {
+        private final String name;
+        private final int centerX;
+        private final int roadY;
+        private final int centerZ;
+        private final boolean zAxis;
+        private final int direction;
+        private final int startDistance;
+        private final int endDistance;
+        private final BlockAccess blocks;
+        private final Object air;
+        private int distance;
+        private int offset;
+        private int yCursor;
+        private int minY;
+        private int maxY;
+        private int previousPathY;
+        private boolean phaseStarted;
+        private boolean hasPreviousPathY;
+        private boolean done;
+
+        ManagedRoadCleanupStage(
+            String name,
+            int centerX,
+            int roadY,
+            int centerZ,
+            boolean zAxis,
+            int direction,
+            int startDistance,
+            int endDistance,
+            BlockAccess blocks
+        ) {
+            this.name = name;
+            this.centerX = centerX;
+            this.roadY = roadY;
+            this.centerZ = centerZ;
+            this.zAxis = zAxis;
+            this.direction = direction;
+            this.startDistance = startDistance;
+            this.endDistance = endDistance;
+            this.blocks = blocks;
+            this.air = blocks.air();
+            this.distance = startDistance;
+            this.offset = -REBUILD_CLEAR_HALF_WIDTH;
+        }
+
+        public int run(RoadTask task, int budget) {
+            int used = 0;
+            while (used < budget && !done) {
+                if (!phaseStarted) {
+                    int pathY = cleanupPathY(task.world, distance);
+                    minY = Math.max(FOUNDATION_MIN_Y, Math.min(roadY, pathY) - REBUILD_CLEAR_BELOW);
+                    maxY = Math.min(255, Math.max(roadY, pathY) + REBUILD_CLEAR_ABOVE);
+                    yCursor = minY;
+                    offset = -REBUILD_CLEAR_HALF_WIDTH;
+                    phaseStarted = true;
+                }
+
+                int x = zAxis ? centerX + offset : centerX + direction * distance;
+                int z = zAxis ? centerZ + direction * distance : centerZ + offset;
+                if (blocks.isManagedRoadBlock(task.world, x, yCursor, z)) {
+                    blocks.set(task.world, x, yCursor, z, air, false);
+                }
+                used++;
+                advance();
+            }
+            return used;
+        }
+
+        private int cleanupPathY(Object world, int currentDistance) {
+            int previousY = hasPreviousPathY ? previousPathY : roadY;
+            int sampledY = sampleTerrainY(world, blocks, centerX, centerZ, roadY, zAxis, direction, currentDistance);
+            previousPathY = smooth(previousY, sampledY);
+            hasPreviousPathY = true;
+            return previousPathY;
+        }
+
+        private void advance() {
+            yCursor++;
+            if (yCursor <= maxY) {
+                return;
+            }
+            yCursor = minY;
+            offset++;
+            if (offset <= REBUILD_CLEAR_HALF_WIDTH) {
+                return;
+            }
+            distance++;
+            phaseStarted = false;
+            if (distance > endDistance) {
+                done = true;
+            }
+        }
+
+        public boolean done() {
+            return done;
+        }
+
+        public long total() {
+            return (long) (endDistance - startDistance + 1)
+                * (long) (REBUILD_CLEAR_HALF_WIDTH * 2 + 1)
+                * (long) (REBUILD_CLEAR_BELOW + REBUILD_CLEAR_ABOVE + MAX_TERRAIN_DELTA + 1);
+        }
+
+        public String name() {
+            return name;
         }
     }
 
@@ -1414,6 +1595,7 @@ final class SpawnRoadBuilderService {
 
         private static boolean isIgnoredTerrainBlock(String blockName) {
             return blockName.contains("air")
+                || isManagedRoadBlockName(blockName)
                 || blockName.contains("leaves")
                 || blockName.contains("log")
                 || blockName.contains("sapling")
@@ -1426,6 +1608,42 @@ final class SpawnRoadBuilderService {
                 || blockName.contains("deadbush")
                 || blockName.contains("reeds")
                 || blockName.contains("cactus");
+        }
+
+        boolean isManagedRoadBlock(Object world, int x, int y, int z) {
+            if (world == null || y < 0 || y > 255) {
+                return false;
+            }
+            int chunkX = x >> 4;
+            int chunkZ = z >> 4;
+            if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
+                if (!TeleportSupport.prepareDestinationChunk(world, x + 0.5D, z + 0.5D)) {
+                    return false;
+                }
+                lastChunkX = chunkX;
+                lastChunkZ = chunkZ;
+            }
+            Object position = blockPos(x, y, z);
+            if (Boolean.TRUE.equals(invoke(isAirBlock, world, position))) {
+                return false;
+            }
+            return isManagedRoadBlockName(blockName(world, position));
+        }
+
+        private static boolean isManagedRoadBlockName(String blockName) {
+            return blockName.contains("wool")
+                || blockName.contains("glowstone")
+                || blockName.contains("sea_lantern")
+                || blockName.contains("stonebrick")
+                || blockName.contains("stone_brick_stairs")
+                || blockName.contains("quartz_block")
+                || blockName.contains("quartz_stairs")
+                || blockName.contains("carpet")
+                || blockName.contains("fence")
+                || blockName.contains("torch")
+                || blockName.contains("end_rod")
+                || blockName.contains("stone_slab")
+                || blockName.contains("sandstone_stairs");
         }
 
         void set(Object world, int x, int y, int z, Object state, boolean skipIfAir) {
@@ -1583,7 +1801,7 @@ final class SpawnRoadBuilderService {
 
     static List<String> commandOptions() {
         ArrayList<String> options = new ArrayList<String>();
-        Collections.addAll(options, "build", "status", "cancel");
+        Collections.addAll(options, "build", "rebuild", "status", "cancel");
         return options;
     }
 }
