@@ -9,6 +9,7 @@ RETENTION="${RETENTION:-7}"
 STOP_SERVER="${STOP_SERVER:-auto}"
 BACKUP_OWNER="${BACKUP_OWNER:-minecraft:minecraft}"
 LOCK_FILE="${LOCK_FILE:-/tmp/obsidiangate-world-backup.lock}"
+PLAYERDATA_VALIDATOR="${PLAYERDATA_VALIDATOR:-$SERVER_ROOT/scripts/obsidiangate-validate-playerdata.py}"
 
 log() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -164,11 +165,19 @@ validate_playerdata() {
         fail "No playerdata directory found in staged world copy"
     fi
 
+    if ! command -v python3 >/dev/null 2>&1; then
+        fail "python3 is required for playerdata NBT validation"
+    fi
+
+    if [ ! -f "$PLAYERDATA_VALIDATOR" ]; then
+        fail "Playerdata validator not found: $PLAYERDATA_VALIDATOR"
+    fi
+
     find "$playerdata_dir" -type f -name '*.dat' | while IFS= read -r player_file; do
         if [ ! -s "$player_file" ]; then
             printf '%s: empty file\n' "$player_file" >> "$invalid_list"
-        elif ! gzip -t "$player_file" >/dev/null 2>&1; then
-            printf '%s: invalid gzip data\n' "$player_file" >> "$invalid_list"
+        elif ! python3 "$PLAYERDATA_VALIDATOR" "$player_file" >/dev/null 2>&1; then
+            printf '%s: invalid NBT playerdata\n' "$player_file" >> "$invalid_list"
         fi
     done
 
