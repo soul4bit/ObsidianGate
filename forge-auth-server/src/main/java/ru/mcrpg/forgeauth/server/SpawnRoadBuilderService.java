@@ -22,6 +22,8 @@ final class SpawnRoadBuilderService {
     private static final int FOUNDATION_DEPTH = 6;
     private static final int FOUNDATION_MIN_Y = 1;
     private static final int ROAD_HALF_WIDTH = 3;
+    private static final int FENCE_OFFSET = ROAD_HALF_WIDTH + 1;
+    private static final int FENCE_OPENING_RADIUS = 3;
     private static final int WATER_LANDFILL_HALF_WIDTH = ROAD_HALF_WIDTH + 1;
     private static final int WATER_LANDFILL_SCAN_DEPTH = 48;
     private static final int CLEAR_HALF_WIDTH = 8;
@@ -249,6 +251,7 @@ final class SpawnRoadBuilderService {
 
     private static void addAdaptiveRoad(List<Stage> stages, RoadPath path, BlockAccess blocks) {
         stages.add(new RoadPathStage("adaptive-road-" + path.id, path, blocks));
+        stages.add(new RoadFenceStage("adaptive-fence-" + path.id, path, blocks));
         stages.add(new RoadLampStage("adaptive-lamps-" + path.id, path, blocks));
         stages.add(new OutpostStage("outposts-" + path.id, path, blocks));
     }
@@ -789,6 +792,84 @@ final class SpawnRoadBuilderService {
         }
     }
 
+    private static final class RoadFenceStage implements Stage {
+        private final String name;
+        private final RoadPath path;
+        private final BlockAccess blocks;
+        private final Object fence;
+        private int pointIndex;
+        private int side;
+        private int part;
+        private boolean done;
+
+        RoadFenceStage(String name, RoadPath path, BlockAccess blocks) {
+            this.name = name;
+            this.path = path;
+            this.blocks = blocks;
+            this.fence = blocks.state("minecraft:fence", 0);
+        }
+
+        public int run(RoadTask task, int budget) {
+            int used = 0;
+            while (used < budget && !done) {
+                RoadPoint point = path.points.get(pointIndex);
+                int sideOffset = side == 0 ? -FENCE_OFFSET : FENCE_OFFSET;
+                int x = path.xWithOffset(point, sideOffset);
+                int z = path.zWithOffset(point, sideOffset);
+                if (part == 0) {
+                    Palette palette = blocks.palette(point.biomeName, path.colorMeta);
+                    blocks.set(task.world, x, point.y, z, palette.edge, false);
+                } else if (!openingAt(point.distance, sideOffset)) {
+                    blocks.set(task.world, x, point.y + 1, z, fence, false);
+                }
+                used++;
+                advance();
+            }
+            return used;
+        }
+
+        private boolean openingAt(int distance, int sideOffset) {
+            int sideSign = Integer.signum(sideOffset);
+            for (int index = 1; index <= OUTPOST_COUNT; index++) {
+                int milestone = OUTPOST_INTERVAL * index;
+                if (Math.abs(distance - milestone) <= FENCE_OPENING_RADIUS
+                    && Integer.signum(path.sideOffset(milestone)) == sideSign) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void advance() {
+            part++;
+            if (part < 2) {
+                return;
+            }
+            part = 0;
+            side++;
+            if (side < 2) {
+                return;
+            }
+            side = 0;
+            pointIndex++;
+            if (pointIndex >= path.points.size()) {
+                done = true;
+            }
+        }
+
+        public boolean done() {
+            return done;
+        }
+
+        public long total() {
+            return path.points.size() * 4L;
+        }
+
+        public String name() {
+            return name;
+        }
+    }
+
     private static final class RoadLampStage implements Stage {
         private final String name;
         private final RoadPath path;
@@ -848,6 +929,7 @@ final class SpawnRoadBuilderService {
 
         private void placePart(Object world, int x, int y, int z, int part) {
             if (part == 0) {
+                supportToGround(world, x, y - 1, z, stone);
                 blocks.set(world, x, y, z, stone, false);
             } else if (part >= 1 && part <= 4) {
                 blocks.set(world, x, y + part, z, fence, false);
@@ -861,6 +943,17 @@ final class SpawnRoadBuilderService {
                 blocks.set(world, x, y + 4, z + 1, torchSouth, false);
             } else {
                 blocks.set(world, x, y + 4, z - 1, torchNorth, false);
+            }
+        }
+
+        private void supportToGround(Object world, int x, int topY, int z, Object state) {
+            if (topY < FOUNDATION_MIN_Y) {
+                return;
+            }
+            int terrainY = blocks.terrainHeight(world, x, z, topY + 1);
+            int minY = Math.max(FOUNDATION_MIN_Y, terrainY + 1);
+            for (int y = minY; y <= topY; y++) {
+                blocks.set(world, x, y, z, state, false);
             }
         }
 
@@ -937,7 +1030,7 @@ final class SpawnRoadBuilderService {
                 int cz = path.zWithOffset(point, sideOffset);
                 int y = point.y;
                 addCuboid(ops, blocks, cx - 4, y + 1, cz - 4, cx + 4, y + 10, cz + 4, air, true);
-                addCuboid(ops, blocks, cx - 3, Math.max(FOUNDATION_MIN_Y, y - 3), cz - 3, cx + 3, y - 1, cz + 3, stone, false);
+                addSupportedPad(ops, blocks, cx - 3, cz - 3, cx + 3, cz + 3, y - 1, stone);
                 addCuboid(ops, blocks, cx - 3, y, cz - 3, cx + 3, y, cz + 3, stone, false);
                 addCuboid(ops, blocks, cx - 2, y, cz - 2, cx + 2, y, cz + 2, mossy, false);
                 addConnector(ops, path, blocks, point, sideOffset, stone, accent);
@@ -964,7 +1057,7 @@ final class SpawnRoadBuilderService {
             for (int offset = step * (ROAD_HALF_WIDTH + 1); Math.abs(offset) < Math.abs(sideOffset) - 3; offset += step) {
                 int x = path.xWithOffset(point, offset);
                 int z = path.zWithOffset(point, offset);
-                ops.add(new BlockOp(blocks, x, point.y, z, Math.abs(offset) % 3 == 0 ? accent : stone, false));
+                ops.add(BlockOp.support(blocks, x, point.y, z, Math.abs(offset) % 3 == 0 ? accent : stone));
             }
         }
 
@@ -1042,6 +1135,27 @@ final class SpawnRoadBuilderService {
                 }
             }
         }
+
+        private static void addSupportedPad(
+            List<BlockOp> ops,
+            BlockAccess blocks,
+            int x1,
+            int z1,
+            int x2,
+            int z2,
+            int topY,
+            Object state
+        ) {
+            int minX = Math.min(x1, x2);
+            int maxX = Math.max(x1, x2);
+            int minZ = Math.min(z1, z2);
+            int maxZ = Math.max(z1, z2);
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int x = minX; x <= maxX; x++) {
+                    ops.add(BlockOp.support(blocks, x, topY, z, state));
+                }
+            }
+        }
     }
 
     private static final class BlockOp {
@@ -1051,17 +1165,35 @@ final class SpawnRoadBuilderService {
         private final int z;
         private final Object state;
         private final boolean skipIfAir;
+        private final boolean supportToGround;
 
         private BlockOp(BlockAccess blocks, int x, int y, int z, Object state, boolean skipIfAir) {
+            this(blocks, x, y, z, state, skipIfAir, false);
+        }
+
+        private BlockOp(BlockAccess blocks, int x, int y, int z, Object state, boolean skipIfAir, boolean supportToGround) {
             this.blocks = blocks;
             this.x = x;
             this.y = y;
             this.z = z;
             this.state = state;
             this.skipIfAir = skipIfAir;
+            this.supportToGround = supportToGround;
+        }
+
+        static BlockOp support(BlockAccess blocks, int x, int y, int z, Object state) {
+            return new BlockOp(blocks, x, y, z, state, false, true);
         }
 
         private void apply(Object world) {
+            if (supportToGround) {
+                int terrainY = blocks.terrainHeight(world, x, z, y + 1);
+                int minY = Math.max(FOUNDATION_MIN_Y, terrainY + 1);
+                for (int supportY = minY; supportY <= y; supportY++) {
+                    blocks.set(world, x, supportY, z, state, false);
+                }
+                return;
+            }
             blocks.set(world, x, y, z, state, skipIfAir);
         }
     }
@@ -1690,14 +1822,14 @@ final class SpawnRoadBuilderService {
                 || blockName.contains("sea_lantern")
                 || blockName.contains("stonebrick")
                 || blockName.contains("stone_brick_stairs")
+                || blockName.contains("sandstone")
                 || blockName.contains("quartz_block")
                 || blockName.contains("quartz_stairs")
                 || blockName.contains("carpet")
                 || blockName.contains("fence")
                 || blockName.contains("torch")
                 || blockName.contains("end_rod")
-                || blockName.contains("stone_slab")
-                || blockName.contains("sandstone_stairs");
+                || blockName.contains("stone_slab");
         }
 
         void set(Object world, int x, int y, int z, Object state, boolean skipIfAir) {
